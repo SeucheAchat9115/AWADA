@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-from src.datasets.gta5 import GTA5Dataset
+from src.datasets.sim10k import Sim10kDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
 from src.utils.attention import generate_attention_maps
 
@@ -27,7 +27,7 @@ def build_model(num_classes):
 def main():
     parser = argparse.ArgumentParser(description='Generate RPN attention maps')
     parser.add_argument('--detector_checkpoint', required=True)
-    parser.add_argument('--dataset', choices=['gta5', 'cityscapes'], required=True)
+    parser.add_argument('--dataset', choices=['sim10k', 'cityscapes'], required=True)
     parser.add_argument('--data_root', required=True)
     parser.add_argument('--output_dir', required=True)
     parser.add_argument('--top_k', type=int, default=10)
@@ -38,8 +38,8 @@ def main():
 
     device = torch.device(args.device)
 
-    if args.dataset == 'gta5':
-        dataset = GTA5Dataset(args.data_root, split=args.split)
+    if args.dataset == 'sim10k':
+        dataset = Sim10kDataset(args.data_root, split=args.split)
     else:
         dataset = CityscapesDetectionDataset(args.data_root, split=args.split)
 

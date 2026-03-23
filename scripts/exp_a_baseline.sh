@@ -1,7 +1,7 @@
 #!/bin/bash
 # Experiment A: Non-Adaptive Baseline
 # Train Faster R-CNN on source domain, evaluate directly on target domain
-# Usage: bash scripts/exp_a_baseline.sh [gta5_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_a_baseline.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
 #
 # Environment variable overrides:
 #   EPOCHS (default 10) — number of detector training epochs; increase (e.g. 20)
@@ -9,15 +9,15 @@
 
 set -euo pipefail
 
-BENCHMARK=${1:-gta5_to_cityscapes}
+BENCHMARK=${1:-sim10k_to_cityscapes}
 
-if [ "$BENCHMARK" = "gta5_to_cityscapes" ]; then
-    SOURCE_DATASET="gta5"
-    SOURCE_ROOT="${GTA5_ROOT:-/data/gta5}"
+if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
+    SOURCE_DATASET="sim10k"
+    SOURCE_ROOT="${SIM10K_ROOT:-/data/sim10k}"
     TARGET_DATASET="cityscapes"
     TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    NUM_CLASSES=7
-    OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_a_gta2cs"
+    NUM_CLASSES=1
+    OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_a_sim10k2cs"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     SOURCE_DATASET="cityscapes"
     SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
@@ -27,7 +27,7 @@ elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_a_cs2foggy"
 else
     echo "Unknown benchmark: $BENCHMARK"
-    echo "Usage: $0 [gta5_to_cityscapes|cityscapes_to_foggy]"
+    echo "Usage: $0 [sim10k_to_cityscapes|cityscapes_to_foggy]"
     exit 1
 fi
 

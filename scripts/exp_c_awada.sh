@@ -1,22 +1,22 @@
 #!/bin/bash
 # Experiment C: AWADA (Attention-Weighted Domain Adaptation)
 # Requires Experiment A to be run first for baseline detector checkpoint
-# Usage: bash scripts/exp_c_awada.sh [gta5_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_c_awada.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
 
 set -euo pipefail
 
-BENCHMARK=${1:-gta5_to_cityscapes}
+BENCHMARK=${1:-sim10k_to_cityscapes}
 
-if [ "$BENCHMARK" = "gta5_to_cityscapes" ]; then
-    SOURCE_DATASET="gta5"
-    SOURCE_ROOT="${GTA5_ROOT:-/data/gta5}"
-    SOURCE_IMAGES="${GTA5_ROOT:-/data/gta5}/images"
+if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
+    SOURCE_DATASET="sim10k"
+    SOURCE_ROOT="${SIM10K_ROOT:-/data/sim10k}"
+    SOURCE_IMAGES="${SIM10K_ROOT:-/data/sim10k}/images"
     TARGET_DATASET="cityscapes"
     TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
     TARGET_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
-    NUM_CLASSES=7
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_c_gta2cs"
-    BASELINE_CKPT="${OUTPUT_ROOT:-./outputs}/exp_a_gta2cs/detector_final.pth"
+    NUM_CLASSES=1
+    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_c_sim10k2cs"
+    BASELINE_CKPT="${OUTPUT_ROOT:-./outputs}/exp_a_sim10k2cs/detector_final.pth"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     SOURCE_DATASET="cityscapes"
     SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"

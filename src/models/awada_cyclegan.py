@@ -17,9 +17,8 @@ class AWADACycleGAN(CycleGAN):
             return ((pred - target) ** 2).mean()
         # Resize mask to match discriminator output spatial size
         mask_resized = F.interpolate(mask, size=pred.shape[2:], mode='nearest')
-        # Weight: foreground = 2, background = 1, normalized
-        weight = 1.0 + mask_resized  # values: 1 (background) or 2 (foreground)
-        weight = weight / weight.mean()
+        # Weight: foreground = 1, background = 0 (masked out)
+        weight = mask_resized
         return (weight * (pred - target) ** 2).mean()
 
     def compute_generator_loss(self, lambda_cyc=10.0, lambda_idt=5.0):

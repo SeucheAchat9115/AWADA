@@ -1,17 +1,17 @@
 #!/bin/bash
 # Experiment D: Oracle (Upper Bound)
 # Train Faster R-CNN on target domain with labels, evaluate on target domain
-# Usage: bash scripts/exp_d_oracle.sh [gta5_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_d_oracle.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
 
 set -euo pipefail
 
-BENCHMARK=${1:-gta5_to_cityscapes}
+BENCHMARK=${1:-sim10k_to_cityscapes}
 
-if [ "$BENCHMARK" = "gta5_to_cityscapes" ]; then
+if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
     TARGET_DATASET="cityscapes"
     TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
     NUM_CLASSES=8
-    OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_d_gta2cs"
+    OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_d_sim10k2cs"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     TARGET_DATASET="foggy_cityscapes"
     TARGET_ROOT="${FOGGY_ROOT:-/data/foggy_cityscapes}"

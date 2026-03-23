@@ -9,15 +9,15 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_Res
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
-from src.datasets.gta5 import GTA5Dataset
+from src.datasets.sim10k import Sim10kDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
 from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
 from src.utils.metrics import compute_map_range
 
 
 def get_dataset(name, root, split, transforms=None):
-    if name == 'gta5':
-        return GTA5Dataset(root, split=split, transforms=transforms)
+    if name == 'sim10k':
+        return Sim10kDataset(root, split=split, transforms=transforms)
     elif name == 'cityscapes':
         return CityscapesDetectionDataset(root, split=split, transforms=transforms)
     elif name == 'foggy_cityscapes':
@@ -54,7 +54,7 @@ def evaluate(model, dataloader, device, num_classes):
 
 def main():
     parser = argparse.ArgumentParser(description='Train Faster R-CNN detector')
-    parser.add_argument('--dataset', choices=['gta5', 'cityscapes', 'foggy_cityscapes'], required=True)
+    parser.add_argument('--dataset', choices=['sim10k', 'cityscapes', 'foggy_cityscapes'], required=True)
     parser.add_argument('--data_root', required=True)
     parser.add_argument('--num_classes', type=int, required=True)
     parser.add_argument('--output_dir', required=True)
