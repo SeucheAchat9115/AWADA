@@ -34,7 +34,7 @@ def build_model(num_classes, pretrained=True):
     weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT if pretrained else None
     model = fasterrcnn_resnet50_fpn(weights=weights)
     in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)  # +1 for background
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)  # +1 to include background (class 0)
     return model
 
 
