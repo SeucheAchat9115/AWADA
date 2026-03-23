@@ -5,7 +5,7 @@ from scipy import ndimage
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
-from .cityscapes import CITYSCAPES_LABEL_MAP, CLASS_NAMES
+from .cityscapes import CITYSCAPES_LABEL_MAP
 
 
 class FoggyCityscapesDataset(Dataset):

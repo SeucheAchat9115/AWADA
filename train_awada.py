@@ -11,7 +11,7 @@ from src.datasets.attention_dataset import AttentionPairedDataset
 from src.models.awada_cyclegan import AWADACycleGAN
 
 
-def get_lambda_lr(epoch, n_epochs, n_epochs_decay, offset=0):
+def get_lambda_lr(epoch, n_epochs, n_epochs_decay):
     if epoch < n_epochs:
         return 1.0
     return max(0.0, 1.0 - (epoch - n_epochs) / float(n_epochs_decay + 1))

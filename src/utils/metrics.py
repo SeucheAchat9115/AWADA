@@ -136,5 +136,5 @@ def compute_map_range(
     return {
         'mAP@0.5': map50['mAP'],
         'mAP@0.5:0.95': sum(maps) / len(maps),
-        **{f'AP_class_{c}': v for c, v in map50.items() if c != 'mAP'},
+        **{f'AP_class_{c}': v for c, v in map50.items() if isinstance(c, int)},
     }
