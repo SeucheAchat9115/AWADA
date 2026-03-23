@@ -1,59 +1,186 @@
-# AWADA Domain Adaptation for Object Detection: Evaluation Protocol
+# AWADA: Attention-Weighted Domain Adaptation for Object Detection
 
-This document outlines the experimental setup and evaluation specifications to compare four different training pipelines for unsupervised domain adaptation (UDA) in object detection: Non-Adaptive (Baseline), standard CycleGAN, AWADA, and an Oracle (Upper Bound).
+AWADA is an unsupervised domain adaptation framework for object detection that leverages attention-weighted CycleGAN training to focus style transfer on semantically meaningful regions. By using RPN (Region Proposal Network) attention maps from a source-domain Faster R-CNN detector to bias the adversarial training, AWADA produces more faithful style-translated images for cross-domain object detection benchmarks including **GTA5 → Cityscapes** and **Cityscapes → Foggy Cityscapes**.
 
-## 1. Experimental Setup
+## Method Overview
 
-### 1.1 Datasets
-To evaluate the domain shift, the dataset must be split into distinct Source and Target domains.
-* **Source Domain ($D_S$):** Fully annotated dataset (e.g., synthetic data like GTA5 or Sim10k).
-* **Target Domain ($D_T$):** Unannotated dataset for training, annotated for evaluation only (e.g., real-world data like Cityscapes). *Note: For the Oracle experiment, the training split of $D_T$ must be temporarily treated as fully annotated.*
+1. **Baseline detector**: Train Faster R-CNN on the source domain.
+2. **Attention map generation**: Extract RPN proposals from the baseline detector to create binary foreground attention masks for each source image.
+3. **AWADA CycleGAN**: Train a CycleGAN where adversarial losses are weighted by the attention masks — foreground regions receive 2× weight, background 1×.
+4. **Stylized training**: Stylize the source domain images using the trained generator, then train a new detector on the stylized images.
 
-### 1.2 Architectures
-* **Object Detector:** Faster R-CNN (ResNet-50 backbone). This two-stage detector will be used consistently across all experiments.
-* **GAN Generators:** ResNet-based generator (9 blocks).
-* **GAN Discriminators:** PatchGAN discriminator (operating on 128x128 patches).
+## Installation
 
----
+**Requirements**: Python 3.8+, CUDA-capable GPU recommended.
 
-## 2. Evaluation Pipelines
+```bash
+pip install -r requirements.txt
+```
 
-### Experiment A: Non-Adaptive (Source-Only Baseline)
-1.  Train Faster R-CNN exclusively on the Source Domain $D_S$ using ground-truth labels.
-2.  Evaluate the trained detector directly on the Target Domain validation set $D_T$.
+### requirements.txt
+
+```
+torch>=1.13.0
+torchvision>=0.14.0
+numpy>=1.21.0
+Pillow>=9.0.0
+scipy>=1.7.0
+tqdm>=4.62.0
+```
+
+## Dataset Setup
+
+### GTA5
+
+Download from the [Playing for Data](https://download.visinf.tu-darmstadt.de/data/from_games/) project. Expected structure:
+
+```
+/data/gta5/
+├── images/         # PNG images: 00001.png, 00002.png, ...
+└── labels/         # PNG semantic label maps (same filenames)
+```
+
+### Cityscapes
+
+Download from the [Cityscapes dataset](https://www.cityscapes-dataset.com/) (requires registration). Expected structure:
+
+```
+/data/cityscapes/
+├── leftImg8bit/
+│   ├── train/{city}/*_leftImg8bit.png
+│   └── val/{city}/*_leftImg8bit.png
+└── gtFine/
+    ├── train/{city}/*_gtFine_instanceIds.png
+    └── val/{city}/*_gtFine_instanceIds.png
+```
+
+### Foggy Cityscapes
+
+Download from the [Cityscapes dataset](https://www.cityscapes-dataset.com/) (Foggy Cityscapes package). Expected structure:
+
+```
+/data/foggy_cityscapes/
+├── leftImg8bit_foggy/
+│   ├── train/{city}/*_leftImg8bit_foggy_beta_0.02.png
+│   └── val/{city}/*_leftImg8bit_foggy_beta_0.02.png
+└── gtFine/
+    ├── train/{city}/*_gtFine_instanceIds.png
+    └── val/{city}/*_gtFine_instanceIds.png
+```
+
+## Quick Start
+
+Set your data paths as environment variables, then run any of the four experiment scripts:
+
+```bash
+export GTA5_ROOT=/data/gta5
+export CITYSCAPES_ROOT=/data/cityscapes
+export FOGGY_ROOT=/data/foggy_cityscapes
+export OUTPUT_ROOT=./outputs
+export DEVICE=cuda
+```
+
+### Experiment A: Non-Adaptive Baseline
+
+Train on source domain, evaluate directly on target domain (no adaptation):
+
+```bash
+# GTA5 → Cityscapes
+bash scripts/exp_a_baseline.sh gta5_to_cityscapes
+
+# Cityscapes → Foggy Cityscapes
+bash scripts/exp_a_baseline.sh cityscapes_to_foggy
+```
 
 ### Experiment B: Standard CycleGAN
-1.  Train standard CycleGAN to translate between $D_S$ and $D_T$ (using 128x128 patches).
-2.  Generate a stylized dataset $D_{S \to T}$ by passing full Source images through the frozen Generator $G_{S \to T}$.
-3.  Train a *new* Faster R-CNN model from scratch on $D_{S \to T}$, using the original $D_S$ bounding box labels.
-4.  Evaluate the detector on the Target Domain validation set $D_T$.
+
+Train CycleGAN, stylize source images, train detector on stylized images:
+
+```bash
+bash scripts/exp_b_cyclegan.sh gta5_to_cityscapes
+bash scripts/exp_b_cyclegan.sh cityscapes_to_foggy
+```
 
 ### Experiment C: AWADA (Attention-Weighted)
-This pipeline uses offline, RPN-guided attention maps to spatially mask adversarial training.
-1.  **Offline Attention Generation:** * Patch the trained Faster R-CNN from Experiment A to output intermediate **RPN proposals** rather than final predictions.
-    * Run all $D_S$ images through this patched network.
-    * Generate full-resolution **binary attention maps** $A(x)$ by setting pixels inside the top RPN proposal boxes to 1 (foreground) and the rest to 0 (background).
-2.  **Synchronized Patch Training:** Train the AWADA CycleGAN on 128x128 patches from $D_S$ and $D_T$. During the dataloader phase, synchronously crop the image patch and its corresponding 128x128 attention patch $A_{patch}(x)$.
-3.  **Masked Adversarial Loss:** Compute the GAN losses. Apply the binary attention map $A_{patch}(x)$ to **spatially mask only the adversarial losses** (Generator and Discriminator). The cycle-consistency and identity losses remain unmasked to allow global style transfer.
-4.  **Stylization:** Generate the stylized dataset $D_{S \to T\_awada}$ by passing full, uncropped Source images through the frozen AWADA Generator $G_{S \to T}$.
-5.  **Detector Training:** Train a *new* Faster R-CNN model on $D_{S \to T\_awada}$ using the original $D_S$ labels.
-6.  **Evaluation:** Evaluate the detector on the Target Domain validation set $D_T$.
 
-### Experiment D: Oracle (Target-Only Upper Bound)
-1.  Train Faster R-CNN exclusively on the Target Domain training set $D_T$ using its ground-truth labels.
-2.  Evaluate the trained detector on the Target Domain validation set $D_T$.
+Requires Experiment A checkpoint. Generates attention maps, trains AWADA CycleGAN, stylizes and retrains detector:
 
----
+```bash
+bash scripts/exp_c_awada.sh gta5_to_cityscapes
+bash scripts/exp_c_awada.sh cityscapes_to_foggy
+```
 
-## 3. Evaluation Metrics
+### Experiment D: Oracle (Upper Bound)
 
-The primary metric for comparison is **Mean Average Precision (mAP)**. 
+Train and evaluate directly on the target domain with labels:
 
-### Expected Results Table
+```bash
+bash scripts/exp_d_oracle.sh gta5_to_cityscapes
+bash scripts/exp_d_oracle.sh cityscapes_to_foggy
+```
 
-| Method | Training Data | Evaluation Data | Adapt Setup | mAP@0.5 | mAP@0.5:0.95 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Lower Bound (Baseline)** | $D_S$ | $D_T$ | None | - | - |
-| **Standard CycleGAN** | $D_{S \to T}$ | $D_T$ | Global | - | - |
-| **AWADA** | $D_{S \to T\_awada}$| $D_T$ | RPN Patch Masking | - | - |
-| **Upper Bound (Oracle)** | $D_T$ | $D_T$ | None (Fully Supervised) | - | - |
+### Optional environment overrides
+
+```bash
+export EPOCHS=10          # detector training epochs
+export GAN_EPOCHS=200     # GAN training epochs
+export BATCH_SIZE=2       # detector batch size
+export GAN_BATCH=1        # GAN batch size
+export TOP_K=10           # top-k RPN proposals for attention maps
+```
+
+## Project Structure
+
+```
+AWADA/
+├── requirements.txt
+├── train_detector.py          # Faster R-CNN training script
+├── train_cyclegan.py          # Standard CycleGAN training
+├── train_awada.py             # AWADA CycleGAN training
+├── generate_attention_maps.py # Generate RPN attention maps
+├── stylize_dataset.py         # Stylize images with trained generator
+├── scripts/
+│   ├── exp_a_baseline.sh      # Experiment A: Baseline
+│   ├── exp_b_cyclegan.sh      # Experiment B: CycleGAN
+│   ├── exp_c_awada.sh         # Experiment C: AWADA
+│   └── exp_d_oracle.sh        # Experiment D: Oracle
+└── src/
+    ├── models/
+    │   ├── generator.py        # ResNet-9 generator
+    │   ├── discriminator.py    # PatchGAN discriminator
+    │   ├── cyclegan.py         # CycleGAN with image replay buffer
+    │   └── awada_cyclegan.py   # AWADA variant with masked losses
+    ├── datasets/
+    │   ├── gta5.py             # GTA5 detection dataset
+    │   ├── cityscapes.py       # Cityscapes detection dataset
+    │   ├── foggy_cityscapes.py # Foggy Cityscapes detection dataset
+    │   └── attention_dataset.py# Paired dataset for AWADA GAN training
+    └── utils/
+        ├── attention.py        # RPN attention map generation
+        └── metrics.py          # mAP computation
+```
+
+## Evaluation
+
+All experiments report:
+
+- **mAP@0.5**: Mean Average Precision at IoU threshold 0.5 (PASCAL VOC metric).
+- **mAP@0.5:0.95**: Mean Average Precision averaged over IoU thresholds 0.50–0.95 in steps of 0.05 (COCO metric).
+
+Results are saved to `results.txt` in each experiment's output directory.
+
+## Citation
+
+If you use this code in your research, please cite:
+
+```bibtex
+@article{awada2024,
+  title     = {AWADA: Attention-Weighted Domain Adaptation for Object Detection},
+  author    = {AWADA Authors},
+  year      = {2024},
+}
+```
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
