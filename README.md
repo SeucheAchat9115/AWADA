@@ -143,6 +143,51 @@ export GAN_BATCH=1        # GAN batch size
 export TOP_K=10           # top-k RPN proposals for attention maps
 ```
 
+## Attention Map Generation
+
+Before training the AWADA CycleGAN you need binary foreground attention masks for every source-domain image. `generate_attention_maps.py` extracts the top-K RPN proposals from a trained Faster R-CNN checkpoint and saves one `.npy` mask per image (float32, 0 or 1, same H × W as the input image).
+
+**Arguments**
+
+| Argument | Required | Default | Description |
+|---|---|---|---|
+| `--detector_checkpoint` | ✓ | — | Path to the trained Faster R-CNN checkpoint (`.pth`) |
+| `--dataset` | ✓ | — | Source dataset: `sim10k` or `cityscapes` |
+| `--data_root` | ✓ | — | Root directory of the source dataset |
+| `--output_dir` | ✓ | — | Directory where `.npy` attention maps are written |
+| `--num_classes` | ✓ | — | Number of foreground classes (1 for sim10k, 8 for Cityscapes) |
+| `--top_k` | | `10` | Number of top RPN proposals used to build each mask |
+| `--split` | | `train` | Dataset split to process (`train` / `val`) |
+| `--device` | | `cuda` | Compute device (`cuda` or `cpu`) |
+
+**Examples**
+
+```bash
+# sim10k → Cityscapes (1 foreground class: car)
+python generate_attention_maps.py \
+    --detector_checkpoint outputs/exp_a_sim10k2cs/detector_final.pth \
+    --dataset            sim10k \
+    --data_root          /data/sim10k \
+    --output_dir         outputs/exp_c_sim10k2cs/attention_maps \
+    --num_classes        1 \
+    --top_k              10 \
+    --split              train \
+    --device             cuda
+
+# Cityscapes → Foggy Cityscapes (8 foreground classes)
+python generate_attention_maps.py \
+    --detector_checkpoint outputs/exp_a_cs2foggy/detector_final.pth \
+    --dataset            cityscapes \
+    --data_root          /data/cityscapes \
+    --output_dir         outputs/exp_c_cs2foggy/attention_maps \
+    --num_classes        8 \
+    --top_k              10 \
+    --split              train \
+    --device             cuda
+```
+
+The generated masks are automatically consumed by `train_awada.py` via the `--attention_dir` flag. When running Experiment C end-to-end, `scripts/exp_c_awada.sh` calls this script automatically; the examples above are useful when you need to regenerate or inspect the masks independently.
+
 ## Project Structure
 
 ```
