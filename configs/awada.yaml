@@ -1,0 +1,20 @@
+# AWADA hyperparameter configuration
+# These values can be overridden via command-line arguments in train_awada.py
+
+# Training duration
+epochs: 200
+
+# Optimiser
+lr: 0.0002
+betas: [0.5, 0.999]
+
+# Loss weights
+lambda_cyc: 10.0
+lambda_idt: 5.0
+
+# Data loading
+batch_size: 1
+patch_size: 128
+
+# Hardware
+device: cuda
