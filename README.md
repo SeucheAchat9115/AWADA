@@ -1,4 +1,4 @@
-# AWADA: Attention-Weighted Domain Adaptation for Object Detection
+# AWADA: Foreground-focused adversarial learning for cross-domain object detection
 
 AWADA is an unsupervised domain adaptation framework for object detection that leverages attention-weighted CycleGAN training to focus style transfer on semantically meaningful regions. By using RPN (Region Proposal Network) attention maps from a source-domain Faster R-CNN detector to bias the adversarial training, AWADA produces more faithful style-translated images for cross-domain object detection benchmarks including **sim10k → Cityscapes** and **Cityscapes → Foggy Cityscapes**.
 
@@ -148,30 +148,33 @@ export TOP_K=10           # top-k RPN proposals for attention maps
 ```
 AWADA/
 ├── pyproject.toml
-├── train_detector.py          # Faster R-CNN training script
-├── train_cyclegan.py          # Standard CycleGAN training
-├── train_awada.py             # AWADA CycleGAN training
-├── generate_attention_maps.py # Generate RPN attention maps
-├── stylize_dataset.py         # Stylize images with trained generator
+├── configs/
+│   └── awada.yaml                 # AWADA hyperparameter config
+├── train_detector.py              # Faster R-CNN training script
+├── train_cyclegan.py              # Standard CycleGAN training
+├── train_awada.py                 # AWADA CycleGAN training (reads configs/awada.yaml)
+├── generate_attention_maps.py     # Generate RPN attention maps
+├── stylize_dataset.py             # Stylize images with trained generator
+├── visualize_inference.py         # Side-by-side visualization of style transfer
 ├── scripts/
-│   ├── exp_a_baseline.sh      # Experiment A: Baseline
-│   ├── exp_b_cyclegan.sh      # Experiment B: CycleGAN
-│   ├── exp_c_awada.sh         # Experiment C: AWADA
-│   └── exp_d_oracle.sh        # Experiment D: Oracle
+│   ├── exp_a_baseline.sh          # Experiment A: Baseline
+│   ├── exp_b_cyclegan.sh          # Experiment B: CycleGAN
+│   ├── exp_c_awada.sh             # Experiment C: AWADA
+│   └── exp_d_oracle.sh            # Experiment D: Oracle
 └── src/
     ├── models/
-    │   ├── generator.py        # ResNet-9 generator
-    │   ├── discriminator.py    # PatchGAN discriminator
-    │   ├── cyclegan.py         # CycleGAN with image replay buffer
-    │   └── awada_cyclegan.py   # AWADA variant with masked losses
+    │   ├── generator.py            # ResNet-9 generator
+    │   ├── discriminator.py        # PatchGAN discriminator
+    │   ├── cyclegan.py             # CycleGAN with image replay buffer
+    │   └── awada_cyclegan.py       # AWADA variant with masked losses
     ├── datasets/
-    │   ├── sim10k.py           # sim10k (Driving in the Matrix) detection dataset
-    │   ├── cityscapes.py       # Cityscapes detection dataset
-    │   ├── foggy_cityscapes.py # Foggy Cityscapes detection dataset
-    │   └── attention_dataset.py# Paired dataset for AWADA GAN training
+    │   ├── sim10k.py               # sim10k (Driving in the Matrix) detection dataset
+    │   ├── cityscapes.py           # Cityscapes detection dataset
+    │   ├── foggy_cityscapes.py     # Foggy Cityscapes detection dataset
+    │   └── attention_dataset.py    # Paired dataset for AWADA GAN training
     └── utils/
-        ├── attention.py        # RPN attention map generation
-        └── metrics.py          # mAP computation
+        ├── attention.py            # RPN attention map generation
+        └── metrics.py              # mAP computation (pycocotools)
 ```
 
 ## Evaluation
@@ -181,17 +184,74 @@ All experiments report:
 - **mAP@0.5**: Mean Average Precision at IoU threshold 0.5 (PASCAL VOC metric).
 - **mAP@0.5:0.95**: Mean Average Precision averaged over IoU thresholds 0.50–0.95 in steps of 0.05 (COCO metric).
 
+Evaluation is performed with [pycocotools](https://github.com/cocodataset/cocoapi), the standard COCO evaluation library.
+
 Results are saved to `results.txt` in each experiment's output directory.
+
+## Hyperparameter Configuration
+
+AWADA-specific hyperparameters are stored in `configs/awada.yaml`:
+
+```yaml
+epochs: 200
+lr: 0.0002
+betas: [0.5, 0.999]
+lambda_cyc: 10.0
+lambda_idt: 5.0
+batch_size: 1
+patch_size: 128
+device: cuda
+```
+
+`train_awada.py` loads this file automatically (`--config configs/awada.yaml`).
+Any value can be overridden with the corresponding CLI flag, e.g.:
+
+```bash
+python train_awada.py --config configs/awada.yaml --lr 0.0001 --epochs 100 ...
+```
+
+## Visualization
+
+Use `visualize_inference.py` to run style transfer on a set of images and produce
+side-by-side comparison PNGs (original | translated):
+
+```bash
+# Visualize AWADA-translated images (source → target direction, A→B)
+python visualize_inference.py \
+    --checkpoint outputs/awada_gan/awada_epoch_200.pth \
+    --input_dir  /data/sim10k/images \
+    --output_dir outputs/visualizations
+
+# Visualize only the first 10 images
+python visualize_inference.py \
+    --checkpoint outputs/cyclegan/cyclegan_epoch_200.pth \
+    --input_dir  /data/sim10k/images \
+    --output_dir outputs/visualizations \
+    --num_images 10
+
+# Use the inverse generator (B → A)
+python visualize_inference.py \
+    --checkpoint outputs/awada_gan/awada_epoch_200.pth \
+    --input_dir  /data/cityscapes/leftImg8bit/val/aachen \
+    --output_dir outputs/visualizations \
+    --direction  BA
+```
 
 ## Citation
 
 If you use this code in your research, please cite:
 
 ```bibtex
-@article{awada2024,
-  title     = {AWADA: Attention-Weighted Domain Adaptation for Object Detection},
-  author    = {AWADA Authors},
-  year      = {2024},
+@article{menkeAWADA2024,
+  title   = {AWADA: Foreground-focused adversarial learning for cross-domain object detection},
+  journal = {Computer Vision and Image Understanding},
+  volume  = {249},
+  pages   = {104153},
+  year    = {2024},
+  issn    = {1077-3142},
+  doi     = {10.1016/j.cviu.2024.104153},
+  url     = {https://www.sciencedirect.com/science/article/pii/S1077314224002340},
+  author  = {Maximilian Menke and Thomas Wenzel and Andreas Schwung},
 }
 ```
 

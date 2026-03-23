@@ -70,11 +70,9 @@ python train_awada.py \
     --target_dir "$TARGET_IMAGES" \
     --attention_dir "$ATTENTION_DIR" \
     --output_dir "$GAN_OUTPUT" \
+    --config configs/awada.yaml \
     --epochs "${GAN_EPOCHS:-200}" \
     --batch_size "${GAN_BATCH:-1}" \
-    --lr 0.0002 \
-    --lambda_cyc 10.0 \
-    --lambda_idt 5.0 \
     --device "${DEVICE:-cuda}"
 
 # Step 3: Stylize source images using AWADA generator
