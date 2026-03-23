@@ -94,6 +94,20 @@ export OUTPUT_ROOT=./outputs
 export DEVICE=cuda
 ```
 
+### End-to-End Pipeline
+
+Run all four experiments (A → B → C → D) in a single command:
+
+```bash
+# sim10k → Cityscapes
+bash scripts/run_all.sh sim10k_to_cityscapes
+
+# Cityscapes → Foggy Cityscapes
+bash scripts/run_all.sh cityscapes_to_foggy
+```
+
+The script runs the experiments in dependency order (Experiment A must finish before C, which needs the baseline checkpoint) and prints a consolidated results summary at the end.
+
 ### Experiment A: Non-Adaptive Baseline
 
 Train on source domain, evaluate directly on target domain (no adaptation):
@@ -202,6 +216,7 @@ AWADA/
 ├── stylize_dataset.py             # Stylize images with trained generator
 ├── visualize_inference.py         # Side-by-side visualization of style transfer
 ├── scripts/
+│   ├── run_all.sh                 # End-to-end pipeline (runs A → B → C → D)
 │   ├── exp_a_baseline.sh          # Experiment A: Baseline
 │   ├── exp_b_cyclegan.sh          # Experiment B: CycleGAN
 │   ├── exp_c_awada.sh             # Experiment C: AWADA
