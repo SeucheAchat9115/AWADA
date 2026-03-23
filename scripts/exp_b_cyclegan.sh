@@ -1,21 +1,21 @@
 #!/bin/bash
 # Experiment B: Standard CycleGAN Domain Adaptation
 # Train CycleGAN, stylize source images, train new detector on stylized data
-# Usage: bash scripts/exp_b_cyclegan.sh [gta5_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_b_cyclegan.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
 
 set -euo pipefail
 
-BENCHMARK=${1:-gta5_to_cityscapes}
+BENCHMARK=${1:-sim10k_to_cityscapes}
 
-if [ "$BENCHMARK" = "gta5_to_cityscapes" ]; then
-    SOURCE_DATASET="gta5"
-    SOURCE_ROOT="${GTA5_ROOT:-/data/gta5}"
-    SOURCE_IMAGES="${GTA5_ROOT:-/data/gta5}/images"
+if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
+    SOURCE_DATASET="sim10k"
+    SOURCE_ROOT="${SIM10K_ROOT:-/data/sim10k}"
+    SOURCE_IMAGES="${SIM10K_ROOT:-/data/sim10k}/images"
     TARGET_DATASET="cityscapes"
     TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
     TARGET_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
-    NUM_CLASSES=7
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_gta2cs"
+    NUM_CLASSES=1
+    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_sim10k2cs"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     SOURCE_DATASET="cityscapes"
     SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
