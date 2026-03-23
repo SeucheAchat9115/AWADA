@@ -39,7 +39,7 @@ def main():
     device = torch.device(args.device)
 
     if args.dataset == 'sim10k':
-        dataset = Sim10kDataset(args.data_root, split=args.split)
+        dataset = Sim10kDataset(args.data_root)
     else:
         dataset = CityscapesDetectionDataset(args.data_root, split=args.split)
 
