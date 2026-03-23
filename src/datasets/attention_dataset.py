@@ -29,8 +29,8 @@ class AttentionPairedDataset(Dataset):
         return len(self.source_files)
 
     def _load_attention(self, src_path):
-        stem = os.path.splitext(os.path.basename(src_path))[0]
-        npy_path = os.path.join(self.attention_root, stem + '.npy')
+        filename_stem = os.path.splitext(os.path.basename(src_path))[0]
+        npy_path = os.path.join(self.attention_root, filename_stem + '.npy')
         if os.path.exists(npy_path):
             return np.load(npy_path).astype(np.float32)
         # If no attention map found, return None (will use all-ones later)

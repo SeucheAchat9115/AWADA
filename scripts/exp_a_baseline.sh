@@ -2,6 +2,10 @@
 # Experiment A: Non-Adaptive Baseline
 # Train Faster R-CNN on source domain, evaluate directly on target domain
 # Usage: bash scripts/exp_a_baseline.sh [gta5_to_cityscapes|cityscapes_to_foggy]
+#
+# Environment variable overrides:
+#   EPOCHS (default 10) — number of detector training epochs; increase (e.g. 20)
+#                         for higher accuracy at the cost of longer training time.
 
 set -euo pipefail
 

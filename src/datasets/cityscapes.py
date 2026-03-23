@@ -20,6 +20,8 @@ CITYSCAPES_LABEL_MAP = {
     33: 7,  # bicycle
 }
 CLASS_NAMES = ['person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
+# Minimum number of foreground pixels for an instance to be kept as a detection box
+MIN_PIXELS_THRESHOLD = 10
 
 
 class CityscapesDetectionDataset(Dataset):
@@ -65,7 +67,7 @@ class CityscapesDetectionDataset(Dataset):
                 continue
             mask = (instance_map == inst_id)
             ys, xs = np.where(mask)
-            if len(ys) < 10:
+            if len(ys) < MIN_PIXELS_THRESHOLD:
                 continue
             x1, y1, x2, y2 = xs.min(), ys.min(), xs.max(), ys.max()
             if (x2 - x1) > 5 and (y2 - y1) > 5:

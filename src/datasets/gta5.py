@@ -18,6 +18,8 @@ GTA5_LABEL_MAP = {
     33: 6,  # bicycle
 }
 CLASS_NAMES = ['person', 'rider', 'car', 'truck', 'bus', 'motorcycle', 'bicycle']
+# Minimum number of foreground pixels for a connected component to be kept as a detection box
+MIN_PIXELS_THRESHOLD = 10
 
 
 class GTA5Dataset(Dataset):
@@ -53,7 +55,7 @@ class GTA5Dataset(Dataset):
             labeled, num_features = ndimage.label(mask)
             for comp_idx in range(1, num_features + 1):
                 ys, xs = np.where(labeled == comp_idx)
-                if len(ys) < 10:
+                if len(ys) < MIN_PIXELS_THRESHOLD:
                     continue
                 x1, y1, x2, y2 = xs.min(), ys.min(), xs.max(), ys.max()
                 if (x2 - x1) > 5 and (y2 - y1) > 5:

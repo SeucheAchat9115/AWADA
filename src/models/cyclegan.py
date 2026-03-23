@@ -6,7 +6,9 @@ from .discriminator import PatchGANDiscriminator
 
 
 class ImageBuffer:
-    """Replay buffer to stabilize discriminator training (size=50)."""
+    """Replay buffer to stabilize discriminator training.
+    Size of 50 matches the original CycleGAN implementation (Zhu et al., 2017).
+    """
     def __init__(self, max_size=50):
         self.max_size = max_size
         self.data = []

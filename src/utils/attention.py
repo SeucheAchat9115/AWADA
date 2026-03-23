@@ -17,7 +17,7 @@ def generate_attention_maps(detector, dataloader, output_dir, top_k=10, device='
     # Hook to capture RPN proposals
     rpn_proposals = {}
 
-    def rpn_hook(module, input, output):
+    def rpn_hook(module, hook_input, output):
         # output from RPN: (boxes, scores) per image
         # In torchvision FasterRCNN, RPN forward returns (proposals, losses)
         # proposals is a list of tensors [N, 4] in (x1, y1, x2, y2) format

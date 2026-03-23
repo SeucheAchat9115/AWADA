@@ -5,7 +5,7 @@ from scipy import ndimage
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
-from .cityscapes import CITYSCAPES_LABEL_MAP
+from .cityscapes import CITYSCAPES_LABEL_MAP, MIN_PIXELS_THRESHOLD
 
 
 class FoggyCityscapesDataset(Dataset):
@@ -52,7 +52,7 @@ class FoggyCityscapesDataset(Dataset):
                 continue
             mask = (instance_map == inst_id)
             ys, xs = np.where(mask)
-            if len(ys) < 10:
+            if len(ys) < MIN_PIXELS_THRESHOLD:
                 continue
             x1, y1, x2, y2 = xs.min(), ys.min(), xs.max(), ys.max()
             if (x2 - x1) > 5 and (y2 - y1) > 5:
