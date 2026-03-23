@@ -17,7 +17,7 @@ from src.utils.metrics import compute_map_range
 
 def get_dataset(name, root, split, transforms=None):
     if name == 'sim10k':
-        return Sim10kDataset(root, split=split, transforms=transforms)
+        return Sim10kDataset(root, transforms=transforms)
     elif name == 'cityscapes':
         return CityscapesDetectionDataset(root, split=split, transforms=transforms)
     elif name == 'foggy_cityscapes':
@@ -70,12 +70,13 @@ def main():
     device = torch.device(args.device)
 
     train_dataset = get_dataset(args.dataset, args.data_root, split='train')
-    val_dataset = get_dataset(args.dataset, args.data_root, split='val')
+    # sim10k (GTA) does not require a validation split; all images are used for training.
+    val_dataset = get_dataset(args.dataset, args.data_root, split='val') if args.dataset != 'sim10k' else None
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                               num_workers=4, collate_fn=collate_fn, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False,
-                            num_workers=2, collate_fn=collate_fn)
+                            num_workers=2, collate_fn=collate_fn) if val_dataset is not None else None
 
     model = build_model(args.num_classes, pretrained=args.pretrained)
     model.to(device)
@@ -119,8 +120,9 @@ def main():
         print(f'Checkpoint saved: {ckpt_path}')
 
         # Evaluate
-        metrics = evaluate(model, val_loader, device, args.num_classes)
-        print(f'Epoch {epoch+1} Validation: mAP@0.5={metrics["mAP@0.5"]:.4f}, mAP@0.5:0.95={metrics["mAP@0.5:0.95"]:.4f}')
+        if val_loader is not None:
+            metrics = evaluate(model, val_loader, device, args.num_classes)
+            print(f'Epoch {epoch+1} Validation: mAP@0.5={metrics["mAP@0.5"]:.4f}, mAP@0.5:0.95={metrics["mAP@0.5:0.95"]:.4f}')
 
     # Save final model
     final_path = os.path.join(args.output_dir, 'detector_final.pth')

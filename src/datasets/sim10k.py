@@ -13,6 +13,8 @@ class Sim10kDataset(Dataset):
     """Driving in the Matrix (sim10k) synthetic driving dataset for object detection.
 
     Annotations are in PASCAL VOC XML format and contain only the 'car' class.
+    All images are used without any train/val split.
+
     Expected directory structure::
 
         root/
@@ -20,18 +22,11 @@ class Sim10kDataset(Dataset):
         └── Annotations/  # PASCAL VOC XML files (e.g. 00001.xml)
     """
 
-    def __init__(self, root, split='train', transforms=None):
+    def __init__(self, root, transforms=None):
         self.root = root
         self.transforms = transforms
         img_dir = os.path.join(root, 'images')
-        all_images = sorted([f for f in os.listdir(img_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
-        n = len(all_images)
-        if split == 'train':
-            self.image_files = all_images[:int(0.8 * n)]
-        elif split == 'val':
-            self.image_files = all_images[int(0.8 * n):]
-        else:
-            self.image_files = all_images
+        self.image_files = sorted([f for f in os.listdir(img_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
 
     def __len__(self):
         return len(self.image_files)
