@@ -10,6 +10,7 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 from src.datasets.sim10k import Sim10kDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
+from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
 from src.utils.attention import generate_attention_maps
 
 
@@ -27,7 +28,7 @@ def build_model(num_classes):
 def main():
     parser = argparse.ArgumentParser(description='Generate RPN attention maps')
     parser.add_argument('--detector_checkpoint', required=True)
-    parser.add_argument('--dataset', choices=['sim10k', 'cityscapes'], required=True)
+    parser.add_argument('--dataset', choices=['sim10k', 'cityscapes', 'foggy_cityscapes'], required=True)
     parser.add_argument('--data_root', required=True)
     parser.add_argument('--output_dir', required=True)
     parser.add_argument('--top_k', type=int, default=10)
@@ -40,8 +41,10 @@ def main():
 
     if args.dataset == 'sim10k':
         dataset = Sim10kDataset(args.data_root)
-    else:
+    elif args.dataset == 'cityscapes':
         dataset = CityscapesDetectionDataset(args.data_root, split=args.split)
+    else:
+        dataset = FoggyCityscapesDataset(args.data_root, split=args.split)
 
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False,
                             num_workers=2, collate_fn=collate_fn)
