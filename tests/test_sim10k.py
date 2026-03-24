@@ -1,12 +1,11 @@
 """Tests for Sim10kDataset._parse_annotation and the full Sim10kDataset class."""
-import os
 import xml.etree.ElementTree as ET
-import torch
+
+import numpy as np
 import pytest
 from PIL import Image
-import numpy as np
 
-from src.datasets.sim10k import Sim10kDataset, CLASS_NAMES
+from src.datasets.sim10k import CLASS_NAMES, Sim10kDataset
 
 
 def _write_voc_xml(path, objects):

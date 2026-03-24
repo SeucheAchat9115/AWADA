@@ -3,8 +3,9 @@
 
 import argparse
 import os
-import yaml
+
 import torch
+import yaml
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -95,8 +96,10 @@ def main():
     )
 
     for epoch in range(epochs):
-        model.G_AB.train(); model.G_BA.train()
-        model.D_A.train(); model.D_B.train()
+        model.G_AB.train()
+        model.G_BA.train()
+        model.D_A.train()
+        model.D_B.train()
 
         for iteration, (real_A, real_B, att_A, att_B) in enumerate(
             tqdm(dataloader, desc=f'Epoch {epoch+1}/{epochs}')
@@ -126,7 +129,8 @@ def main():
                       f'D={d_losses["total_D"].item():.3f} '
                       f'cyc={g_losses["cycle_A"].item() + g_losses["cycle_B"].item():.3f}')
 
-        sched_G.step(); sched_D.step()
+        sched_G.step()
+        sched_D.step()
 
         ckpt = {
             'epoch': epoch + 1,

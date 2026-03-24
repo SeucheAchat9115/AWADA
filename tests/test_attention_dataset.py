@@ -1,5 +1,4 @@
 """Tests for AttentionPairedDataset covering patch extraction, normalization, and attention map fallback behavior."""
-import os
 import numpy as np
 import pytest
 from PIL import Image
@@ -119,7 +118,6 @@ class TestAttentionPairedDataset:
             target_attention_root=str(tgt_att_dir), patch_size=32
         )
         _, _, _, att_B = ds[0]
-        import torch
         assert att_B.shape == (1, 32, 32)
 
     def test_missing_attention_fallback_to_ones(self, tmp_path):

@@ -1,4 +1,4 @@
-from .sim10k import Sim10kDataset
-from .cityscapes import CityscapesDetectionDataset
-from .foggy_cityscapes import FoggyCityscapesDataset
-from .attention_dataset import AttentionPairedDataset
+from .attention_dataset import AttentionPairedDataset as AttentionPairedDataset
+from .cityscapes import CityscapesDetectionDataset as CityscapesDetectionDataset
+from .foggy_cityscapes import FoggyCityscapesDataset as FoggyCityscapesDataset
+from .sim10k import Sim10kDataset as Sim10kDataset

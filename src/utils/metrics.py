@@ -1,8 +1,7 @@
-import io
 import contextlib
-from typing import List, Dict
+import io
+from typing import Dict, List, Optional
 
-import numpy as np
 import torch
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
@@ -78,7 +77,7 @@ def _to_coco_format(
 def compute_map_range(
     predictions: List[Dict[str, torch.Tensor]],
     targets: List[Dict[str, torch.Tensor]],
-    num_classes: int = None,
+    num_classes: Optional[int] = None,
 ) -> Dict[str, float]:
     """Compute mAP@0.5 and mAP@0.5:0.95 using pycocotools.
 

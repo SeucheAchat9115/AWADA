@@ -1,11 +1,10 @@
 import os
-import numpy as np
-from PIL import Image
-from scipy import ndimage
-import torch
-from torch.utils.data import Dataset
-import torchvision.transforms.functional as TF
 
+import numpy as np
+import torch
+import torchvision.transforms.functional as TF
+from PIL import Image
+from torch.utils.data import Dataset
 
 # Cityscapes instance ID: class_id * 1000 + instance_id
 # We extract bboxes from instanceIds map: pixels where value >= 24000 (class 24+)

@@ -1,6 +1,4 @@
 """Tests for Cityscapes and FoggyCityscapes dataset constants, label maps, and dataset loading."""
-import torch
-import pytest
 import numpy as np
 from PIL import Image
 
@@ -112,7 +110,7 @@ class TestFoggyCityscapesDataset:
     def _make_foggy_root(self, tmp_path, split='val', beta=0.02):
         """Create a minimal Foggy Cityscapes directory structure."""
         suffix = f'_leftImg8bit_foggy_beta_{beta:.2f}.png'
-        img_dir = tmp_path / f'leftImg8bit_foggy' / split / 'aachen'
+        img_dir = tmp_path / 'leftImg8bit_foggy' / split / 'aachen'
         ann_dir = tmp_path / 'gtFine' / split / 'aachen'
         img_dir.mkdir(parents=True)
         ann_dir.mkdir(parents=True)

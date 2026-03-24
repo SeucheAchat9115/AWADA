@@ -1,9 +1,10 @@
 """Tests for generate_attention_maps function."""
 import os
-import numpy as np
-import torch
-import pytest
 from unittest.mock import MagicMock
+
+import numpy as np
+import pytest
+import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 from src.utils.attention import generate_attention_maps

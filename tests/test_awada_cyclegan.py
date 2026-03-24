@@ -1,6 +1,7 @@
 """Tests for AWADACycleGAN covering attention mask handling, masked MSE loss computation, and loss calculation."""
-import torch
 import pytest
+import torch
+
 from src.models.awada_cyclegan import AWADACycleGAN
 
 DEVICE = 'cpu'

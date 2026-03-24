@@ -1,10 +1,11 @@
 import os
+
 import numpy as np
-from PIL import Image
-from scipy import ndimage
 import torch
-from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
+from PIL import Image
+from torch.utils.data import Dataset
+
 from .cityscapes import CITYSCAPES_LABEL_MAP, MIN_PIXELS_THRESHOLD
 
 
@@ -16,7 +17,7 @@ class FoggyCityscapesDataset(Dataset):
         self.transforms = transforms
         self.samples = []
 
-        img_base = os.path.join(root, f'leftImg8bit_foggy', split)
+        img_base = os.path.join(root, 'leftImg8bit_foggy', split)
         ann_base = os.path.join(root, 'gtFine', split)
 
         for city in sorted(os.listdir(img_base)):

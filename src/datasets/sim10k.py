@@ -1,10 +1,10 @@
 import os
 import xml.etree.ElementTree as ET
+
 import torch
+import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.utils.data import Dataset
-import torchvision.transforms.functional as TF
-
 
 CLASS_NAMES = ['car']
 

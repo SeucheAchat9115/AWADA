@@ -1,8 +1,8 @@
 """Tests for awada.yaml configuration structure and value validation."""
 import os
-import yaml
-import pytest
 
+import pytest
+import yaml
 
 CONFIG_PATH = os.path.join(
     os.path.dirname(__file__), '..', 'configs', 'awada.yaml'

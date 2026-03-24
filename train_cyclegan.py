@@ -3,10 +3,11 @@
 
 import argparse
 import os
+
 import torch
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image
 import torchvision.transforms as T
+from PIL import Image
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from src.models.cyclegan import CycleGAN
@@ -84,8 +85,10 @@ def main():
     )
 
     for epoch in range(args.epochs):
-        model.G_AB.train(); model.G_BA.train()
-        model.D_A.train(); model.D_B.train()
+        model.G_AB.train()
+        model.G_BA.train()
+        model.D_A.train()
+        model.D_B.train()
 
         for iteration, (real_A, real_B) in enumerate(tqdm(dataloader, desc=f'Epoch {epoch+1}/{args.epochs}')):
             model.set_input(real_A, real_B)
@@ -113,7 +116,8 @@ def main():
                       f'D={d_losses["total_D"].item():.3f} '
                       f'cyc={g_losses["cycle_A"].item() + g_losses["cycle_B"].item():.3f}')
 
-        sched_G.step(); sched_D.step()
+        sched_G.step()
+        sched_D.step()
 
         # Save checkpoint
         ckpt = {

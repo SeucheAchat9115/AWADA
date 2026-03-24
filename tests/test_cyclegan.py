@@ -1,7 +1,7 @@
 """Tests for ImageBuffer and CycleGAN covering buffer management, forward pass, and loss computation."""
 import torch
-import pytest
-from src.models.cyclegan import ImageBuffer, CycleGAN
+
+from src.models.cyclegan import CycleGAN, ImageBuffer
 
 DEVICE = 'cpu'
 IMG_SIZE = 64  # Use small images to keep tests fast
@@ -141,7 +141,7 @@ class TestCycleGAN:
         g_losses = model.compute_generator_loss()
         d_losses = model.compute_discriminator_loss()
         for v in list(g_losses.values()) + list(d_losses.values()):
-            assert not torch.isnan(v), f"NaN detected in loss"
+            assert not torch.isnan(v), "NaN detected in loss"
 
     def test_lambda_weights_scale_losses(self):
         """Increasing lambda_cyc should increase cycle loss contribution."""

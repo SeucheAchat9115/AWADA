@@ -3,10 +3,11 @@
 
 import argparse
 import os
+
 import torch
-from PIL import Image
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
+from PIL import Image
 from tqdm import tqdm
 
 from src.models.generator import ResNetGenerator

@@ -2,15 +2,15 @@
 """Generate RPN attention maps from a trained Faster R-CNN detector."""
 
 import argparse
-import os
+
 import torch
 from torch.utils.data import DataLoader
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-from src.datasets.sim10k import Sim10kDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
 from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
+from src.datasets.sim10k import Sim10kDataset
 from src.utils.attention import generate_attention_maps
 
 

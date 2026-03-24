@@ -3,15 +3,16 @@
 
 import argparse
 import os
+
 import torch
 from torch.utils.data import DataLoader
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
+from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
-from src.datasets.sim10k import Sim10kDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
 from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
+from src.datasets.sim10k import Sim10kDataset
 from src.utils.metrics import compute_map_range
 
 

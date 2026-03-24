@@ -1,8 +1,10 @@
 import random
+
 import torch
 import torch.nn as nn
-from .generator import ResNetGenerator
+
 from .discriminator import PatchGANDiscriminator
+from .generator import ResNetGenerator
 
 
 class ImageBuffer:
