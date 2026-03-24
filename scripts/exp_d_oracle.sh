@@ -10,7 +10,7 @@ BENCHMARK=${1:-sim10k_to_cityscapes}
 if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
     TARGET_DATASET="cityscapes"
     TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    NUM_CLASSES=8
+    NUM_CLASSES=1
     OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_d_sim10k2cs"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     TARGET_DATASET="foggy_cityscapes"
@@ -42,7 +42,8 @@ python train_detector.py \
     --batch_size "${BATCH_SIZE:-2}" \
     --lr 0.005 \
     --device "${DEVICE:-cuda}" \
-    --pretrained
+    --pretrained \
+    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
 
 echo "[Step 2] Evaluating on target domain validation set..."
 python - <<EOF
@@ -62,7 +63,8 @@ device = torch.device("${DEVICE:-cuda}" if torch.cuda.is_available() else "cpu")
 
 if target_dataset_name == "cityscapes":
     from src.datasets.cityscapes import CityscapesDetectionDataset
-    dataset = CityscapesDetectionDataset(target_root, split='val')
+    classes_filter = ['car'] if "$BENCHMARK" == "sim10k_to_cityscapes" else None
+    dataset = CityscapesDetectionDataset(target_root, split='val', classes=classes_filter)
 elif target_dataset_name == "foggy_cityscapes":
     from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
     dataset = FoggyCityscapesDataset(target_root, split='val')
