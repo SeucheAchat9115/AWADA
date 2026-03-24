@@ -1,10 +1,11 @@
 import os
+
 import numpy as np
 import torch
 from tqdm import tqdm
 
 
-def generate_attention_maps(detector, dataloader, output_dir, top_k=10, device='cuda'):
+def generate_attention_maps(detector, dataloader, output_dir, top_k=10, device="cuda"):
     """
     Run source domain images through Faster R-CNN, extract RPN proposals,
     create binary attention maps where pixels inside top-k RPN boxes = 1, else 0.
@@ -21,13 +22,13 @@ def generate_attention_maps(detector, dataloader, output_dir, top_k=10, device='
         # output from RPN: (boxes, scores) per image
         # In torchvision FasterRCNN, RPN forward returns (proposals, losses)
         # proposals is a list of tensors [N, 4] in (x1, y1, x2, y2) format
-        rpn_proposals['boxes'] = output[0]  # list of [N, 4] tensors
+        rpn_proposals["boxes"] = output[0]  # list of [N, 4] tensors
 
     # Register hook on the RPN
     hook = detector.rpn.register_forward_hook(rpn_hook)
 
     with torch.no_grad():
-        for batch_idx, batch in enumerate(tqdm(dataloader, desc='Generating attention maps')):
+        for batch_idx, batch in enumerate(tqdm(dataloader, desc="Generating attention maps")):
             if isinstance(batch, (list, tuple)) and len(batch) == 2:
                 images, targets = batch
             else:
@@ -42,7 +43,7 @@ def generate_attention_maps(detector, dataloader, output_dir, top_k=10, device='
             # Run forward pass to trigger RPN hook
             _ = detector(images)
 
-            boxes_list = rpn_proposals.get('boxes', [])
+            boxes_list = rpn_proposals.get("boxes", [])
 
             for i, (img, boxes) in enumerate(zip(images, boxes_list)):
                 h, w = img.shape[1], img.shape[2]
@@ -63,15 +64,15 @@ def generate_attention_maps(detector, dataloader, output_dir, top_k=10, device='
                 # Determine output filename
                 if targets is not None and isinstance(targets, (list, tuple)):
                     t = targets[i]
-                    if 'image_id' in t:
-                        img_id = int(t['image_id'].item())
+                    if "image_id" in t:
+                        img_id = int(t["image_id"].item())
                     else:
                         img_id = batch_idx * len(images) + i
                 else:
                     img_id = batch_idx * len(images) + i
 
-                out_path = os.path.join(output_dir, f'{img_id:06d}.npy')
+                out_path = os.path.join(output_dir, f"{img_id:06d}.npy")
                 np.save(out_path, attention_map)
 
     hook.remove()
-    print(f'Saved {len(dataloader.dataset)} attention maps to {output_dir}')
+    print(f"Saved {len(dataloader.dataset)} attention maps to {output_dir}")

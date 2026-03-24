@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 
@@ -30,7 +29,7 @@ class ResNetGenerator(nn.Module):
         ]
         # Downsampling
         for i in range(2):
-            mult = 2 ** i
+            mult = 2**i
             layers += [
                 nn.Conv2d(ngf * mult, ngf * mult * 2, 3, stride=2, padding=1),
                 nn.InstanceNorm2d(ngf * mult * 2),
@@ -43,7 +42,9 @@ class ResNetGenerator(nn.Module):
         for i in range(2):
             mult = 2 ** (2 - i)
             layers += [
-                nn.ConvTranspose2d(ngf * mult, ngf * mult // 2, 3, stride=2, padding=1, output_padding=1),
+                nn.ConvTranspose2d(
+                    ngf * mult, ngf * mult // 2, 3, stride=2, padding=1, output_padding=1
+                ),
                 nn.InstanceNorm2d(ngf * mult // 2),
                 nn.ReLU(inplace=True),
             ]

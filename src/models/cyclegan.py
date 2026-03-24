@@ -1,14 +1,17 @@
 import random
+
 import torch
 import torch.nn as nn
-from .generator import ResNetGenerator
+
 from .discriminator import PatchGANDiscriminator
+from .generator import ResNetGenerator
 
 
 class ImageBuffer:
     """Replay buffer to stabilize discriminator training.
     Size of 50 matches the original CycleGAN implementation (Zhu et al., 2017).
     """
+
     def __init__(self, max_size=50):
         self.max_size = max_size
         self.data = []
@@ -32,7 +35,7 @@ class ImageBuffer:
 
 
 class CycleGAN(nn.Module):
-    def __init__(self, device='cuda'):
+    def __init__(self, device="cuda"):
         super().__init__()
         self.device = device
         self.G_AB = ResNetGenerator().to(device)
@@ -74,10 +77,13 @@ class CycleGAN(nn.Module):
 
         total = loss_G_AB + loss_G_BA + loss_cyc_A + loss_cyc_B + loss_idt_A + loss_idt_B
         return {
-            'G_AB': loss_G_AB, 'G_BA': loss_G_BA,
-            'cycle_A': loss_cyc_A, 'cycle_B': loss_cyc_B,
-            'idt_A': loss_idt_A, 'idt_B': loss_idt_B,
-            'total_G': total,
+            "G_AB": loss_G_AB,
+            "G_BA": loss_G_BA,
+            "cycle_A": loss_cyc_A,
+            "cycle_B": loss_cyc_B,
+            "idt_A": loss_idt_A,
+            "idt_B": loss_idt_B,
+            "total_G": total,
         }
 
     def compute_discriminator_loss(self):
@@ -97,4 +103,4 @@ class CycleGAN(nn.Module):
         loss_D_A_fake = self.criterion_GAN(pred_fake_A, torch.zeros_like(pred_fake_A))
         loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
 
-        return {'D_A': loss_D_A, 'D_B': loss_D_B, 'total_D': loss_D_A + loss_D_B}
+        return {"D_A": loss_D_A, "D_B": loss_D_B, "total_D": loss_D_A + loss_D_B}
