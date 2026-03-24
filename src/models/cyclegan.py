@@ -55,7 +55,7 @@ class CycleGAN(nn.Module):
         self.fake_A = self.G_BA(self.real_B)
         self.rec_B = self.G_AB(self.fake_A)
 
-    def compute_generator_loss(self, lambda_cyc=10.0, lambda_idt=5.0):
+    def compute_generator_loss(self, lambda_cyc=10.0, lambda_idt=5.0, lambda_gan=1.0):
         # Identity loss
         idt_A = self.G_BA(self.real_A)
         idt_B = self.G_AB(self.real_B)
@@ -64,9 +64,9 @@ class CycleGAN(nn.Module):
 
         # GAN loss (generators try to fool discriminators)
         pred_fake_B = self.D_B(self.fake_B)
-        loss_G_AB = self.criterion_GAN(pred_fake_B, torch.ones_like(pred_fake_B))
+        loss_G_AB = self.criterion_GAN(pred_fake_B, torch.ones_like(pred_fake_B)) * lambda_gan
         pred_fake_A = self.D_A(self.fake_A)
-        loss_G_BA = self.criterion_GAN(pred_fake_A, torch.ones_like(pred_fake_A))
+        loss_G_BA = self.criterion_GAN(pred_fake_A, torch.ones_like(pred_fake_A)) * lambda_gan
 
         # Cycle consistency loss
         loss_cyc_A = self.criterion_cycle(self.rec_A, self.real_A) * lambda_cyc

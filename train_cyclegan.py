@@ -50,6 +50,7 @@ def main():
     parser.add_argument('--lr', type=float, default=0.0002)
     parser.add_argument('--lambda_cyc', type=float, default=10.0)
     parser.add_argument('--lambda_idt', type=float, default=5.0)
+    parser.add_argument('--lambda_gan', type=float, default=1.0)
     parser.add_argument('--patch_size', type=int, default=128)
     parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     args = parser.parse_args()
@@ -94,7 +95,7 @@ def main():
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(False)
             opt_G.zero_grad()
-            g_losses = model.compute_generator_loss(args.lambda_cyc, args.lambda_idt)
+            g_losses = model.compute_generator_loss(args.lambda_cyc, args.lambda_idt, args.lambda_gan)
             g_losses['total_G'].backward()
             opt_G.step()
 
