@@ -58,7 +58,7 @@ python generate_attention_maps.py \
     --dataset "$SOURCE_DATASET" \
     --data_root "$SOURCE_ROOT" \
     --output_dir "$ATTENTION_DIR" \
-    --top_k "${TOP_K:-10}" \
+    --score_threshold "${SCORE_THRESHOLD:-0.5}" \
     --num_classes "$NUM_CLASSES" \
     --split train \
     --device "${DEVICE:-cuda}"
