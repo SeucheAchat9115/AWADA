@@ -21,7 +21,7 @@ class AWADACycleGAN(CycleGAN):
         weight = mask_resized
         return (weight * (pred - target) ** 2).mean()
 
-    def compute_generator_loss(self, lambda_cyc=10.0, lambda_idt=5.0):
+    def compute_generator_loss(self, lambda_cyc=10.0, lambda_idt=5.0, lambda_gan=1.0):
         # Identity loss (UNMASKED)
         idt_A = self.G_BA(self.real_A)
         idt_B = self.G_AB(self.real_B)
@@ -30,9 +30,9 @@ class AWADACycleGAN(CycleGAN):
 
         # GAN loss (MASKED by attention)
         pred_fake_B = self.D_B(self.fake_B)
-        loss_G_AB = self._masked_mse_loss(pred_fake_B, torch.ones_like(pred_fake_B), self.attention_A)
+        loss_G_AB = self._masked_mse_loss(pred_fake_B, torch.ones_like(pred_fake_B), self.attention_A) * lambda_gan
         pred_fake_A = self.D_A(self.fake_A)
-        loss_G_BA = self._masked_mse_loss(pred_fake_A, torch.ones_like(pred_fake_A), self.attention_B)
+        loss_G_BA = self._masked_mse_loss(pred_fake_A, torch.ones_like(pred_fake_A), self.attention_B) * lambda_gan
 
         # Cycle consistency loss (UNMASKED)
         loss_cyc_A = self.criterion_cycle(self.rec_A, self.real_A) * lambda_cyc
