@@ -1,10 +1,11 @@
 """Tests for AWADACycleGAN covering attention mask handling, masked MSE loss computation, and loss calculation."""
+
 import pytest
 import torch
 
 from src.models.awada_cyclegan import AWADACycleGAN
 
-DEVICE = 'cpu'
+DEVICE = "cpu"
 IMG_SIZE = 64
 
 
@@ -70,7 +71,7 @@ class TestAWADACycleGAN:
         model.set_input(real_A, real_B, att_A, att_B)
         model.forward()
         losses = model.compute_generator_loss()
-        for key in ('G_AB', 'G_BA', 'cycle_A', 'cycle_B', 'idt_A', 'idt_B', 'total_G'):
+        for key in ("G_AB", "G_BA", "cycle_A", "cycle_B", "idt_A", "idt_B", "total_G"):
             assert key in losses
 
     def test_discriminator_loss_keys(self):
@@ -79,7 +80,7 @@ class TestAWADACycleGAN:
         model.set_input(real_A, real_B, att_A, att_B)
         model.forward()
         losses = model.compute_discriminator_loss()
-        for key in ('D_A', 'D_B', 'total_D'):
+        for key in ("D_A", "D_B", "total_D"):
             assert key in losses
 
     def test_generator_loss_no_nan(self):
@@ -107,7 +108,7 @@ class TestAWADACycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_generator_loss()
-        assert 'total_G' in losses
+        assert "total_G" in losses
 
     def test_total_d_is_sum(self):
         model = _make_model()
@@ -115,4 +116,4 @@ class TestAWADACycleGAN:
         model.set_input(real_A, real_B, att_A, att_B)
         model.forward()
         losses = model.compute_discriminator_loss()
-        assert torch.allclose(losses['total_D'], losses['D_A'] + losses['D_B'], atol=1e-5)
+        assert torch.allclose(losses["total_D"], losses["D_A"] + losses["D_B"], atol=1e-5)

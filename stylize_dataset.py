@@ -14,11 +14,11 @@ from src.models.generator import ResNetGenerator
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Stylize source domain images')
-    parser.add_argument('--generator_checkpoint', required=True)
-    parser.add_argument('--source_dir', required=True)
-    parser.add_argument('--output_dir', required=True)
-    parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
+    parser = argparse.ArgumentParser(description="Stylize source domain images")
+    parser.add_argument("--generator_checkpoint", required=True)
+    parser.add_argument("--source_dir", required=True)
+    parser.add_argument("--output_dir", required=True)
+    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -28,26 +28,25 @@ def main():
     state = torch.load(args.generator_checkpoint, map_location=device)
     # Checkpoint might be full CycleGAN or just G_AB
     if isinstance(state, dict):
-        if 'G_AB' in state:
-            generator.load_state_dict(state['G_AB'])
-        elif 'model_state_dict' in state:
-            generator.load_state_dict(state['model_state_dict'])
+        if "G_AB" in state:
+            generator.load_state_dict(state["G_AB"])
+        elif "model_state_dict" in state:
+            generator.load_state_dict(state["model_state_dict"])
         else:
             generator.load_state_dict(state)
     generator.eval()
 
-    image_files = sorted([
-        f for f in os.listdir(args.source_dir)
-        if f.lower().endswith(('.png', '.jpg', '.jpeg'))
-    ])
+    image_files = sorted(
+        [f for f in os.listdir(args.source_dir) if f.lower().endswith((".png", ".jpg", ".jpeg"))]
+    )
 
     to_tensor = T.ToTensor()
     normalize = T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 
     with torch.no_grad():
-        for fname in tqdm(image_files, desc='Stylizing'):
+        for fname in tqdm(image_files, desc="Stylizing"):
             img_path = os.path.join(args.source_dir, fname)
-            img = Image.open(img_path).convert('RGB')
+            img = Image.open(img_path).convert("RGB")
             w, h = img.size
 
             # Pad to be divisible by 4 (generator stride)
@@ -70,8 +69,8 @@ def main():
             out_path = os.path.join(args.output_dir, fname)
             out_img.save(out_path)
 
-    print(f'Stylized {len(image_files)} images saved to {args.output_dir}')
+    print(f"Stylized {len(image_files)} images saved to {args.output_dir}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

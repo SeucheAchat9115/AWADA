@@ -1,4 +1,5 @@
 """Tests for PatchGANDiscriminator."""
+
 import torch
 
 from src.models.discriminator import PatchGANDiscriminator

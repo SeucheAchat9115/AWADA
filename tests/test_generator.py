@@ -1,4 +1,5 @@
 """Tests for ResidualBlock and ResNetGenerator covering shape preservation, output ranges, and gradient flow."""
+
 import torch
 
 from src.models.generator import ResidualBlock, ResNetGenerator

@@ -18,26 +18,29 @@ CITYSCAPES_LABEL_MAP = {
     32: 7,  # motorcycle
     33: 8,  # bicycle
 }
-CLASS_NAMES = ['person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
+CLASS_NAMES = ["person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
 # Minimum number of foreground pixels for an instance to be kept as a detection box
 MIN_PIXELS_THRESHOLD = 10
 
 
 class CityscapesDetectionDataset(Dataset):
-    def __init__(self, root, split='train', transforms=None, classes=None):
+    def __init__(self, root, split="train", transforms=None, classes=None):
         self.root = root
         self.split = split
         self.transforms = transforms
         # Build set of allowed label indices (1-based); None means all classes
         if classes is not None:
-            self._allowed_labels = {CITYSCAPES_LABEL_MAP[k] for k in CITYSCAPES_LABEL_MAP
-                                    if CLASS_NAMES[CITYSCAPES_LABEL_MAP[k] - 1] in classes}
+            self._allowed_labels = {
+                CITYSCAPES_LABEL_MAP[k]
+                for k in CITYSCAPES_LABEL_MAP
+                if CLASS_NAMES[CITYSCAPES_LABEL_MAP[k] - 1] in classes
+            }
         else:
             self._allowed_labels = None
         self.samples = []
 
-        img_base = os.path.join(root, 'leftImg8bit', split)
-        ann_base = os.path.join(root, 'gtFine', split)
+        img_base = os.path.join(root, "leftImg8bit", split)
+        ann_base = os.path.join(root, "gtFine", split)
 
         for city in sorted(os.listdir(img_base)):
             city_img_dir = os.path.join(img_base, city)
@@ -45,10 +48,10 @@ class CityscapesDetectionDataset(Dataset):
             if not os.path.isdir(city_img_dir):
                 continue
             for fname in sorted(os.listdir(city_img_dir)):
-                if not fname.endswith('_leftImg8bit.png'):
+                if not fname.endswith("_leftImg8bit.png"):
                     continue
-                stem = fname.replace('_leftImg8bit.png', '')
-                ann_fname = stem + '_gtFine_instanceIds.png'
+                stem = fname.replace("_leftImg8bit.png", "")
+                ann_fname = stem + "_gtFine_instanceIds.png"
                 ann_path = os.path.join(city_ann_dir, ann_fname)
                 if os.path.exists(ann_path):
                     self.samples.append((os.path.join(city_img_dir, fname), ann_path))
@@ -58,7 +61,7 @@ class CityscapesDetectionDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path, ann_path = self.samples[idx]
-        image = Image.open(img_path).convert('RGB')
+        image = Image.open(img_path).convert("RGB")
         instance_map = np.array(Image.open(ann_path))
 
         boxes, labels = [], []
@@ -73,7 +76,7 @@ class CityscapesDetectionDataset(Dataset):
             label = CITYSCAPES_LABEL_MAP[class_id]
             if self._allowed_labels is not None and label not in self._allowed_labels:
                 continue
-            mask = (instance_map == inst_id)
+            mask = instance_map == inst_id
             ys, xs = np.where(mask)
             if len(ys) < MIN_PIXELS_THRESHOLD:
                 continue
@@ -90,7 +93,7 @@ class CityscapesDetectionDataset(Dataset):
             labels_t = torch.tensor(labels, dtype=torch.int64)
 
         image_t = TF.to_tensor(image)
-        target = {'boxes': boxes_t, 'labels': labels_t, 'image_id': torch.tensor([idx])}
+        target = {"boxes": boxes_t, "labels": labels_t, "image_id": torch.tensor([idx])}
         if self.transforms:
             image_t, target = self.transforms(image_t, target)
         return image_t, target

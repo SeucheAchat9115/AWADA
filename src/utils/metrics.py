@@ -120,4 +120,3 @@ def compute_map_range(
     map_50 = float(coco_eval.stats[1])
 
     return {"mAP@0.5": map_50, "mAP@0.5:0.95": map_50_95}
-

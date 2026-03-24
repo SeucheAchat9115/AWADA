@@ -43,6 +43,7 @@ from src.models.generator import ResNetGenerator
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def load_generator(checkpoint_path: str, direction: str, device: torch.device) -> ResNetGenerator:
     """Load the requested generator (G_AB or G_BA) from a checkpoint."""
     gen = ResNetGenerator().to(device)
@@ -53,7 +54,9 @@ def load_generator(checkpoint_path: str, direction: str, device: torch.device) -
         gen.load_state_dict(state[key])
     elif isinstance(state, dict) and "model_state_dict" in state:
         gen.load_state_dict(state["model_state_dict"])
-    elif isinstance(state, dict) and not any(k in state for k in ("G_AB", "G_BA", "model_state_dict")):
+    elif isinstance(state, dict) and not any(
+        k in state for k in ("G_AB", "G_BA", "model_state_dict")
+    ):
         # Assume the dict is already a state_dict
         gen.load_state_dict(state)
     else:
@@ -141,34 +144,32 @@ def make_side_by_side(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Visualize CycleGAN / AWADA style transfer"
+    parser = argparse.ArgumentParser(description="Visualize CycleGAN / AWADA style transfer")
+    parser.add_argument(
+        "--checkpoint", required=True, help="Path to CycleGAN or AWADA checkpoint (.pth)"
+    )
+    parser.add_argument("--input_dir", required=True, help="Directory containing source images")
+    parser.add_argument(
+        "--output_dir", required=True, help="Directory where visualization images will be saved"
     )
     parser.add_argument(
-        "--checkpoint", required=True,
-        help="Path to CycleGAN or AWADA checkpoint (.pth)"
+        "--direction",
+        choices=["AB", "BA"],
+        default="AB",
+        help="Generator direction: AB (source→target) or BA (target→source)",
     )
     parser.add_argument(
-        "--input_dir", required=True,
-        help="Directory containing source images"
-    )
-    parser.add_argument(
-        "--output_dir", required=True,
-        help="Directory where visualization images will be saved"
-    )
-    parser.add_argument(
-        "--direction", choices=["AB", "BA"], default="AB",
-        help="Generator direction: AB (source→target) or BA (target→source)"
-    )
-    parser.add_argument(
-        "--num_images", type=int, default=None,
-        help="Maximum number of images to process (default: all)"
+        "--num_images",
+        type=int,
+        default=None,
+        help="Maximum number of images to process (default: all)",
     )
     parser.add_argument(
         "--device",
         default="cuda" if torch.cuda.is_available() else "cpu",
-        help="Device to run inference on"
+        help="Device to run inference on",
     )
     args = parser.parse_args()
 
@@ -179,8 +180,7 @@ def main():
     generator = load_generator(args.checkpoint, args.direction, device)
 
     image_files = sorted(
-        f for f in os.listdir(args.input_dir)
-        if f.lower().endswith((".png", ".jpg", ".jpeg"))
+        f for f in os.listdir(args.input_dir) if f.lower().endswith((".png", ".jpg", ".jpeg"))
     )
     if args.num_images is not None:
         image_files = image_files[: args.num_images]

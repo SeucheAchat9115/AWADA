@@ -6,7 +6,7 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.utils.data import Dataset
 
-CLASS_NAMES = ['car']
+CLASS_NAMES = ["car"]
 
 
 class Sim10kDataset(Dataset):
@@ -25,8 +25,10 @@ class Sim10kDataset(Dataset):
     def __init__(self, root, transforms=None):
         self.root = root
         self.transforms = transforms
-        img_dir = os.path.join(root, 'images')
-        self.image_files = sorted([f for f in os.listdir(img_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
+        img_dir = os.path.join(root, "images")
+        self.image_files = sorted(
+            [f for f in os.listdir(img_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+        )
 
     def __len__(self):
         return len(self.image_files)
@@ -34,10 +36,10 @@ class Sim10kDataset(Dataset):
     def __getitem__(self, idx):
         fname = self.image_files[idx]
         stem = os.path.splitext(fname)[0]
-        img_path = os.path.join(self.root, 'images', fname)
-        ann_path = os.path.join(self.root, 'Annotations', stem + '.xml')
+        img_path = os.path.join(self.root, "images", fname)
+        ann_path = os.path.join(self.root, "Annotations", stem + ".xml")
 
-        image = Image.open(img_path).convert('RGB')
+        image = Image.open(img_path).convert("RGB")
 
         boxes, labels = self._parse_annotation(ann_path)
 
@@ -49,7 +51,7 @@ class Sim10kDataset(Dataset):
             labels_t = torch.tensor(labels, dtype=torch.int64)
 
         image_t = TF.to_tensor(image)
-        target = {'boxes': boxes_t, 'labels': labels_t, 'image_id': torch.tensor([idx])}
+        target = {"boxes": boxes_t, "labels": labels_t, "image_id": torch.tensor([idx])}
         if self.transforms:
             image_t, target = self.transforms(image_t, target)
         return image_t, target
@@ -62,16 +64,16 @@ class Sim10kDataset(Dataset):
             return boxes, labels
         tree = ET.parse(ann_path)
         root = tree.getroot()
-        for obj in root.findall('object'):
-            name = obj.find('name').text.strip().lower()
-            if name != 'car':
+        for obj in root.findall("object"):
+            name = obj.find("name").text.strip().lower()
+            if name != "car":
                 continue
-            bndbox = obj.find('bndbox')
-            x1 = float(bndbox.find('xmin').text)
-            y1 = float(bndbox.find('ymin').text)
-            x2 = float(bndbox.find('xmax').text)
-            y2 = float(bndbox.find('ymax').text)
+            bndbox = obj.find("bndbox")
+            x1 = float(bndbox.find("xmin").text)
+            y1 = float(bndbox.find("ymin").text)
+            x2 = float(bndbox.find("xmax").text)
+            y2 = float(bndbox.find("ymax").text)
             if (x2 - x1) > 5 and (y2 - y1) > 5:
                 boxes.append([x1, y1, x2, y2])
-                labels.append(CLASS_NAMES.index('car') + 1)
+                labels.append(CLASS_NAMES.index("car") + 1)
         return boxes, labels

@@ -1,9 +1,10 @@
 """Tests for ImageBuffer and CycleGAN covering buffer management, forward pass, and loss computation."""
+
 import torch
 
 from src.models.cyclegan import CycleGAN, ImageBuffer
 
-DEVICE = 'cpu'
+DEVICE = "cpu"
 IMG_SIZE = 64  # Use small images to keep tests fast
 
 
@@ -86,7 +87,7 @@ class TestCycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_generator_loss()
-        for key in ('G_AB', 'G_BA', 'cycle_A', 'cycle_B', 'idt_A', 'idt_B', 'total_G'):
+        for key in ("G_AB", "G_BA", "cycle_A", "cycle_B", "idt_A", "idt_B", "total_G"):
             assert key in losses, f"Missing key: {key}"
 
     def test_generator_loss_positive(self):
@@ -95,7 +96,7 @@ class TestCycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_generator_loss()
-        assert losses['total_G'].item() >= 0
+        assert losses["total_G"].item() >= 0
 
     def test_discriminator_loss_keys(self):
         model = _make_cyclegan()
@@ -103,7 +104,7 @@ class TestCycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_discriminator_loss()
-        for key in ('D_A', 'D_B', 'total_D'):
+        for key in ("D_A", "D_B", "total_D"):
             assert key in losses
 
     def test_discriminator_loss_positive(self):
@@ -112,7 +113,7 @@ class TestCycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_discriminator_loss()
-        assert losses['total_D'].item() >= 0
+        assert losses["total_D"].item() >= 0
 
     def test_generator_loss_is_sum_of_parts(self):
         model = _make_cyclegan()
@@ -120,10 +121,15 @@ class TestCycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_generator_loss()
-        expected = (losses['G_AB'] + losses['G_BA'] +
-                    losses['cycle_A'] + losses['cycle_B'] +
-                    losses['idt_A'] + losses['idt_B'])
-        assert torch.allclose(losses['total_G'], expected, atol=1e-5)
+        expected = (
+            losses["G_AB"]
+            + losses["G_BA"]
+            + losses["cycle_A"]
+            + losses["cycle_B"]
+            + losses["idt_A"]
+            + losses["idt_B"]
+        )
+        assert torch.allclose(losses["total_G"], expected, atol=1e-5)
 
     def test_discriminator_loss_is_sum_of_parts(self):
         model = _make_cyclegan()
@@ -131,7 +137,7 @@ class TestCycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_discriminator_loss()
-        assert torch.allclose(losses['total_D'], losses['D_A'] + losses['D_B'], atol=1e-5)
+        assert torch.allclose(losses["total_D"], losses["D_A"] + losses["D_B"], atol=1e-5)
 
     def test_no_nan_in_losses(self):
         model = _make_cyclegan()
@@ -152,4 +158,4 @@ class TestCycleGAN:
         losses_low = model.compute_generator_loss(lambda_cyc=1.0)
         model.forward()
         losses_high = model.compute_generator_loss(lambda_cyc=100.0)
-        assert losses_high['cycle_A'].item() > losses_low['cycle_A'].item()
+        assert losses_high["cycle_A"].item() > losses_low["cycle_A"].item()
