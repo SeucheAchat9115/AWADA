@@ -11,27 +11,36 @@ from torch.utils.data import DataLoader, TensorDataset
 from src.utils.attention import generate_attention_maps
 
 
-def _build_detector(boxes_fn):
-    """Return a mock detector that fires the RPN hook with boxes from boxes_fn(imgs)."""
+def _build_detector(boxes_fn, scores_fn=None):
+    """Return a mock detector that provides proposals via a filter_proposals mock.
+
+    boxes_fn(imgs) -> list of [N, 4] tensors (one per image).
+    scores_fn(imgs) -> list of [N] tensors; defaults to all-ones when omitted.
+    """
     detector = MagicMock()
     detector.eval.return_value = detector
     detector.to.return_value = detector
 
-    hook_store = {}
+    # Shared state so forward() can pass images to filter_proposals
+    _state = {"imgs": None}
 
-    def register_hook(fn):
-        hook_store["fn"] = fn
-        handle = MagicMock()
-        handle.remove = MagicMock()
-        return handle
+    def filter_proposals_impl(*args, **kwargs):
+        imgs = _state["imgs"]
+        boxes_list = boxes_fn(imgs)
+        if scores_fn is not None:
+            scores_list = scores_fn(imgs)
+        else:
+            scores_list = [torch.ones(len(b)) for b in boxes_list]
+        return boxes_list, scores_list
 
     detector.rpn = MagicMock()
-    detector.rpn.register_forward_hook.side_effect = register_hook
+    detector.rpn.filter_proposals = filter_proposals_impl
 
     def forward(imgs):
-        boxes_list = boxes_fn(imgs)
-        if "fn" in hook_store:
-            hook_store["fn"](detector.rpn, None, (boxes_list, None))
+        _state["imgs"] = imgs
+        # Call the (potentially monkey-patched) filter_proposals so that
+        # generate_attention_maps can capture boxes and scores.
+        detector.rpn.filter_proposals(None, None, None, None)
 
     detector.side_effect = forward
     return detector
@@ -57,7 +66,7 @@ class TestGenerateAttentionMaps:
             return [torch.tensor([[0.0, 0.0, 10.0, 10.0]]) for _ in imgs]
 
         detector = _build_detector(boxes_fn)
-        generate_attention_maps(detector, loader, output_dir, top_k=5, device="cpu")
+        generate_attention_maps(detector, loader, output_dir, score_threshold=0.5, device="cpu")
         assert os.path.isdir(output_dir)
 
     def test_saves_npy_files(self, tmp_path):
@@ -69,7 +78,7 @@ class TestGenerateAttentionMaps:
             return [torch.tensor([[0.0, 0.0, 10.0, 10.0]]) for _ in imgs]
 
         detector = _build_detector(boxes_fn)
-        generate_attention_maps(detector, loader, output_dir, top_k=5, device="cpu")
+        generate_attention_maps(detector, loader, output_dir, score_threshold=0.5, device="cpu")
 
         npy_files = [f for f in os.listdir(output_dir) if f.endswith(".npy")]
         assert len(npy_files) == 3
@@ -84,7 +93,7 @@ class TestGenerateAttentionMaps:
             return [torch.tensor([[0.0, 0.0, 10.0, 10.0]]) for _ in imgs]
 
         detector = _build_detector(boxes_fn)
-        generate_attention_maps(detector, loader, output_dir, top_k=5, device="cpu")
+        generate_attention_maps(detector, loader, output_dir, score_threshold=0.5, device="cpu")
 
         npy_files = sorted(os.listdir(output_dir))
         arr = np.load(os.path.join(output_dir, npy_files[0]))
@@ -99,30 +108,69 @@ class TestGenerateAttentionMaps:
             return [torch.tensor([[2.0, 2.0, 20.0, 20.0]]) for _ in imgs]
 
         detector = _build_detector(boxes_fn)
-        generate_attention_maps(detector, loader, output_dir, top_k=5, device="cpu")
+        generate_attention_maps(detector, loader, output_dir, score_threshold=0.5, device="cpu")
 
         npy_files = sorted(os.listdir(output_dir))
         arr = np.load(os.path.join(output_dir, npy_files[0]))
         unique_vals = set(np.unique(arr).tolist())
         assert unique_vals.issubset({0.0, 1.0})
 
-    def test_top_k_limits_boxes(self, tmp_path):
-        """Only top_k boxes are used per image."""
+    def test_score_threshold_filters_boxes(self, tmp_path):
+        """Only boxes with objectness score >= score_threshold are used."""
         output_dir = str(tmp_path / "maps")
         loader = _simple_loader(1, H=64, W=64)
 
-        many_boxes = torch.tensor([[0.0, 0.0, 64.0, 64.0]] * 20)
+        # Two non-overlapping boxes: top-left (high score) and bottom-right (low score)
+        all_boxes = torch.tensor([
+            [0.0, 0.0, 32.0, 32.0],   # high score – should be included
+            [32.0, 32.0, 64.0, 64.0],  # low score  – should be excluded
+        ])
+        all_scores = torch.tensor([0.8, 0.2])
 
         def boxes_fn(imgs):
-            return [many_boxes for _ in imgs]
+            return [all_boxes for _ in imgs]
 
-        detector = _build_detector(boxes_fn)
-        generate_attention_maps(detector, loader, output_dir, top_k=1, device="cpu")
+        def scores_fn(imgs):
+            return [all_scores for _ in imgs]
+
+        detector = _build_detector(boxes_fn, scores_fn)
+        generate_attention_maps(detector, loader, output_dir, score_threshold=0.5, device="cpu")
 
         npy_files = sorted(os.listdir(output_dir))
         arr = np.load(os.path.join(output_dir, npy_files[0]))
         assert arr.shape == (64, 64)
-        assert arr.sum() > 0
+        # Top-left quadrant (high-score box) should be foreground
+        assert arr[:32, :32].sum() > 0
+        # Bottom-right quadrant (low-score box) should remain background
+        assert arr[32:, 32:].sum() == pytest.approx(0.0)
+
+    def test_all_boxes_above_threshold_included(self, tmp_path):
+        """All proposals with score >= threshold are included, not just top-k."""
+        output_dir = str(tmp_path / "maps")
+        loader = _simple_loader(1, H=64, W=64)
+
+        # Four non-overlapping boxes, all with score 0.9 (above threshold 0.5)
+        all_boxes = torch.tensor([
+            [0.0, 0.0, 16.0, 16.0],
+            [16.0, 0.0, 32.0, 16.0],
+            [32.0, 0.0, 48.0, 16.0],
+            [48.0, 0.0, 64.0, 16.0],
+        ])
+        all_scores = torch.tensor([0.9, 0.9, 0.9, 0.9])
+
+        def boxes_fn(imgs):
+            return [all_boxes for _ in imgs]
+
+        def scores_fn(imgs):
+            return [all_scores for _ in imgs]
+
+        detector = _build_detector(boxes_fn, scores_fn)
+        generate_attention_maps(detector, loader, output_dir, score_threshold=0.5, device="cpu")
+
+        npy_files = sorted(os.listdir(output_dir))
+        arr = np.load(os.path.join(output_dir, npy_files[0]))
+        # All four boxes span the top 16 rows; verify the entire strip is foreground
+        assert arr[0:16, :].sum() == pytest.approx(4 * 16 * 16)
 
     def test_no_proposals_produces_zero_map(self, tmp_path):
         """When RPN returns no boxes, the attention map should be all zeros."""
@@ -133,7 +181,7 @@ class TestGenerateAttentionMaps:
             return [torch.zeros(0, 4) for _ in imgs]
 
         detector = _build_detector(boxes_fn)
-        generate_attention_maps(detector, loader, output_dir, top_k=5, device="cpu")
+        generate_attention_maps(detector, loader, output_dir, score_threshold=0.5, device="cpu")
 
         npy_files = sorted(os.listdir(output_dir))
         arr = np.load(os.path.join(output_dir, npy_files[0]))

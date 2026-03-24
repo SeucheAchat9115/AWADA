@@ -33,7 +33,7 @@ def main():
     )
     parser.add_argument("--data_root", required=True)
     parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--top_k", type=int, default=10)
+    parser.add_argument("--score_threshold", type=float, default=0.5)
     parser.add_argument("--num_classes", type=int, required=True)
     parser.add_argument("--split", default="train")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
@@ -60,7 +60,7 @@ def main():
         model.load_state_dict(state)
 
     generate_attention_maps(
-        model, dataloader, args.output_dir, top_k=args.top_k, device=str(device)
+        model, dataloader, args.output_dir, score_threshold=args.score_threshold, device=str(device)
     )
 
 
