@@ -10,14 +10,14 @@ import torchvision.transforms.functional as TF
 # Cityscapes instance ID: class_id * 1000 + instance_id
 # We extract bboxes from instanceIds map: pixels where value >= 24000 (class 24+)
 CITYSCAPES_LABEL_MAP = {
-    24: 0,  # person
-    25: 1,  # rider
-    26: 2,  # car
-    27: 3,  # truck
-    28: 4,  # bus
-    31: 5,  # train
-    32: 6,  # motorcycle
-    33: 7,  # bicycle
+    24: 1,  # person
+    25: 2,  # rider
+    26: 3,  # car
+    27: 4,  # truck
+    28: 5,  # bus
+    31: 6,  # train
+    32: 7,  # motorcycle
+    33: 8,  # bicycle
 }
 CLASS_NAMES = ['person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
 # Minimum number of foreground pixels for an instance to be kept as a detection box
@@ -25,10 +25,16 @@ MIN_PIXELS_THRESHOLD = 10
 
 
 class CityscapesDetectionDataset(Dataset):
-    def __init__(self, root, split='train', transforms=None):
+    def __init__(self, root, split='train', transforms=None, classes=None):
         self.root = root
         self.split = split
         self.transforms = transforms
+        # Build set of allowed label indices (1-based); None means all classes
+        if classes is not None:
+            self._allowed_labels = {CITYSCAPES_LABEL_MAP[k] for k in CITYSCAPES_LABEL_MAP
+                                    if CLASS_NAMES[CITYSCAPES_LABEL_MAP[k] - 1] in classes}
+        else:
+            self._allowed_labels = None
         self.samples = []
 
         img_base = os.path.join(root, 'leftImg8bit', split)
@@ -65,6 +71,9 @@ class CityscapesDetectionDataset(Dataset):
             class_id = inst_id // 1000
             if class_id not in CITYSCAPES_LABEL_MAP:
                 continue
+            label = CITYSCAPES_LABEL_MAP[class_id]
+            if self._allowed_labels is not None and label not in self._allowed_labels:
+                continue
             mask = (instance_map == inst_id)
             ys, xs = np.where(mask)
             if len(ys) < MIN_PIXELS_THRESHOLD:
@@ -72,7 +81,7 @@ class CityscapesDetectionDataset(Dataset):
             x1, y1, x2, y2 = xs.min(), ys.min(), xs.max(), ys.max()
             if (x2 - x1) > 5 and (y2 - y1) > 5:
                 boxes.append([float(x1), float(y1), float(x2), float(y2)])
-                labels.append(CITYSCAPES_LABEL_MAP[class_id])
+                labels.append(label)
 
         if len(boxes) == 0:
             boxes_t = torch.zeros((0, 4), dtype=torch.float32)

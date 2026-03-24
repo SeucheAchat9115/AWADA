@@ -15,11 +15,11 @@ from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
 from src.utils.metrics import compute_map_range
 
 
-def get_dataset(name, root, split, transforms=None):
+def get_dataset(name, root, split, transforms=None, classes=None):
     if name == 'sim10k':
         return Sim10kDataset(root, transforms=transforms)
     elif name == 'cityscapes':
-        return CityscapesDetectionDataset(root, split=split, transforms=transforms)
+        return CityscapesDetectionDataset(root, split=split, transforms=transforms, classes=classes)
     elif name == 'foggy_cityscapes':
         return FoggyCityscapesDataset(root, split=split, transforms=transforms)
     else:
@@ -64,14 +64,16 @@ def main():
     parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--pretrained', action='store_true', default=True)
     parser.add_argument('--no_pretrained', dest='pretrained', action='store_false')
+    parser.add_argument('--classes', nargs='+', default=None,
+                        help='Class names to include (cityscapes only, e.g. --classes car)')
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = torch.device(args.device)
 
-    train_dataset = get_dataset(args.dataset, args.data_root, split='train')
+    train_dataset = get_dataset(args.dataset, args.data_root, split='train', classes=args.classes)
     # sim10k (GTA) does not require a validation split; all images are used for training.
-    val_dataset = get_dataset(args.dataset, args.data_root, split='val') if args.dataset != 'sim10k' else None
+    val_dataset = get_dataset(args.dataset, args.data_root, split='val', classes=args.classes) if args.dataset != 'sim10k' else None
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                               num_workers=4, collate_fn=collate_fn, pin_memory=True)

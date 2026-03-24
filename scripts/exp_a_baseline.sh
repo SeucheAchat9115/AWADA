@@ -74,7 +74,8 @@ device = torch.device("${DEVICE:-cuda}" if torch.cuda.is_available() else "cpu")
 
 if target_dataset_name == "cityscapes":
     from src.datasets.cityscapes import CityscapesDetectionDataset
-    dataset = CityscapesDetectionDataset(target_root, split='val')
+    classes_filter = ['car'] if "$BENCHMARK" == "sim10k_to_cityscapes" else None
+    dataset = CityscapesDetectionDataset(target_root, split='val', classes=classes_filter)
 elif target_dataset_name == "foggy_cityscapes":
     from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
     dataset = FoggyCityscapesDataset(target_root, split='val')

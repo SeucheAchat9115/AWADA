@@ -73,5 +73,5 @@ class Sim10kDataset(Dataset):
             y2 = float(bndbox.find('ymax').text)
             if (x2 - x1) > 5 and (y2 - y1) > 5:
                 boxes.append([x1, y1, x2, y2])
-                labels.append(CLASS_NAMES.index('car'))
+                labels.append(CLASS_NAMES.index('car') + 1)
         return boxes, labels
