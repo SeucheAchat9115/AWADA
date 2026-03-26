@@ -109,7 +109,7 @@ def main():
         model.D_B.train()
 
         for iteration, (real_A, real_B) in enumerate(
-            tqdm(dataloader, desc=f"Epoch {epoch+1}/{args.epochs}")
+            tqdm(dataloader, desc=f"Epoch {epoch + 1}/{args.epochs}")
         ):
             model.set_input(real_A, real_B)
             model.forward()
@@ -134,10 +134,10 @@ def main():
 
             if (iteration + 1) % 100 == 0:
                 print(
-                    f'  [Epoch {epoch+1}, Iter {iteration+1}] '
-                    f'G={g_losses["total_G"].item():.3f} '
-                    f'D={d_losses["total_D"].item():.3f} '
-                    f'cyc={g_losses["cycle_A"].item() + g_losses["cycle_B"].item():.3f}'
+                    f"  [Epoch {epoch + 1}, Iter {iteration + 1}] "
+                    f"G={g_losses['total_G'].item():.3f} "
+                    f"D={d_losses['total_D'].item():.3f} "
+                    f"cyc={g_losses['cycle_A'].item() + g_losses['cycle_B'].item():.3f}"
                 )
 
         sched_G.step()
@@ -151,7 +151,7 @@ def main():
             "D_A": model.D_A.state_dict(),
             "D_B": model.D_B.state_dict(),
         }
-        ckpt_path = os.path.join(args.output_dir, f"cyclegan_epoch_{epoch+1}.pth")
+        ckpt_path = os.path.join(args.output_dir, f"cyclegan_epoch_{epoch + 1}.pth")
         torch.save(ckpt, ckpt_path)
         print(f"Checkpoint saved: {ckpt_path}")
 
