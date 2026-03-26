@@ -49,9 +49,9 @@ class SemanticConsistencyLoss(nn.Module):
         Returns:
             Scalar loss tensor.
         """
-        # Target logits: computed from the (detached) original — no grad needed
+        # Target logits: computed from the original — no grad needed
         with torch.no_grad():
-            logits_orig = self.net(self._to_imagenet(original.detach()))["out"]
+            logits_orig = self.net(self._to_imagenet(original))["out"]
 
         # Translated logits: gradients flow back to the generator through translated
         logits_trans = self.net(self._to_imagenet(translated))["out"]

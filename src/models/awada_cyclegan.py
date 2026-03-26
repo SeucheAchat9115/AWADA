@@ -56,7 +56,8 @@ class AWADACycleGAN(CycleGAN):
             "cycle_B": loss_cyc_B,
         }
 
-        # Identity loss (UNMASKED — global regulariser; skipped when weight is zero)
+        # Identity loss (UNMASKED — global regulariser; skipped when weight is zero).
+        # Each line performs an extra forward pass through one generator.
         if lambda_idt > 0.0:
             loss_idt_A = self.criterion_cycle(self.G_BA(self.real_A), self.real_A) * lambda_idt
             loss_idt_B = self.criterion_cycle(self.G_AB(self.real_B), self.real_B) * lambda_idt
