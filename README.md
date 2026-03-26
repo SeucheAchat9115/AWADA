@@ -2,11 +2,22 @@
 
 AWADA is an unsupervised domain adaptation framework for object detection that leverages attention-weighted CycleGAN training to focus style transfer on semantically meaningful regions. By using RPN (Region Proposal Network) attention maps from a source-domain Faster R-CNN detector to bias the adversarial training, AWADA produces more faithful style-translated images for cross-domain object detection benchmarks including **sim10k → Cityscapes** and **Cityscapes → Foggy Cityscapes**.
 
+## Model Hierarchy
+
+Three models are implemented, each building on the previous one:
+
+1. **CycleGAN** — standard unpaired image-to-image translation with GAN, cycle-consistency, and optional identity losses.
+2. **CyCada** *(inherits from CycleGAN)* — adds an unmasked semantic consistency loss backed by a frozen DeepLabV3 segmentation network, encouraging the generator to preserve semantic structure across domains (Hoffman et al., CyCADA, ICML 2018).
+3. **AWADA** *(inherits from CyCada)* — replaces unmasked GAN losses with attention-masked adversarial losses so that adversarial training focuses on foreground objects identified by RPN proposals from a source-trained detector.
+
 ## Method Overview
 
 1. **Baseline detector**: Train Faster R-CNN on the source domain.
 2. **Attention map generation**: Extract RPN proposals from the baseline detector to create binary foreground attention masks for each source image.
-3. **AWADA CycleGAN**: Train a CycleGAN where adversarial losses are weighted by the attention masks — foreground regions receive weight 1, background regions weight 0 (masked out).
+3. **Style transfer (choose one)**:
+   - *CycleGAN*: Standard unpaired translation, no domain knowledge.
+   - *CyCada*: CycleGAN + semantic consistency loss to preserve semantics.
+   - *AWADA*: CyCada + attention-masked adversarial losses to focus on foreground objects.
 4. **Stylized training**: Stylize the source domain images using the trained generator, then train a new detector on the stylized images.
 
 ## Installation
@@ -115,6 +126,19 @@ bash scripts/exp_b_cyclegan.sh sim10k_to_cityscapes
 bash scripts/exp_b_cyclegan.sh cityscapes_to_foggy
 ```
 
+### Experiment B2: CyCada (CycleGAN + semantic consistency loss)
+
+Same pipeline as Experiment B but with semantic consistency loss enabled:
+
+```bash
+python train_cycada.py \
+    --source_dir /data/sim10k/images \
+    --target_dir /data/cityscapes/leftImg8bit/train \
+    --output_dir outputs/cycada \
+    --config configs/cycada.yaml \
+    --device cuda
+```
+
 ### Experiment C: AWADA (Attention-Weighted)
 
 Requires Experiment A checkpoint. Generates attention maps, trains AWADA CycleGAN, stylizes and retrains detector:
@@ -194,10 +218,13 @@ The generated masks are automatically consumed by `train_awada.py` via the `--at
 AWADA/
 ├── pyproject.toml
 ├── configs/
+│   ├── cyclegan.yaml              # CycleGAN hyperparameter config
+│   ├── cycada.yaml                # CyCada hyperparameter config (lambda_sem > 0)
 │   └── awada.yaml                 # AWADA hyperparameter config
 ├── train_detector.py              # Faster R-CNN training script
-├── train_cyclegan.py              # Standard CycleGAN training
-├── train_awada.py                 # AWADA CycleGAN training (reads configs/awada.yaml)
+├── train_cyclegan.py              # CycleGAN training (reads configs/cyclegan.yaml)
+├── train_cycada.py                # CyCada training (reads configs/cycada.yaml)
+├── train_awada.py                 # AWADA training (reads configs/awada.yaml)
 ├── generate_attention_maps.py     # Generate RPN attention maps
 ├── stylize_dataset.py             # Stylize images with trained generator
 ├── visualize_inference.py         # Side-by-side visualization of style transfer
@@ -211,7 +238,9 @@ AWADA/
     │   ├── generator.py            # ResNet-9 generator
     │   ├── discriminator.py        # PatchGAN discriminator
     │   ├── cyclegan.py             # CycleGAN with image replay buffer
-    │   └── awada_cyclegan.py       # AWADA variant with masked losses
+    │   ├── cycada.py               # CyCada: CycleGAN + semantic consistency loss
+    │   ├── awada.py                # AWADA: CyCada + attention-masked adversarial losses
+    │   └── semantic_loss.py        # DeepLabV3-backed semantic consistency loss
     ├── datasets/
     │   ├── sim10k.py               # sim10k (Driving in the Matrix) detection dataset
     │   ├── cityscapes.py           # Cityscapes detection dataset
@@ -235,24 +264,34 @@ Results are saved to `results.txt` in each experiment's output directory.
 
 ## Hyperparameter Configuration
 
-AWADA-specific hyperparameters are stored in `configs/awada.yaml`:
+Model-specific hyperparameters are stored in `configs/`:
+
+| Config | Model | Key difference |
+|---|---|---|
+| `configs/cyclegan.yaml` | CycleGAN | `lambda_sem: 0.0` (no semantic loss) |
+| `configs/cycada.yaml` | CyCada | `lambda_sem: 1.0` (semantic loss enabled) |
+| `configs/awada.yaml` | AWADA | `lambda_sem: 0.0` by default (add `--lambda_sem 1.0` to enable) |
+
+Example `configs/cycada.yaml`:
 
 ```yaml
 epochs: 200
 lr: 0.0002
 betas: [0.5, 0.999]
 lambda_cyc: 10.0
-lambda_idt: 5.0
+lambda_gan: 1.0
+lambda_idt: 0.0
+lambda_sem: 1.0
 batch_size: 1
 patch_size: 128
 device: cuda
 ```
 
-`train_awada.py` loads this file automatically (`--config configs/awada.yaml`).
-Any value can be overridden with the corresponding CLI flag, e.g.:
+Each training script loads its own config file automatically. Any value can be overridden with the corresponding CLI flag, e.g.:
 
 ```bash
-python train_awada.py --config configs/awada.yaml --lr 0.0001 --epochs 100 ...
+python train_cycada.py --config configs/cycada.yaml --lr 0.0001 --epochs 100 ...
+python train_awada.py --config configs/awada.yaml --lambda_sem 1.0 ...
 ```
 
 ## Visualization

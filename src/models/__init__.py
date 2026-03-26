@@ -1,4 +1,5 @@
-from .awada_cyclegan import AWADACycleGAN as AWADACycleGAN
+from .awada import AWADA as AWADA
+from .cycada import CyCada as CyCada
 from .cyclegan import CycleGAN as CycleGAN
 from .cyclegan import ImageBuffer as ImageBuffer
 from .discriminator import PatchGANDiscriminator as PatchGANDiscriminator

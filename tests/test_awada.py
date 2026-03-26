@@ -1,18 +1,18 @@
-"""Tests for AWADACycleGAN covering attention mask handling, masked MSE loss computation, and loss calculation."""
+"""Tests for AWADA covering attention mask handling, masked MSE loss computation, and loss calculation."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
 
-from src.models.awada_cyclegan import AWADACycleGAN
+from src.models.awada import AWADA
 
 DEVICE = "cpu"
 IMG_SIZE = 64
 
 
 def _make_model():
-    return AWADACycleGAN(device=DEVICE)
+    return AWADA(device=DEVICE)
 
 
 def _inputs(batch=1):
@@ -23,7 +23,7 @@ def _inputs(batch=1):
     return real_A, real_B, att_A, att_B
 
 
-class TestAWADACycleGAN:
+class TestAWADA:
     def test_set_input_with_attention(self):
         model = _make_model()
         real_A, real_B, att_A, att_B = _inputs()
@@ -183,8 +183,8 @@ class TestAWADACycleGAN:
     def test_semantic_loss_present_when_enabled(self):
         """Semantic loss keys MUST appear when lambda_sem > 0 and criterion_sem is set."""
         mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("src.models.cyclegan.SemanticConsistencyLoss", return_value=mock_sem):
-            model = AWADACycleGAN(device=DEVICE, lambda_sem=1.0)
+        with patch("src.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+            model = AWADA(device=DEVICE, lambda_sem=1.0)
         real_A, real_B, att_A, att_B = _inputs()
         model.set_input(real_A, real_B, att_A, att_B)
         model.forward()
@@ -194,8 +194,8 @@ class TestAWADACycleGAN:
 
     def test_semantic_loss_included_in_total(self):
         mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("src.models.cyclegan.SemanticConsistencyLoss", return_value=mock_sem):
-            model = AWADACycleGAN(device=DEVICE, lambda_sem=1.0)
+        with patch("src.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+            model = AWADA(device=DEVICE, lambda_sem=1.0)
         real_A, real_B, att_A, att_B = _inputs()
         model.set_input(real_A, real_B, att_A, att_B)
         model.forward()
