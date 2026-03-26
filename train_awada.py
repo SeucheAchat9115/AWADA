@@ -50,7 +50,6 @@ def main():
     parser.add_argument("--batch_size", type=int)
     parser.add_argument("--lr", type=float)
     parser.add_argument("--lambda_cyc", type=float)
-    parser.add_argument("--lambda_idt", type=float)
     parser.add_argument("--lambda_gan", type=float)
     parser.add_argument("--patch_size", type=int)
     parser.add_argument("--device")
@@ -65,7 +64,6 @@ def main():
     batch_size = args.batch_size if args.batch_size is not None else cfg.get("batch_size", 1)
     lr = args.lr if args.lr is not None else cfg.get("lr", 0.0002)
     lambda_cyc = args.lambda_cyc if args.lambda_cyc is not None else cfg.get("lambda_cyc", 10.0)
-    lambda_idt = args.lambda_idt if args.lambda_idt is not None else cfg.get("lambda_idt", 5.0)
     lambda_gan = args.lambda_gan if args.lambda_gan is not None else cfg.get("lambda_gan", 1.0)
     patch_size = args.patch_size if args.patch_size is not None else cfg.get("patch_size", 128)
     betas = tuple(cfg.get("betas", [0.5, 0.999]))
@@ -121,7 +119,7 @@ def main():
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(False)
             opt_G.zero_grad()
-            g_losses = model.compute_generator_loss(lambda_cyc, lambda_idt, lambda_gan)
+            g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan)
             g_losses["total_G"].backward()
             opt_G.step()
 

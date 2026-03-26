@@ -71,8 +71,10 @@ class TestAWADACycleGAN:
         model.set_input(real_A, real_B, att_A, att_B)
         model.forward()
         losses = model.compute_generator_loss()
-        for key in ("G_AB", "G_BA", "cycle_A", "cycle_B", "idt_A", "idt_B", "total_G"):
+        for key in ("G_AB", "G_BA", "cycle_A", "cycle_B", "total_G"):
             assert key in losses
+        for key in ("idt_A", "idt_B"):
+            assert key not in losses, f"Identity loss key should not be present: {key}"
 
     def test_discriminator_loss_keys(self):
         model = _make_model()

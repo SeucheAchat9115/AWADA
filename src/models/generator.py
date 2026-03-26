@@ -19,7 +19,7 @@ class ResidualBlock(nn.Module):
 
 
 class ResNetGenerator(nn.Module):
-    def __init__(self, in_channels=3, out_channels=3, ngf=64, n_blocks=9):
+    def __init__(self, in_channels=3, out_channels=3, ngf=64, n_blocks=6):
         super().__init__()
         layers = [
             nn.ReflectionPad2d(3),

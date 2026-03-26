@@ -1,5 +1,5 @@
-# AWADA hyperparameter configuration
-# These values can be overridden via command-line arguments in train_awada.py
+# CycleGAN hyperparameter configuration
+# These values can be overridden via command-line arguments in train_cyclegan.py
 
 # Training duration
 epochs: 200
