@@ -235,7 +235,11 @@ python train_cyclegan.py \
     --device "${DEVICE:-cuda}"
 
 # Stylise source images with preliminary generator
-PRELIM_GAN=$(ls -t "$PRELIM_GAN_OUTPUT"/cyclegan_epoch_*.pth | head -1)
+PRELIM_GAN=$(ls -t "$PRELIM_GAN_OUTPUT"/cyclegan_epoch_*.pth 2>/dev/null | head -1)
+if [ -z "$PRELIM_GAN" ]; then
+    echo "ERROR: No preliminary CycleGAN checkpoint found in $PRELIM_GAN_OUTPUT"
+    exit 1
+fi
 python stylize_dataset.py \
     --generator_checkpoint "$PRELIM_GAN" \
     --source_dir "$SOURCE_IMAGES" \
