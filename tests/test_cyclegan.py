@@ -123,12 +123,7 @@ class TestCycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_generator_loss()
-        expected = (
-            losses["G_AB"]
-            + losses["G_BA"]
-            + losses["cycle_A"]
-            + losses["cycle_B"]
-        )
+        expected = losses["G_AB"] + losses["G_BA"] + losses["cycle_A"] + losses["cycle_B"]
         assert torch.allclose(losses["total_G"], expected, atol=1e-5)
 
     def test_discriminator_loss_is_sum_of_parts(self):

@@ -1,7 +1,5 @@
 from typing import Optional
 
-import torch
-
 from .cyclegan import CycleGAN
 from .semantic_loss import SemanticConsistencyLoss
 
