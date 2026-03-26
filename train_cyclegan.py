@@ -31,12 +31,8 @@ class UnpairedImageDataset(Dataset):
                 if f.lower().endswith((".png", ".jpg", ".jpeg"))
             ]
         )
-        # Resize to slightly larger than patch_size before random crop (matches paper).
-        # The original paper uses 286 for 256; we scale the margin proportionally.
-        load_size = int(patch_size * 286 / 256)
         self.transform = T.Compose(
             [
-                T.Resize(load_size, interpolation=T.InterpolationMode.BICUBIC),
                 T.RandomCrop(patch_size),
                 T.RandomHorizontalFlip(),
                 T.ToTensor(),
