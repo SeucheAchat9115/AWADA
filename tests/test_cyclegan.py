@@ -87,8 +87,10 @@ class TestCycleGAN:
         model.set_input(real_A, real_B)
         model.forward()
         losses = model.compute_generator_loss()
-        for key in ("G_AB", "G_BA", "cycle_A", "cycle_B", "idt_A", "idt_B", "total_G"):
+        for key in ("G_AB", "G_BA", "cycle_A", "cycle_B", "total_G"):
             assert key in losses, f"Missing key: {key}"
+        for key in ("idt_A", "idt_B"):
+            assert key not in losses, f"Identity loss key should not be present: {key}"
 
     def test_generator_loss_positive(self):
         model = _make_cyclegan()
@@ -126,8 +128,6 @@ class TestCycleGAN:
             + losses["G_BA"]
             + losses["cycle_A"]
             + losses["cycle_B"]
-            + losses["idt_A"]
-            + losses["idt_B"]
         )
         assert torch.allclose(losses["total_G"], expected, atol=1e-5)
 

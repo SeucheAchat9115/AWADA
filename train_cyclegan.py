@@ -6,6 +6,7 @@ import os
 
 import torch
 import torchvision.transforms as T
+import yaml
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -33,6 +34,7 @@ class UnpairedImageDataset(Dataset):
         self.transform = T.Compose(
             [
                 T.RandomCrop(patch_size),
+                T.RandomHorizontalFlip(),
                 T.ToTensor(),
                 T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
             ]
@@ -47,6 +49,12 @@ class UnpairedImageDataset(Dataset):
         return self.transform(img_A), self.transform(img_B)
 
 
+def load_config(path: str) -> dict:
+    """Load a YAML config file."""
+    with open(path) as f:
+        return yaml.safe_load(f) or {}
+
+
 def get_lambda_lr(epoch, n_epochs, n_epochs_decay):
     if epoch < n_epochs:
         return 1.0
@@ -58,23 +66,43 @@ def main():
     parser.add_argument("--source_dir", required=True)
     parser.add_argument("--target_dir", required=True)
     parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--epochs", type=int, default=200)
-    parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--lr", type=float, default=0.0002)
-    parser.add_argument("--lambda_cyc", type=float, default=10.0)
-    parser.add_argument("--lambda_idt", type=float, default=5.0)
-    parser.add_argument("--lambda_gan", type=float, default=1.0)
-    parser.add_argument("--patch_size", type=int, default=128)
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--config",
+        default="configs/cyclegan.yaml",
+        help="Path to YAML config file with hyperparameters",
+    )
+    # Hyperparameters – CLI flags override the config file when provided
+    parser.add_argument("--epochs", type=int)
+    parser.add_argument("--batch_size", type=int)
+    parser.add_argument("--lr", type=float)
+    parser.add_argument("--lambda_cyc", type=float)
+    parser.add_argument("--lambda_gan", type=float)
+    parser.add_argument("--patch_size", type=int)
+    parser.add_argument("--device")
     args = parser.parse_args()
 
-    os.makedirs(args.output_dir, exist_ok=True)
-    device = torch.device(args.device)
+    # Load defaults from config file, then apply CLI overrides
+    cfg: dict = {}
+    if args.config and os.path.exists(args.config):
+        cfg = load_config(args.config)
 
-    dataset = UnpairedImageDataset(args.source_dir, args.target_dir, args.patch_size)
+    epochs = args.epochs if args.epochs is not None else cfg.get("epochs", 200)
+    batch_size = args.batch_size if args.batch_size is not None else cfg.get("batch_size", 1)
+    lr = args.lr if args.lr is not None else cfg.get("lr", 0.0002)
+    lambda_cyc = args.lambda_cyc if args.lambda_cyc is not None else cfg.get("lambda_cyc", 10.0)
+    lambda_gan = args.lambda_gan if args.lambda_gan is not None else cfg.get("lambda_gan", 1.0)
+    patch_size = args.patch_size if args.patch_size is not None else cfg.get("patch_size", 128)
+    betas = tuple(cfg.get("betas", [0.5, 0.999]))
+    default_device = "cuda" if torch.cuda.is_available() else "cpu"
+    device_str = args.device if args.device is not None else cfg.get("device", default_device)
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    device = torch.device(device_str)
+
+    dataset = UnpairedImageDataset(args.source_dir, args.target_dir, patch_size)
     dataloader = DataLoader(
         dataset,
-        batch_size=args.batch_size,
+        batch_size=batch_size,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -83,16 +111,16 @@ def main():
 
     model = CycleGAN(device=str(device))
 
-    n_epochs_decay = args.epochs // 2
-    n_epochs_stable = args.epochs - n_epochs_decay
+    n_epochs_decay = epochs // 2
+    n_epochs_stable = epochs - n_epochs_decay
 
     opt_G = torch.optim.Adam(
         list(model.G_AB.parameters()) + list(model.G_BA.parameters()),
-        lr=args.lr,
-        betas=(0.5, 0.999),
+        lr=lr,
+        betas=betas,
     )
     opt_D = torch.optim.Adam(
-        list(model.D_A.parameters()) + list(model.D_B.parameters()), lr=args.lr, betas=(0.5, 0.999)
+        list(model.D_A.parameters()) + list(model.D_B.parameters()), lr=lr, betas=betas
     )
 
     sched_G = torch.optim.lr_scheduler.LambdaLR(
@@ -102,14 +130,14 @@ def main():
         opt_D, lr_lambda=lambda ep: get_lambda_lr(ep, n_epochs_stable, n_epochs_decay)
     )
 
-    for epoch in range(args.epochs):
+    for epoch in range(epochs):
         model.G_AB.train()
         model.G_BA.train()
         model.D_A.train()
         model.D_B.train()
 
         for iteration, (real_A, real_B) in enumerate(
-            tqdm(dataloader, desc=f"Epoch {epoch + 1}/{args.epochs}")
+            tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}")
         ):
             model.set_input(real_A, real_B)
             model.forward()
@@ -118,9 +146,7 @@ def main():
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(False)
             opt_G.zero_grad()
-            g_losses = model.compute_generator_loss(
-                args.lambda_cyc, args.lambda_idt, args.lambda_gan
-            )
+            g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan)
             g_losses["total_G"].backward()
             opt_G.step()
 

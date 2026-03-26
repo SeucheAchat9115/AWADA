@@ -80,6 +80,11 @@ class AttentionPairedDataset(Dataset):
         src_patch = TF.to_tensor(src_img.crop((src_x, src_y, src_x + p, src_y + p)))
         att_A_patch = self._crop_attention(src_path, self.attention_root, src_x, src_y, p)
 
+        # Random horizontal flip (applied consistently to image and attention map)
+        if random.random() > 0.5:
+            src_patch = TF.hflip(src_patch)
+            att_A_patch = TF.hflip(att_A_patch)
+
         # Random crop target + target attention at same location
         tgt_x = random.randint(0, max(0, tgt_w - p))
         tgt_y = random.randint(0, max(0, tgt_h - p))
@@ -90,6 +95,11 @@ class AttentionPairedDataset(Dataset):
             )
         else:
             att_B_patch = torch.ones(1, p, p)
+
+        # Random horizontal flip (applied consistently to image and attention map)
+        if random.random() > 0.5:
+            tgt_patch = TF.hflip(tgt_patch)
+            att_B_patch = TF.hflip(att_B_patch)
 
         # Normalize to [-1, 1]
         src_patch = src_patch * 2 - 1

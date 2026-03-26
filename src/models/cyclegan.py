@@ -46,7 +46,6 @@ class CycleGAN(nn.Module):
         self.fake_B_buffer = ImageBuffer()
         self.criterion_GAN = nn.MSELoss()  # LSGAN
         self.criterion_cycle = nn.L1Loss()
-        self.criterion_identity = nn.L1Loss()
 
     def set_input(self, real_A, real_B):
         self.real_A = real_A.to(self.device)
@@ -58,13 +57,7 @@ class CycleGAN(nn.Module):
         self.fake_A = self.G_BA(self.real_B)
         self.rec_B = self.G_AB(self.fake_A)
 
-    def compute_generator_loss(self, lambda_cyc=10.0, lambda_idt=5.0, lambda_gan=1.0):
-        # Identity loss
-        idt_A = self.G_BA(self.real_A)
-        idt_B = self.G_AB(self.real_B)
-        loss_idt_A = self.criterion_identity(idt_A, self.real_A) * lambda_idt
-        loss_idt_B = self.criterion_identity(idt_B, self.real_B) * lambda_idt
-
+    def compute_generator_loss(self, lambda_cyc=10.0, lambda_gan=1.0):
         # GAN loss (generators try to fool discriminators)
         pred_fake_B = self.D_B(self.fake_B)
         loss_G_AB = self.criterion_GAN(pred_fake_B, torch.ones_like(pred_fake_B)) * lambda_gan
@@ -75,14 +68,12 @@ class CycleGAN(nn.Module):
         loss_cyc_A = self.criterion_cycle(self.rec_A, self.real_A) * lambda_cyc
         loss_cyc_B = self.criterion_cycle(self.rec_B, self.real_B) * lambda_cyc
 
-        total = loss_G_AB + loss_G_BA + loss_cyc_A + loss_cyc_B + loss_idt_A + loss_idt_B
+        total = loss_G_AB + loss_G_BA + loss_cyc_A + loss_cyc_B
         return {
             "G_AB": loss_G_AB,
             "G_BA": loss_G_BA,
             "cycle_A": loss_cyc_A,
             "cycle_B": loss_cyc_B,
-            "idt_A": loss_idt_A,
-            "idt_B": loss_idt_B,
             "total_G": total,
         }
 
