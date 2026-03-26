@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.datasets.attention_dataset import AttentionPairedDataset
-from src.models.awada_cyclegan import AWADACycleGAN
+from src.models.awada import AWADA
 
 
 def load_config(path: str) -> dict:
@@ -92,7 +92,7 @@ def main():
         dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True, drop_last=True
     )
 
-    model = AWADACycleGAN(device=str(device), lambda_sem=lambda_sem)
+    model = AWADA(device=str(device), lambda_sem=lambda_sem)
 
     n_epochs_decay = epochs // 2
     n_epochs_stable = epochs - n_epochs_decay

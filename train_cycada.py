@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train standard CycleGAN for domain translation."""
+"""Train CyCada (CycleGAN + semantic consistency loss) for domain translation."""
 
 import argparse
 import os
@@ -11,7 +11,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from src.models.cyclegan import CycleGAN
+from src.models.cycada import CyCada
 
 
 class UnpairedImageDataset(Dataset):
@@ -62,13 +62,13 @@ def get_lambda_lr(epoch, n_epochs, n_epochs_decay):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train CycleGAN")
+    parser = argparse.ArgumentParser(description="Train CyCada")
     parser.add_argument("--source_dir", required=True)
     parser.add_argument("--target_dir", required=True)
     parser.add_argument("--output_dir", required=True)
     parser.add_argument(
         "--config",
-        default="configs/cyclegan.yaml",
+        default="configs/cycada.yaml",
         help="Path to YAML config file with hyperparameters",
     )
     # Hyperparameters – CLI flags override the config file when provided
@@ -98,7 +98,7 @@ def main():
     lambda_cyc = args.lambda_cyc if args.lambda_cyc is not None else cfg.get("lambda_cyc", 10.0)
     lambda_gan = args.lambda_gan if args.lambda_gan is not None else cfg.get("lambda_gan", 1.0)
     lambda_idt = args.lambda_idt if args.lambda_idt is not None else cfg.get("lambda_idt", 0.0)
-    lambda_sem = args.lambda_sem if args.lambda_sem is not None else cfg.get("lambda_sem", 0.0)
+    lambda_sem = args.lambda_sem if args.lambda_sem is not None else cfg.get("lambda_sem", 1.0)
     patch_size = args.patch_size if args.patch_size is not None else cfg.get("patch_size", 128)
     betas = tuple(cfg.get("betas", [0.5, 0.999]))
     default_device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -117,7 +117,7 @@ def main():
         drop_last=True,
     )
 
-    model = CycleGAN(device=str(device))
+    model = CyCada(device=str(device), lambda_sem=lambda_sem)
 
     n_epochs_decay = epochs // 2
     n_epochs_stable = epochs - n_epochs_decay
@@ -154,7 +154,7 @@ def main():
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(False)
             opt_G.zero_grad()
-            g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt)
+            g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt, lambda_sem)
             g_losses["total_G"].backward()
             opt_G.step()
 
@@ -185,11 +185,11 @@ def main():
             "D_A": model.D_A.state_dict(),
             "D_B": model.D_B.state_dict(),
         }
-        ckpt_path = os.path.join(args.output_dir, f"cyclegan_epoch_{epoch + 1}.pth")
+        ckpt_path = os.path.join(args.output_dir, f"cycada_epoch_{epoch + 1}.pth")
         torch.save(ckpt, ckpt_path)
         print(f"Checkpoint saved: {ckpt_path}")
 
-    print("Training complete.")
+    print("CyCada training complete.")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,18 @@
 import torch
 import torch.nn.functional as F
 
-from .cyclegan import CycleGAN
+from .cycada import CyCada
 
 
-class AWADACycleGAN(CycleGAN):
+class AWADA(CyCada):
+    """AWADA: Attention-Weighted Adversarial Domain Adaptation.
+
+    Extends CyCada with attention-masked adversarial losses.  Foreground
+    attention masks (derived from RPN proposals) bias the GAN loss towards
+    semantically meaningful regions, while cycle and semantic losses remain
+    unmasked global regularisers.
+    """
+
     def __init__(self, device="cuda", lambda_sem: float = 0.0):
         super().__init__(device=device, lambda_sem=lambda_sem)
 
@@ -32,6 +40,13 @@ class AWADACycleGAN(CycleGAN):
         lambda_idt: float = 0.0,
         lambda_sem: float = 0.0,
     ):
+        # Build losses using CyCada (cycle, identity, semantic) with unmasked GAN
+        losses = super().compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt, lambda_sem)
+        total = losses.pop("total_G")
+
+        # Replace unmasked GAN losses with MASKED versions
+        total = total - losses["G_AB"] - losses["G_BA"]
+
         # GAN loss (MASKED by attention — foreground-focused adversarial objective)
         pred_fake_B = self.D_B(self.fake_B)
         loss_G_AB = (
@@ -44,36 +59,9 @@ class AWADACycleGAN(CycleGAN):
             * lambda_gan
         )
 
-        # Cycle consistency loss (UNMASKED — global image regulariser)
-        loss_cyc_A = self.criterion_cycle(self.rec_A, self.real_A) * lambda_cyc
-        loss_cyc_B = self.criterion_cycle(self.rec_B, self.real_B) * lambda_cyc
-
-        total = loss_G_AB + loss_G_BA + loss_cyc_A + loss_cyc_B
-        losses = {
-            "G_AB": loss_G_AB,
-            "G_BA": loss_G_BA,
-            "cycle_A": loss_cyc_A,
-            "cycle_B": loss_cyc_B,
-        }
-
-        # Identity loss (UNMASKED — global regulariser; skipped when weight is zero).
-        # Each line performs an extra forward pass through one generator.
-        if lambda_idt > 0.0:
-            loss_idt_A = self.criterion_cycle(self.G_BA(self.real_A), self.real_A) * lambda_idt
-            loss_idt_B = self.criterion_cycle(self.G_AB(self.real_B), self.real_B) * lambda_idt
-            total = total + loss_idt_A + loss_idt_B
-            losses["idt_A"] = loss_idt_A
-            losses["idt_B"] = loss_idt_B
-
-        # Semantic consistency loss (UNMASKED — global regulariser; skipped when weight is zero)
-        if lambda_sem > 0.0 and self.criterion_sem is not None:
-            loss_sem_AB = self.criterion_sem(self.fake_B, self.real_A) * lambda_sem
-            loss_sem_BA = self.criterion_sem(self.fake_A, self.real_B) * lambda_sem
-            total = total + loss_sem_AB + loss_sem_BA
-            losses["sem_AB"] = loss_sem_AB
-            losses["sem_BA"] = loss_sem_BA
-
-        losses["total_G"] = total
+        losses["G_AB"] = loss_G_AB
+        losses["G_BA"] = loss_G_BA
+        losses["total_G"] = total + loss_G_AB + loss_G_BA
         return losses
 
     def compute_discriminator_loss(self):
