@@ -22,12 +22,16 @@ class Sim10kDataset(Dataset):
         └── Annotations/  # PASCAL VOC XML files (e.g. 00001.xml)
     """
 
-    def __init__(self, root, transforms=None):
+    def __init__(self, root, transforms=None, image_dir=None):
         self.root = root
         self.transforms = transforms
-        img_dir = os.path.join(root, "images")
+        self.image_dir = image_dir if image_dir is not None else os.path.join(root, "images")
         self.image_files = sorted(
-            [f for f in os.listdir(img_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+            [
+                f
+                for f in os.listdir(self.image_dir)
+                if f.lower().endswith((".jpg", ".jpeg", ".png"))
+            ]
         )
 
     def __len__(self):
@@ -36,7 +40,7 @@ class Sim10kDataset(Dataset):
     def __getitem__(self, idx):
         fname = self.image_files[idx]
         stem = os.path.splitext(fname)[0]
-        img_path = os.path.join(self.root, "images", fname)
+        img_path = os.path.join(self.image_dir, fname)
         ann_path = os.path.join(self.root, "Annotations", stem + ".xml")
 
         image = Image.open(img_path).convert("RGB")

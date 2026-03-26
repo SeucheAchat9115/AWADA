@@ -16,13 +16,15 @@ from src.datasets.sim10k import Sim10kDataset
 from src.utils.metrics import compute_map_range
 
 
-def get_dataset(name, root, split, transforms=None, classes=None):
+def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None):
     if name == "sim10k":
-        return Sim10kDataset(root, transforms=transforms)
+        return Sim10kDataset(root, transforms=transforms, image_dir=image_dir)
     elif name == "cityscapes":
-        return CityscapesDetectionDataset(root, split=split, transforms=transforms, classes=classes)
+        return CityscapesDetectionDataset(
+            root, split=split, transforms=transforms, classes=classes, image_root=image_dir
+        )
     elif name == "foggy_cityscapes":
-        return FoggyCityscapesDataset(root, split=split, transforms=transforms)
+        return FoggyCityscapesDataset(root, split=split, transforms=transforms, image_root=image_dir)
     else:
         raise ValueError(f"Unknown dataset: {name}")
 
@@ -77,12 +79,25 @@ def main():
         default=None,
         help="Class names to include (cityscapes only, e.g. --classes car)",
     )
+    parser.add_argument(
+        "--image_dir",
+        default=None,
+        help=(
+            "Override the default image directory with a custom path. "
+            "Useful for training on stylized images while keeping the original annotations. "
+            "For sim10k: path to a flat directory of image files. "
+            "For cityscapes/foggy_cityscapes: path to a directory with the same city-based "
+            "subdirectory structure as the standard image root."
+        ),
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = torch.device(args.device)
 
-    train_dataset = get_dataset(args.dataset, args.data_root, split="train", classes=args.classes)
+    train_dataset = get_dataset(
+        args.dataset, args.data_root, split="train", classes=args.classes, image_dir=args.image_dir
+    )
     # sim10k (GTA) does not require a validation split; all images are used for training.
     val_dataset = (
         get_dataset(args.dataset, args.data_root, split="val", classes=args.classes)

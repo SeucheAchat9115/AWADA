@@ -36,16 +36,22 @@ def main():
             generator.load_state_dict(state)
     generator.eval()
 
-    image_files = sorted(
-        [f for f in os.listdir(args.source_dir) if f.lower().endswith((".png", ".jpg", ".jpeg"))]
-    )
+    # Collect images recursively, preserving relative paths for nested structures
+    # (e.g. Cityscapes stores images under leftImg8bit/train/<city>/*.png)
+    image_rel_paths = []
+    for dirpath, _dirnames, filenames in os.walk(args.source_dir):
+        for fname in sorted(filenames):
+            if fname.lower().endswith((".png", ".jpg", ".jpeg")):
+                rel_path = os.path.relpath(os.path.join(dirpath, fname), args.source_dir)
+                image_rel_paths.append(rel_path)
+    image_rel_paths = sorted(image_rel_paths)
 
     to_tensor = T.ToTensor()
     normalize = T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 
     with torch.no_grad():
-        for fname in tqdm(image_files, desc="Stylizing"):
-            img_path = os.path.join(args.source_dir, fname)
+        for rel_path in tqdm(image_rel_paths, desc="Stylizing"):
+            img_path = os.path.join(args.source_dir, rel_path)
             img = Image.open(img_path).convert("RGB")
             w, h = img.size
 
@@ -66,10 +72,11 @@ def main():
             output = output[:, :h, :w]
 
             out_img = TF.to_pil_image(output)
-            out_path = os.path.join(args.output_dir, fname)
+            out_path = os.path.join(args.output_dir, rel_path)
+            os.makedirs(os.path.dirname(out_path), exist_ok=True)
             out_img.save(out_path)
 
-    print(f"Stylized {len(image_files)} images saved to {args.output_dir}")
+    print(f"Stylized {len(image_rel_paths)} images saved to {args.output_dir}")
 
 
 if __name__ == "__main__":
