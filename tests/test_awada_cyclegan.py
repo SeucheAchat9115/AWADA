@@ -1,5 +1,7 @@
 """Tests for AWADACycleGAN covering attention mask handling, masked MSE loss computation, and loss calculation."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 import torch
 
@@ -119,3 +121,91 @@ class TestAWADACycleGAN:
         model.forward()
         losses = model.compute_discriminator_loss()
         assert torch.allclose(losses["total_D"], losses["D_A"] + losses["D_B"], atol=1e-5)
+
+    # ------------------------------------------------------------------
+    # Identity loss (AWADA inherits unmasked identity loss from CycleGAN)
+    # ------------------------------------------------------------------
+
+    def test_identity_loss_absent_by_default(self):
+        """Identity loss keys must NOT appear when lambda_idt=0 (default)."""
+        model = _make_model()
+        real_A, real_B, att_A, att_B = _inputs()
+        model.set_input(real_A, real_B, att_A, att_B)
+        model.forward()
+        losses = model.compute_generator_loss()
+        assert "idt_A" not in losses
+        assert "idt_B" not in losses
+
+    def test_identity_loss_present_and_unmasked_when_enabled(self):
+        """Identity loss keys MUST appear when lambda_idt > 0 (unmasked)."""
+        model = _make_model()
+        real_A, real_B, att_A, att_B = _inputs()
+        model.set_input(real_A, real_B, att_A, att_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_idt=5.0)
+        assert "idt_A" in losses
+        assert "idt_B" in losses
+
+    def test_identity_loss_included_in_total(self):
+        model = _make_model()
+        real_A, real_B, att_A, att_B = _inputs()
+        model.set_input(real_A, real_B, att_A, att_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_idt=5.0)
+        expected = (
+            losses["G_AB"]
+            + losses["G_BA"]
+            + losses["cycle_A"]
+            + losses["cycle_B"]
+            + losses["idt_A"]
+            + losses["idt_B"]
+        )
+        assert torch.allclose(losses["total_G"], expected, atol=1e-5)
+
+    # ------------------------------------------------------------------
+    # Semantic consistency loss (AWADA inherits unmasked semantic loss)
+    # ------------------------------------------------------------------
+
+    def test_semantic_loss_not_instantiated_when_zero(self):
+        """criterion_sem must be None when lambda_sem=0 (default)."""
+        model = _make_model()
+        assert model.criterion_sem is None
+
+    def test_semantic_loss_absent_by_default(self):
+        model = _make_model()
+        real_A, real_B, att_A, att_B = _inputs()
+        model.set_input(real_A, real_B, att_A, att_B)
+        model.forward()
+        losses = model.compute_generator_loss()
+        assert "sem_AB" not in losses
+        assert "sem_BA" not in losses
+
+    def test_semantic_loss_present_when_enabled(self):
+        """Semantic loss keys MUST appear when lambda_sem > 0 and criterion_sem is set."""
+        mock_sem = MagicMock(return_value=torch.tensor(0.5))
+        with patch("src.models.cyclegan.SemanticConsistencyLoss", return_value=mock_sem):
+            model = AWADACycleGAN(device=DEVICE, lambda_sem=1.0)
+        real_A, real_B, att_A, att_B = _inputs()
+        model.set_input(real_A, real_B, att_A, att_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_sem=1.0)
+        assert "sem_AB" in losses
+        assert "sem_BA" in losses
+
+    def test_semantic_loss_included_in_total(self):
+        mock_sem = MagicMock(return_value=torch.tensor(0.5))
+        with patch("src.models.cyclegan.SemanticConsistencyLoss", return_value=mock_sem):
+            model = AWADACycleGAN(device=DEVICE, lambda_sem=1.0)
+        real_A, real_B, att_A, att_B = _inputs()
+        model.set_input(real_A, real_B, att_A, att_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_sem=1.0)
+        expected = (
+            losses["G_AB"]
+            + losses["G_BA"]
+            + losses["cycle_A"]
+            + losses["cycle_B"]
+            + losses["sem_AB"]
+            + losses["sem_BA"]
+        )
+        assert torch.allclose(losses["total_G"], expected, atol=1e-5)

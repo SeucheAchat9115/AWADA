@@ -1,10 +1,12 @@
 import random
+from typing import Optional
 
 import torch
 import torch.nn as nn
 
 from .discriminator import PatchGANDiscriminator
 from .generator import ResNetGenerator
+from .semantic_loss import SemanticConsistencyLoss
 
 
 class ImageBuffer:
@@ -35,7 +37,7 @@ class ImageBuffer:
 
 
 class CycleGAN(nn.Module):
-    def __init__(self, device="cuda"):
+    def __init__(self, device="cuda", lambda_sem: float = 0.0):
         super().__init__()
         self.device = device
         self.G_AB = ResNetGenerator().to(device)
@@ -46,6 +48,10 @@ class CycleGAN(nn.Module):
         self.fake_B_buffer = ImageBuffer()
         self.criterion_GAN = nn.MSELoss()  # LSGAN
         self.criterion_cycle = nn.L1Loss()
+        # Semantic consistency loss: only instantiated when weight is non-zero
+        self.criterion_sem: Optional[SemanticConsistencyLoss] = (
+            SemanticConsistencyLoss(device=device) if lambda_sem > 0.0 else None
+        )
 
     def set_input(self, real_A, real_B):
         self.real_A = real_A.to(self.device)
@@ -57,7 +63,13 @@ class CycleGAN(nn.Module):
         self.fake_A = self.G_BA(self.real_B)
         self.rec_B = self.G_AB(self.fake_A)
 
-    def compute_generator_loss(self, lambda_cyc=10.0, lambda_gan=1.0):
+    def compute_generator_loss(
+        self,
+        lambda_cyc: float = 10.0,
+        lambda_gan: float = 1.0,
+        lambda_idt: float = 0.0,
+        lambda_sem: float = 0.0,
+    ):
         # GAN loss (generators try to fool discriminators)
         pred_fake_B = self.D_B(self.fake_B)
         loss_G_AB = self.criterion_GAN(pred_fake_B, torch.ones_like(pred_fake_B)) * lambda_gan
@@ -69,13 +81,31 @@ class CycleGAN(nn.Module):
         loss_cyc_B = self.criterion_cycle(self.rec_B, self.real_B) * lambda_cyc
 
         total = loss_G_AB + loss_G_BA + loss_cyc_A + loss_cyc_B
-        return {
+        losses = {
             "G_AB": loss_G_AB,
             "G_BA": loss_G_BA,
             "cycle_A": loss_cyc_A,
             "cycle_B": loss_cyc_B,
-            "total_G": total,
         }
+
+        # Identity loss (unmasked global regulariser; skipped when weight is zero)
+        if lambda_idt > 0.0:
+            loss_idt_A = self.criterion_cycle(self.G_BA(self.real_A), self.real_A) * lambda_idt
+            loss_idt_B = self.criterion_cycle(self.G_AB(self.real_B), self.real_B) * lambda_idt
+            total = total + loss_idt_A + loss_idt_B
+            losses["idt_A"] = loss_idt_A
+            losses["idt_B"] = loss_idt_B
+
+        # Semantic consistency loss (unmasked global regulariser; skipped when weight is zero)
+        if lambda_sem > 0.0 and self.criterion_sem is not None:
+            loss_sem_AB = self.criterion_sem(self.fake_B, self.real_A) * lambda_sem
+            loss_sem_BA = self.criterion_sem(self.fake_A, self.real_B) * lambda_sem
+            total = total + loss_sem_AB + loss_sem_BA
+            losses["sem_AB"] = loss_sem_AB
+            losses["sem_BA"] = loss_sem_BA
+
+        losses["total_G"] = total
+        return losses
 
     def compute_discriminator_loss(self):
         # D_B

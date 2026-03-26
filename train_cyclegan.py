@@ -77,6 +77,12 @@ def main():
     parser.add_argument("--lr", type=float)
     parser.add_argument("--lambda_cyc", type=float)
     parser.add_argument("--lambda_gan", type=float)
+    parser.add_argument("--lambda_idt", type=float, help="Identity loss weight (0 = disabled)")
+    parser.add_argument(
+        "--lambda_sem",
+        type=float,
+        help="Semantic consistency loss weight (0 = disabled, no DeepLabV3 loaded)",
+    )
     parser.add_argument("--patch_size", type=int)
     parser.add_argument("--device")
     args = parser.parse_args()
@@ -91,6 +97,8 @@ def main():
     lr = args.lr if args.lr is not None else cfg.get("lr", 0.0002)
     lambda_cyc = args.lambda_cyc if args.lambda_cyc is not None else cfg.get("lambda_cyc", 10.0)
     lambda_gan = args.lambda_gan if args.lambda_gan is not None else cfg.get("lambda_gan", 1.0)
+    lambda_idt = args.lambda_idt if args.lambda_idt is not None else cfg.get("lambda_idt", 0.0)
+    lambda_sem = args.lambda_sem if args.lambda_sem is not None else cfg.get("lambda_sem", 0.0)
     patch_size = args.patch_size if args.patch_size is not None else cfg.get("patch_size", 128)
     betas = tuple(cfg.get("betas", [0.5, 0.999]))
     default_device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -109,7 +117,7 @@ def main():
         drop_last=True,
     )
 
-    model = CycleGAN(device=str(device))
+    model = CycleGAN(device=str(device), lambda_sem=lambda_sem)
 
     n_epochs_decay = epochs // 2
     n_epochs_stable = epochs - n_epochs_decay
@@ -146,7 +154,7 @@ def main():
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(False)
             opt_G.zero_grad()
-            g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan)
+            g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt, lambda_sem)
             g_losses["total_G"].backward()
             opt_G.step()
 
