@@ -121,10 +121,12 @@ class TestGenerateAttentionMaps:
         loader = _simple_loader(1, H=64, W=64)
 
         # Two non-overlapping boxes: top-left (high score) and bottom-right (low score)
-        all_boxes = torch.tensor([
-            [0.0, 0.0, 32.0, 32.0],   # high score – should be included
-            [32.0, 32.0, 64.0, 64.0],  # low score  – should be excluded
-        ])
+        all_boxes = torch.tensor(
+            [
+                [0.0, 0.0, 32.0, 32.0],  # high score – should be included
+                [32.0, 32.0, 64.0, 64.0],  # low score  – should be excluded
+            ]
+        )
         all_scores = torch.tensor([0.8, 0.2])
 
         def boxes_fn(imgs):
@@ -150,12 +152,14 @@ class TestGenerateAttentionMaps:
         loader = _simple_loader(1, H=64, W=64)
 
         # Four non-overlapping boxes, all with score 0.9 (above threshold 0.5)
-        all_boxes = torch.tensor([
-            [0.0, 0.0, 16.0, 16.0],
-            [16.0, 0.0, 32.0, 16.0],
-            [32.0, 0.0, 48.0, 16.0],
-            [48.0, 0.0, 64.0, 16.0],
-        ])
+        all_boxes = torch.tensor(
+            [
+                [0.0, 0.0, 16.0, 16.0],
+                [16.0, 0.0, 32.0, 16.0],
+                [32.0, 0.0, 48.0, 16.0],
+                [48.0, 0.0, 64.0, 16.0],
+            ]
+        )
         all_scores = torch.tensor([0.9, 0.9, 0.9, 0.9])
 
         def boxes_fn(imgs):

@@ -115,7 +115,7 @@ def main():
         model.train()
         running_loss = 0.0
         for iteration, (images, targets) in enumerate(
-            tqdm(train_loader, desc=f"Epoch {epoch+1}/{args.epochs}")
+            tqdm(train_loader, desc=f"Epoch {epoch + 1}/{args.epochs}")
         ):
             images = [img.to(device) for img in images]
             targets = [
@@ -138,13 +138,13 @@ def main():
 
             running_loss += losses.item()
             if (iteration + 1) % 100 == 0:
-                print(f"  [Epoch {epoch+1}, Iter {iteration+1}] Loss: {running_loss / 100:.4f}")
+                print(f"  [Epoch {epoch + 1}, Iter {iteration + 1}] Loss: {running_loss / 100:.4f}")
                 running_loss = 0.0
 
         scheduler.step()
 
         # Save checkpoint
-        ckpt_path = os.path.join(args.output_dir, f"detector_epoch_{epoch+1}.pth")
+        ckpt_path = os.path.join(args.output_dir, f"detector_epoch_{epoch + 1}.pth")
         torch.save(
             {
                 "epoch": epoch + 1,
@@ -159,7 +159,7 @@ def main():
         if val_loader is not None:
             metrics = evaluate(model, val_loader, device, args.num_classes)
             print(
-                f'Epoch {epoch+1} Validation: mAP@0.5={metrics["mAP@0.5"]:.4f}, mAP@0.5:0.95={metrics["mAP@0.5:0.95"]:.4f}'
+                f"Epoch {epoch + 1} Validation: mAP@0.5={metrics['mAP@0.5']:.4f}, mAP@0.5:0.95={metrics['mAP@0.5:0.95']:.4f}"
             )
 
     # Save final model
