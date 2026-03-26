@@ -26,6 +26,7 @@ class TestAwadaConfig:
             "lambda_gan",
             "lambda_cyc",
             "lambda_idt",
+            "lambda_sem",
             "batch_size",
             "patch_size",
             "device",
@@ -49,7 +50,11 @@ class TestAwadaConfig:
     def test_lambda_weights_positive(self, config):
         assert config["lambda_gan"] > 0
         assert config["lambda_cyc"] > 0
-        assert config["lambda_idt"] > 0
+
+    def test_lambda_optional_weights_non_negative(self, config):
+        """lambda_idt and lambda_sem default to 0 (disabled) and must be >= 0."""
+        assert config["lambda_idt"] >= 0
+        assert config["lambda_sem"] >= 0
 
     def test_batch_size_positive(self, config):
         assert config["batch_size"] >= 1

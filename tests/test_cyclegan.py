@@ -1,5 +1,7 @@
 """Tests for ImageBuffer and CycleGAN covering buffer management, forward pass, and loss computation."""
 
+from unittest.mock import MagicMock, patch
+
 import torch
 
 from src.models.cyclegan import CycleGAN, ImageBuffer
@@ -159,3 +161,119 @@ class TestCycleGAN:
         model.forward()
         losses_high = model.compute_generator_loss(lambda_cyc=100.0)
         assert losses_high["cycle_A"].item() > losses_low["cycle_A"].item()
+
+    # ------------------------------------------------------------------
+    # Identity loss
+    # ------------------------------------------------------------------
+
+    def test_identity_loss_absent_by_default(self):
+        """Identity loss keys must NOT appear when lambda_idt=0 (default)."""
+        model = _make_cyclegan()
+        real_A, real_B = _real_pair()
+        model.set_input(real_A, real_B)
+        model.forward()
+        losses = model.compute_generator_loss()
+        assert "idt_A" not in losses
+        assert "idt_B" not in losses
+
+    def test_identity_loss_present_when_enabled(self):
+        """Identity loss keys MUST appear when lambda_idt > 0."""
+        model = _make_cyclegan()
+        real_A, real_B = _real_pair()
+        model.set_input(real_A, real_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_idt=5.0)
+        assert "idt_A" in losses
+        assert "idt_B" in losses
+
+    def test_identity_loss_non_negative(self):
+        model = _make_cyclegan()
+        real_A, real_B = _real_pair()
+        model.set_input(real_A, real_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_idt=1.0)
+        assert losses["idt_A"].item() >= 0
+        assert losses["idt_B"].item() >= 0
+
+    def test_identity_loss_included_in_total(self):
+        """total_G must include the identity losses when lambda_idt > 0."""
+        model = _make_cyclegan()
+        real_A, real_B = _real_pair()
+        model.set_input(real_A, real_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_idt=5.0)
+        expected = (
+            losses["G_AB"]
+            + losses["G_BA"]
+            + losses["cycle_A"]
+            + losses["cycle_B"]
+            + losses["idt_A"]
+            + losses["idt_B"]
+        )
+        assert torch.allclose(losses["total_G"], expected, atol=1e-5)
+
+    def test_identity_loss_no_nan(self):
+        model = _make_cyclegan()
+        real_A, real_B = _real_pair()
+        model.set_input(real_A, real_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_idt=5.0)
+        assert not torch.isnan(losses["idt_A"])
+        assert not torch.isnan(losses["idt_B"])
+
+    # ------------------------------------------------------------------
+    # Semantic consistency loss
+    # ------------------------------------------------------------------
+
+    def test_semantic_loss_not_instantiated_when_zero(self):
+        """criterion_sem must be None when lambda_sem=0 (default)."""
+        model = CycleGAN(device=DEVICE, lambda_sem=0.0)
+        assert model.criterion_sem is None
+
+    def test_semantic_loss_absent_by_default(self):
+        """Semantic loss keys must NOT appear when lambda_sem=0 (default)."""
+        model = _make_cyclegan()
+        real_A, real_B = _real_pair()
+        model.set_input(real_A, real_B)
+        model.forward()
+        losses = model.compute_generator_loss()
+        assert "sem_AB" not in losses
+        assert "sem_BA" not in losses
+
+    def test_semantic_loss_present_when_enabled(self):
+        """Semantic loss keys MUST appear when lambda_sem > 0 and criterion_sem is set."""
+        mock_sem = MagicMock(return_value=torch.tensor(0.5))
+        with patch("src.models.cyclegan.SemanticConsistencyLoss", return_value=mock_sem):
+            model = CycleGAN(device=DEVICE, lambda_sem=1.0)
+        real_A, real_B = _real_pair()
+        model.set_input(real_A, real_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_sem=1.0)
+        assert "sem_AB" in losses
+        assert "sem_BA" in losses
+
+    def test_semantic_loss_instantiated_when_nonzero(self):
+        """criterion_sem must NOT be None when lambda_sem > 0."""
+        mock_sem = MagicMock(return_value=torch.tensor(0.5))
+        with patch("src.models.cyclegan.SemanticConsistencyLoss", return_value=mock_sem):
+            model = CycleGAN(device=DEVICE, lambda_sem=1.0)
+        assert model.criterion_sem is not None
+
+    def test_semantic_loss_included_in_total(self):
+        """total_G must include the semantic losses when lambda_sem > 0."""
+        mock_sem = MagicMock(return_value=torch.tensor(0.5))
+        with patch("src.models.cyclegan.SemanticConsistencyLoss", return_value=mock_sem):
+            model = CycleGAN(device=DEVICE, lambda_sem=1.0)
+        real_A, real_B = _real_pair()
+        model.set_input(real_A, real_B)
+        model.forward()
+        losses = model.compute_generator_loss(lambda_sem=1.0)
+        expected = (
+            losses["G_AB"]
+            + losses["G_BA"]
+            + losses["cycle_A"]
+            + losses["cycle_B"]
+            + losses["sem_AB"]
+            + losses["sem_BA"]
+        )
+        assert torch.allclose(losses["total_G"], expected, atol=1e-5)
