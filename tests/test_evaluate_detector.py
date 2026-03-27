@@ -211,7 +211,7 @@ class TestMain:
 
     def test_results_txt_without_label_or_benchmark(self, tmp_path):
         """results.txt should still be written even when --label and --benchmark are omitted."""
-        model = build_model(num_classes=1)
+        model = build_model(num_classes=8)
         ckpt_path = str(tmp_path / "det.pth")
         torch.save(model.state_dict(), ckpt_path)
 
