@@ -24,7 +24,7 @@ MIN_PIXELS_THRESHOLD = 10
 
 
 class CityscapesDetectionDataset(Dataset):
-    def __init__(self, root, split="train", transforms=None, classes=None):
+    def __init__(self, root, split="train", transforms=None, classes=None, image_root=None):
         self.root = root
         self.split = split
         self.transforms = transforms
@@ -39,7 +39,7 @@ class CityscapesDetectionDataset(Dataset):
             self._allowed_labels = None
         self.samples = []
 
-        img_base = os.path.join(root, "leftImg8bit", split)
+        img_base = image_root if image_root is not None else os.path.join(root, "leftImg8bit", split)
         ann_base = os.path.join(root, "gtFine", split)
 
         for city in sorted(os.listdir(img_base)):

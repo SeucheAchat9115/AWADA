@@ -10,14 +10,14 @@ from .cityscapes import CITYSCAPES_LABEL_MAP, MIN_PIXELS_THRESHOLD
 
 
 class FoggyCityscapesDataset(Dataset):
-    def __init__(self, root, split="val", beta=0.02, transforms=None):
+    def __init__(self, root, split="val", beta=0.02, transforms=None, image_root=None):
         self.root = root
         self.split = split
         self.beta = beta
         self.transforms = transforms
         self.samples = []
 
-        img_base = os.path.join(root, "leftImg8bit_foggy", split)
+        img_base = image_root if image_root is not None else os.path.join(root, "leftImg8bit_foggy", split)
         ann_base = os.path.join(root, "gtFine", split)
 
         for city in sorted(os.listdir(img_base)):
