@@ -1,6 +1,6 @@
 # AWADA: Foreground-focused adversarial learning for cross-domain object detection
 
-AWADA is an unsupervised domain adaptation framework for object detection that leverages attention-weighted CycleGAN training to focus style transfer on semantically meaningful regions. By using RPN (Region Proposal Network) attention maps from a source-domain Faster R-CNN detector to bias the adversarial training, AWADA produces more faithful style-translated images for cross-domain object detection benchmarks including **sim10k → Cityscapes** and **Cityscapes → Foggy Cityscapes**.
+AWADA is an unsupervised domain adaptation framework for object detection that leverages attention-weighted CycleGAN training to focus style transfer on semantically meaningful regions. By using RPN (Region Proposal Network) attention maps from a source-domain Faster R-CNN detector to bias the adversarial training, AWADA produces more faithful style-translated images for cross-domain object detection benchmarks including **sim10k → Cityscapes**, **Cityscapes → Foggy Cityscapes**, and **Cityscapes → BDD100K**.
 
 ## Model Hierarchy
 
@@ -93,6 +93,24 @@ Download from the [Cityscapes dataset](https://www.cityscapes-dataset.com/) (Fog
     └── val/{city}/*_gtFine_instanceIds.png
 ```
 
+### BDD100K
+
+Download from the [BDD100K dataset](https://bdd-data.berkeley.edu/) (requires registration). Expected structure:
+
+```
+/data/bdd100k/
+├── images/
+│   └── 100k/
+│       ├── train/    # JPEG images
+│       └── val/
+└── labels/
+    └── det_20/
+        ├── det_train.json
+        └── det_val.json
+```
+
+The Cityscapes → BDD100K benchmark uses 7 shared classes: **pedestrian, rider, car, truck, bus, motorcycle, bicycle**. The `train` class present in Cityscapes has no reliable equivalent in BDD100K and is excluded from both sides of the benchmark.
+
 ## Quick Start
 
 Set your data paths as environment variables, then run any of the four experiment scripts:
@@ -101,6 +119,7 @@ Set your data paths as environment variables, then run any of the four experimen
 export SIM10K_ROOT=/data/sim10k
 export CITYSCAPES_ROOT=/data/cityscapes
 export FOGGY_ROOT=/data/foggy_cityscapes
+export BDD100K_ROOT=/data/bdd100k
 export OUTPUT_ROOT=./outputs
 export DEVICE=cuda
 ```
@@ -115,6 +134,9 @@ bash scripts/exp_a_baseline.sh sim10k_to_cityscapes
 
 # Cityscapes → Foggy Cityscapes
 bash scripts/exp_a_baseline.sh cityscapes_to_foggy
+
+# Cityscapes → BDD100K
+bash scripts/exp_a_baseline.sh cityscapes_to_bdd100k
 ```
 
 ### Experiment B: Standard CycleGAN
@@ -124,6 +146,7 @@ Train CycleGAN, stylize source images, train detector on stylized images:
 ```bash
 bash scripts/exp_b_cyclegan.sh sim10k_to_cityscapes
 bash scripts/exp_b_cyclegan.sh cityscapes_to_foggy
+bash scripts/exp_b_cyclegan.sh cityscapes_to_bdd100k
 ```
 
 ### Experiment B2: CyCada (CycleGAN + semantic consistency loss)
@@ -133,6 +156,7 @@ Same pipeline as Experiment B but with semantic consistency loss enabled:
 ```bash
 bash scripts/exp_b_cycada.sh sim10k_to_cityscapes
 bash scripts/exp_b_cycada.sh cityscapes_to_foggy
+bash scripts/exp_b_cycada.sh cityscapes_to_bdd100k
 ```
 
 ### Experiment C: AWADA (Attention-Weighted)
@@ -142,6 +166,7 @@ Requires Experiment A checkpoint. Generates attention maps, trains AWADA CycleGA
 ```bash
 bash scripts/exp_c_awada.sh sim10k_to_cityscapes
 bash scripts/exp_c_awada.sh cityscapes_to_foggy
+bash scripts/exp_c_awada.sh cityscapes_to_bdd100k
 ```
 
 ### Experiment D: Oracle (Upper Bound)
@@ -151,6 +176,7 @@ Train and evaluate directly on the target domain with labels:
 ```bash
 bash scripts/exp_d_oracle.sh sim10k_to_cityscapes
 bash scripts/exp_d_oracle.sh cityscapes_to_foggy
+bash scripts/exp_d_oracle.sh cityscapes_to_bdd100k
 ```
 
 ## Attention Map Generation
@@ -162,7 +188,7 @@ Before training the AWADA CycleGAN you need binary foreground attention masks fo
 | Argument | Required | Default | Description |
 |---|---|---|---|
 | `--detector_checkpoint` | ✓ | — | Path to the trained Faster R-CNN checkpoint (`.pth`) |
-| `--dataset` | ✓ | — | Source dataset: `sim10k` or `cityscapes` |
+| `--dataset` | ✓ | — | Source dataset: `sim10k`, `cityscapes`, `foggy_cityscapes`, or `bdd100k` |
 | `--data_root` | ✓ | — | Root directory of the source dataset |
 | `--output_dir` | ✓ | — | Directory where `.npy` attention maps are written |
 | `--num_classes` | ✓ | — | Number of foreground classes (1 for sim10k, 8 for Cityscapes) |
@@ -191,6 +217,28 @@ python generate_attention_maps.py \
     --data_root          /data/cityscapes \
     --output_dir         outputs/exp_c_cs2foggy/attention_maps \
     --num_classes        8 \
+    --top_k              10 \
+    --split              train \
+    --device             cuda
+
+# Cityscapes → BDD100K (7 foreground classes, source attention maps)
+python generate_attention_maps.py \
+    --detector_checkpoint outputs/exp_a_cs2bdd/detector_final.pth \
+    --dataset            cityscapes \
+    --data_root          /data/cityscapes \
+    --output_dir         outputs/exp_c_cs2bdd/source_attention_maps \
+    --num_classes        7 \
+    --top_k              10 \
+    --split              train \
+    --device             cuda
+
+# Cityscapes → BDD100K (7 foreground classes, target attention maps)
+python generate_attention_maps.py \
+    --detector_checkpoint outputs/exp_c_cs2bdd/cycada_detector/detector_final.pth \
+    --dataset            bdd100k \
+    --data_root          /data/bdd100k \
+    --output_dir         outputs/exp_c_cs2bdd/target_attention_maps \
+    --num_classes        7 \
     --top_k              10 \
     --split              train \
     --device             cuda
@@ -232,6 +280,7 @@ AWADA/
     │   ├── sim10k.py               # sim10k (Driving in the Matrix) detection dataset
     │   ├── cityscapes.py           # Cityscapes detection dataset
     │   ├── foggy_cityscapes.py     # Foggy Cityscapes detection dataset
+    │   ├── bdd100k.py              # BDD100K detection dataset (7-class Cityscapes-aligned)
     │   └── attention_dataset.py    # Paired dataset for AWADA GAN training
     └── utils/
         ├── attention.py            # RPN attention map generation

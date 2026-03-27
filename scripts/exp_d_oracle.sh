@@ -17,6 +17,11 @@ elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     TARGET_ROOT="${FOGGY_ROOT:-/data/foggy_cityscapes}"
     NUM_CLASSES=8
     OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_d_cs2foggy"
+elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
+    TARGET_DATASET="bdd100k"
+    TARGET_ROOT="${BDD100K_ROOT:-/data/bdd100k}"
+    NUM_CLASSES=7
+    OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_d_cs2bdd"
 else
     echo "Unknown benchmark: $BENCHMARK"
     exit 1
