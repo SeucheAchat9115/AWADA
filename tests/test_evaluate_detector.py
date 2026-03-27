@@ -81,13 +81,28 @@ class TestGetDataset:
     def test_cityscapes_dataset_instantiated(self, mock_cls):
         mock_cls.return_value = MagicMock()
         get_dataset("cityscapes", "/data/cs", "val", classes=["car"])
-        mock_cls.assert_called_once_with("/data/cs", split="val", classes=["car"])
+        mock_cls.assert_called_once_with("/data/cs", split="val", classes=["car"], transforms=None)
 
     @patch("evaluate_detector.FoggyCityscapesDataset")
     def test_foggy_cityscapes_dataset_instantiated(self, mock_cls):
         mock_cls.return_value = MagicMock()
         get_dataset("foggy_cityscapes", "/data/foggy", "val")
-        mock_cls.assert_called_once_with("/data/foggy", split="val")
+        mock_cls.assert_called_once_with("/data/foggy", split="val", transforms=None)
+
+    @patch("evaluate_detector.Bdd100kDataset")
+    def test_bdd100k_dataset_instantiated(self, mock_cls):
+        mock_cls.return_value = MagicMock()
+        get_dataset("bdd100k", "/data/bdd", "val")
+        mock_cls.assert_called_once_with("/data/bdd", split="val", transforms=None)
+
+    @patch("evaluate_detector.CityscapesDetectionDataset")
+    def test_transforms_forwarded(self, mock_cls):
+        mock_cls.return_value = MagicMock()
+        from src.utils.transforms import ResizeToMinSize
+
+        t = ResizeToMinSize(600)
+        get_dataset("cityscapes", "/data/cs", "val", transforms=t)
+        mock_cls.assert_called_once_with("/data/cs", split="val", classes=None, transforms=t)
 
 
 # ---------------------------------------------------------------------------

@@ -29,9 +29,11 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
+from src.datasets.bdd100k import Bdd100kDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
 from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
 from src.utils.metrics import compute_map_range
+from src.utils.transforms import ResizeToMinSize
 
 
 def collate_fn(batch):
@@ -48,12 +50,14 @@ def build_model(num_classes):
     return model
 
 
-def get_dataset(name, root, split, classes=None):
+def get_dataset(name, root, split, classes=None, transforms=None):
     """Return the validation dataset for *name*."""
     if name == "cityscapes":
-        return CityscapesDetectionDataset(root, split=split, classes=classes)
+        return CityscapesDetectionDataset(root, split=split, classes=classes, transforms=transforms)
     elif name == "foggy_cityscapes":
-        return FoggyCityscapesDataset(root, split=split)
+        return FoggyCityscapesDataset(root, split=split, transforms=transforms)
+    elif name == "bdd100k":
+        return Bdd100kDataset(root, split=split, transforms=transforms)
     else:
         raise ValueError(f"Unknown dataset: {name}")
 
@@ -101,7 +105,7 @@ def main():
     )
     parser.add_argument(
         "--dataset",
-        choices=["cityscapes", "foggy_cityscapes"],
+        choices=["cityscapes", "foggy_cityscapes", "bdd100k"],
         required=True,
         help="Target dataset to evaluate on",
     )
@@ -129,6 +133,17 @@ def main():
         help="Class names to include (cityscapes only, e.g. --classes car)",
     )
     parser.add_argument(
+        "--resize",
+        type=int,
+        default=None,
+        metavar="MIN_SIZE",
+        help=(
+            "Resize images so the shortest side equals MIN_SIZE pixels before evaluation "
+            "(e.g. --resize 600).  Also scales bounding boxes accordingly.  "
+            "Works with both original and stylized images."
+        ),
+    )
+    parser.add_argument(
         "--label",
         default="",
         help="Human-readable experiment label written to results.txt (e.g. 'Experiment A: ...')",
@@ -142,7 +157,10 @@ def main():
 
     device = torch.device(args.device)
 
-    dataset = get_dataset(args.dataset, args.data_root, args.split, classes=args.classes)
+    resize_transform = ResizeToMinSize(args.resize) if args.resize is not None else None
+    dataset = get_dataset(
+        args.dataset, args.data_root, args.split, classes=args.classes, transforms=resize_transform
+    )
     loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=collate_fn)
 
     model = build_model(args.num_classes)

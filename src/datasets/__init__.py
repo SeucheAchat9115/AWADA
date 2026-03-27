@@ -1,4 +1,5 @@
 from .attention_dataset import AttentionPairedDataset as AttentionPairedDataset
+from .bdd100k import Bdd100kDataset as Bdd100kDataset
 from .cityscapes import CityscapesDetectionDataset as CityscapesDetectionDataset
 from .foggy_cityscapes import FoggyCityscapesDataset as FoggyCityscapesDataset
 from .sim10k import Sim10kDataset as Sim10kDataset

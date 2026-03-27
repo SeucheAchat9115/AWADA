@@ -19,21 +19,58 @@ CITYSCAPES_LABEL_MAP = {
     33: 8,  # bicycle
 }
 CLASS_NAMES = ["person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
+
+# 7-class label map used for the Cityscapes → BDD100k benchmark.
+# The "train" class (Cityscapes ID 31) is absent from BDD100k and is excluded
+# from both sides of the benchmark.  Motorcycle and bicycle are renumbered so
+# that the label IDs are contiguous and match BDD100K_LABEL_MAP in bdd100k.py.
+CITYSCAPES_BDD100K_LABEL_MAP = {
+    24: 1,  # person
+    25: 2,  # rider
+    26: 3,  # car
+    27: 4,  # truck
+    28: 5,  # bus
+    # 31 (train) excluded
+    32: 6,  # motorcycle
+    33: 7,  # bicycle
+}
+BDD100K_ALIGNED_CLASSES = ["person", "rider", "car", "truck", "bus", "motorcycle", "bicycle"]
+
 # Minimum number of foreground pixels for an instance to be kept as a detection box
 MIN_PIXELS_THRESHOLD = 10
 
 
 class CityscapesDetectionDataset(Dataset):
-    def __init__(self, root, split="train", transforms=None, classes=None, image_root=None):
+    def __init__(
+        self,
+        root,
+        split="train",
+        transforms=None,
+        classes=None,
+        image_root=None,
+        label_map=None,
+    ):
         self.root = root
         self.split = split
         self.transforms = transforms
+        # Allow callers to override the label map (e.g. CITYSCAPES_BDD100K_LABEL_MAP for
+        # the 7-class Cityscapes → BDD100k benchmark).  Falls back to the default 8-class map.
+        self._label_map = label_map if label_map is not None else CITYSCAPES_LABEL_MAP
         # Build set of allowed label indices (1-based); None means all classes
         if classes is not None:
-            self._allowed_labels = {
-                CITYSCAPES_LABEL_MAP[k]
+            # Identify Cityscapes class IDs whose human-readable name is requested.
+            # We always use CLASS_NAMES + CITYSCAPES_LABEL_MAP for the name lookup so that
+            # the 'classes' kwarg uses stable names regardless of the label_map override.
+            allowed_class_ids = {
+                k
                 for k in CITYSCAPES_LABEL_MAP
                 if CLASS_NAMES[CITYSCAPES_LABEL_MAP[k] - 1] in classes
+            }
+            # Map those class IDs to labels via the (potentially overridden) label map.
+            self._allowed_labels = {
+                self._label_map[k]
+                for k in self._label_map
+                if k in allowed_class_ids
             }
         else:
             self._allowed_labels = None
@@ -73,9 +110,9 @@ class CityscapesDetectionDataset(Dataset):
             if inst_id < 1000:
                 continue  # not an instance (no class * 1000)
             class_id = inst_id // 1000
-            if class_id not in CITYSCAPES_LABEL_MAP:
+            if class_id not in self._label_map:
                 continue
-            label = CITYSCAPES_LABEL_MAP[class_id]
+            label = self._label_map[class_id]
             if self._allowed_labels is not None and label not in self._allowed_labels:
                 continue
             mask = instance_map == inst_id
