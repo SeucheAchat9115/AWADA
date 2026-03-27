@@ -5,60 +5,11 @@ import argparse
 import os
 
 import torch
-import torchvision.transforms as T
-import yaml
-from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.models.cyclegan import CycleGAN
-
-
-class UnpairedImageDataset(Dataset):
-    def __init__(self, dir_A, dir_B, patch_size=128):
-        self.patch_size = patch_size
-        self.files_A = sorted(
-            [
-                os.path.join(dir_A, f)
-                for f in os.listdir(dir_A)
-                if f.lower().endswith((".png", ".jpg", ".jpeg"))
-            ]
-        )
-        self.files_B = sorted(
-            [
-                os.path.join(dir_B, f)
-                for f in os.listdir(dir_B)
-                if f.lower().endswith((".png", ".jpg", ".jpeg"))
-            ]
-        )
-        self.transform = T.Compose(
-            [
-                T.RandomCrop(patch_size),
-                T.RandomHorizontalFlip(),
-                T.ToTensor(),
-                T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-            ]
-        )
-
-    def __len__(self):
-        return max(len(self.files_A), len(self.files_B))
-
-    def __getitem__(self, idx):
-        img_A = Image.open(self.files_A[idx % len(self.files_A)]).convert("RGB")
-        img_B = Image.open(self.files_B[idx % len(self.files_B)]).convert("RGB")
-        return self.transform(img_A), self.transform(img_B)
-
-
-def load_config(path: str) -> dict:
-    """Load a YAML config file."""
-    with open(path) as f:
-        return yaml.safe_load(f) or {}
-
-
-def get_lambda_lr(epoch, n_epochs, n_epochs_decay):
-    if epoch < n_epochs:
-        return 1.0
-    return max(0.0, 1.0 - (epoch - n_epochs) / float(n_epochs_decay + 1))
+from src.utils.train_utils import UnpairedImageDataset, get_lambda_lr, load_config
 
 
 def main():

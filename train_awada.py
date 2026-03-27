@@ -5,24 +5,12 @@ import argparse
 import os
 
 import torch
-import yaml
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.datasets.attention_dataset import AttentionPairedDataset
 from src.models.awada import AWADA
-
-
-def load_config(path: str) -> dict:
-    """Load a YAML config file."""
-    with open(path) as f:
-        return yaml.safe_load(f) or {}
-
-
-def get_lambda_lr(epoch, n_epochs, n_epochs_decay):
-    if epoch < n_epochs:
-        return 1.0
-    return max(0.0, 1.0 - (epoch - n_epochs) / float(n_epochs_decay + 1))
+from src.utils.train_utils import get_lambda_lr, load_config
 
 
 def main():
