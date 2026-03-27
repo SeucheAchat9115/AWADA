@@ -131,12 +131,8 @@ bash scripts/exp_b_cyclegan.sh cityscapes_to_foggy
 Same pipeline as Experiment B but with semantic consistency loss enabled:
 
 ```bash
-python train_cycada.py \
-    --source_dir /data/sim10k/images \
-    --target_dir /data/cityscapes/leftImg8bit/train \
-    --output_dir outputs/cycada \
-    --config configs/cycada.yaml \
-    --device cuda
+bash scripts/exp_b_cycada.sh sim10k_to_cityscapes
+bash scripts/exp_b_cycada.sh cityscapes_to_foggy
 ```
 
 ### Experiment C: AWADA (Attention-Weighted)
@@ -155,16 +151,6 @@ Train and evaluate directly on the target domain with labels:
 ```bash
 bash scripts/exp_d_oracle.sh sim10k_to_cityscapes
 bash scripts/exp_d_oracle.sh cityscapes_to_foggy
-```
-
-### Optional environment overrides
-
-```bash
-export EPOCHS=10          # detector training epochs
-export GAN_EPOCHS=200     # GAN training epochs
-export BATCH_SIZE=2       # detector batch size
-export GAN_BATCH=1        # GAN batch size
-export TOP_K=10           # top-k RPN proposals for attention maps
 ```
 
 ## Attention Map Generation
@@ -231,6 +217,7 @@ AWADA/
 ├── scripts/
 │   ├── exp_a_baseline.sh          # Experiment A: Baseline
 │   ├── exp_b_cyclegan.sh          # Experiment B: CycleGAN
+│   ├── exp_b_cycada.sh            # Experiment B2: CyCada
 │   ├── exp_c_awada.sh             # Experiment C: AWADA
 │   └── exp_d_oracle.sh            # Experiment D: Oracle
 └── src/
