@@ -26,9 +26,18 @@ elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     TARGET_IMAGES="${FOGGY_ROOT:-/data/foggy_cityscapes}/leftImg8bit_foggy/train"
     NUM_CLASSES=8
     OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_cycada_cs2foggy"
+elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
+    SOURCE_DATASET="cityscapes"
+    SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
+    SOURCE_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    TARGET_DATASET="bdd100k"
+    TARGET_ROOT="${BDD100K_ROOT:-/data/bdd100k}"
+    TARGET_IMAGES="${BDD100K_ROOT:-/data/bdd100k}/images/100k/train"
+    NUM_CLASSES=7
+    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_cycada_cs2bdd"
 else
     echo "Unknown benchmark: $BENCHMARK"
-    echo "Usage: $0 [sim10k_to_cityscapes|cityscapes_to_foggy]"
+    echo "Usage: $0 [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]"
     exit 1
 fi
 

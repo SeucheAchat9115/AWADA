@@ -38,6 +38,16 @@ elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     NUM_CLASSES=8
     OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_c_cs2foggy"
     BASELINE_CKPT="${OUTPUT_ROOT:-./outputs}/exp_a_cs2foggy/detector_final.pth"
+elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
+    SOURCE_DATASET="cityscapes"
+    SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
+    SOURCE_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    TARGET_DATASET="bdd100k"
+    TARGET_ROOT="${BDD100K_ROOT:-/data/bdd100k}"
+    TARGET_IMAGES="${BDD100K_ROOT:-/data/bdd100k}/images/100k/train"
+    NUM_CLASSES=7
+    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_c_cs2bdd"
+    BASELINE_CKPT="${OUTPUT_ROOT:-./outputs}/exp_a_cs2bdd/detector_final.pth"
 else
     echo "Unknown benchmark: $BENCHMARK"
     exit 1
