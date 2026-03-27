@@ -24,7 +24,9 @@ def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None
             root, split=split, transforms=transforms, classes=classes, image_root=image_dir
         )
     elif name == "foggy_cityscapes":
-        return FoggyCityscapesDataset(root, split=split, transforms=transforms, image_root=image_dir)
+        return FoggyCityscapesDataset(
+            root, split=split, transforms=transforms, image_root=image_dir
+        )
     else:
         raise ValueError(f"Unknown dataset: {name}")
 

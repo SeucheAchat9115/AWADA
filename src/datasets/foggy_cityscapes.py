@@ -17,7 +17,9 @@ class FoggyCityscapesDataset(Dataset):
         self.transforms = transforms
         self.samples = []
 
-        img_base = image_root if image_root is not None else os.path.join(root, "leftImg8bit_foggy", split)
+        img_base = (
+            image_root if image_root is not None else os.path.join(root, "leftImg8bit_foggy", split)
+        )
         ann_base = os.path.join(root, "gtFine", split)
 
         for city in sorted(os.listdir(img_base)):
