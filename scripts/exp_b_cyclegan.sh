@@ -79,54 +79,15 @@ python train_detector.py \
 
 # Step 4: Evaluate on target domain
 echo "[Step 4] Evaluating on target domain..."
-python - <<EOF
-import torch, os, sys
-sys.path.insert(0, '.')
-from torch.utils.data import DataLoader
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from tqdm import tqdm
-from src.utils.metrics import compute_map_range
-
-target_dataset_name = "$TARGET_DATASET"
-target_root = "$TARGET_ROOT"
-output_dir = "$DETECTOR_OUTPUT"
-num_classes = $NUM_CLASSES
-device = torch.device("${DEVICE:-cuda}" if torch.cuda.is_available() else "cpu")
-
-if target_dataset_name == "cityscapes":
-    from src.datasets.cityscapes import CityscapesDetectionDataset
-    classes_filter = ['car'] if "$BENCHMARK" == "sim10k_to_cityscapes" else None
-    dataset = CityscapesDetectionDataset(target_root, split='val', classes=classes_filter)
-elif target_dataset_name == "foggy_cityscapes":
-    from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
-    dataset = FoggyCityscapesDataset(target_root, split='val')
-
-def collate_fn(batch): return tuple(zip(*batch))
-loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=collate_fn)
-
-model = fasterrcnn_resnet50_fpn(weights=None)
-in_features = model.roi_heads.box_predictor.cls_score.in_features
-model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)
-ckpt = torch.load(os.path.join(output_dir, 'detector_final.pth'), map_location=device)
-model.load_state_dict(ckpt)
-model.to(device).eval()
-
-predictions, targets_all = [], []
-with torch.no_grad():
-    for images, targets in tqdm(loader, desc='Evaluating'):
-        imgs = [img.to(device) for img in images]
-        outputs = model(imgs)
-        predictions.extend({k: v.cpu() for k, v in o.items()} for o in outputs)
-        targets_all.extend(targets)
-
-metrics = compute_map_range(predictions, targets_all, num_classes=num_classes)
-print(f"Experiment B Results on {target_dataset_name}:")
-print(f"  mAP@0.5      = {metrics['mAP@0.5']:.4f}")
-print(f"  mAP@0.5:0.95 = {metrics['mAP@0.5:0.95']:.4f}")
-with open(os.path.join(output_dir, 'results.txt'), 'w') as f:
-    f.write(f"Experiment B: CycleGAN\nBenchmark: $BENCHMARK\n")
-    f.write(f"mAP@0.5: {metrics['mAP@0.5']:.4f}\nmAP@0.5:0.95: {metrics['mAP@0.5:0.95']:.4f}\n")
-EOF
+python evaluate_detector.py \
+    --detector_checkpoint "$DETECTOR_OUTPUT/detector_final.pth" \
+    --dataset "$TARGET_DATASET" \
+    --data_root "$TARGET_ROOT" \
+    --num_classes "$NUM_CLASSES" \
+    --output_dir "$DETECTOR_OUTPUT" \
+    --device "${DEVICE:-cuda}" \
+    --label "Experiment B: CycleGAN" \
+    --benchmark "$BENCHMARK" \
+    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
 
 echo "Experiment B complete!"
