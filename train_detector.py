@@ -30,7 +30,9 @@ def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None
             root, split=split, transforms=transforms, image_root=image_dir
         )
     elif name == "bdd100k":
-        return Bdd100kDetectionDataset(root, split=split, transforms=transforms, image_root=image_dir)
+        return Bdd100kDetectionDataset(
+            root, split=split, transforms=transforms, image_root=image_dir
+        )
     else:
         raise ValueError(f"Unknown dataset: {name}")
 

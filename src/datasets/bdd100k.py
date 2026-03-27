@@ -66,9 +66,7 @@ class Bdd100kDetectionDataset(Dataset):
 
         ann_path = os.path.join(root, "labels", "det_20", f"det_{split}.json")
         img_base = (
-            image_root
-            if image_root is not None
-            else os.path.join(root, "images", "100k", split)
+            image_root if image_root is not None else os.path.join(root, "images", "100k", split)
         )
 
         with open(ann_path) as f:

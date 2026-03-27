@@ -141,9 +141,7 @@ class TestBdd100kDetectionDataset:
         ds = Bdd100kDetectionDataset(root, split="val")
         for idx, cat in enumerate(BDD100K_LABEL_MAP):
             _, target = ds[idx]
-            assert target["labels"][0].item() == BDD100K_LABEL_MAP[cat], (
-                f"Wrong label for {cat}"
-            )
+            assert target["labels"][0].item() == BDD100K_LABEL_MAP[cat], f"Wrong label for {cat}"
 
     def test_unknown_category_excluded(self, tmp_path):
         """Annotations whose category is not in BDD100K_LABEL_MAP should be ignored."""
@@ -268,9 +266,7 @@ class TestCityscapesBdd100kAlignment:
 
         cs_ids = set(CITYSCAPES_BDD100K_LABEL_MAP.values())
         bdd_ids = set(BDD100K_LABEL_MAP.values())
-        assert cs_ids == bdd_ids, (
-            f"Label ID sets differ: Cityscapes={cs_ids}, BDD100k={bdd_ids}"
-        )
+        assert cs_ids == bdd_ids, f"Label ID sets differ: Cityscapes={cs_ids}, BDD100k={bdd_ids}"
 
     def test_same_number_of_classes(self):
         from src.datasets.cityscapes import CITYSCAPES_BDD100K_LABEL_MAP

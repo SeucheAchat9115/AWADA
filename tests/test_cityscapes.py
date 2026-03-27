@@ -150,9 +150,7 @@ class TestCityscapesDetectionDataset:
         )
 
         root = self._make_cityscapes_root(tmp_path)
-        ds = CityscapesDetectionDataset(
-            root, split="train", label_map=CITYSCAPES_BDD100K_LABEL_MAP
-        )
+        ds = CityscapesDetectionDataset(root, split="train", label_map=CITYSCAPES_BDD100K_LABEL_MAP)
         _, target = ds[0]
         assert target["boxes"].shape[0] == 1
         # car (class 26) → label 3 in both maps
@@ -169,7 +167,7 @@ class TestCityscapesDetectionDataset:
         img.save(str(img_dir / "aachen_000000_000019_leftImg8bit.png"))
 
         instance_map = np.zeros((64, 64), dtype=np.uint16)
-        instance_map[5:25, 5:25] = 26001   # car (class 26)
+        instance_map[5:25, 5:25] = 26001  # car (class 26)
         instance_map[30:55, 5:55] = 31001  # train (class 31)
         inst_img = Image.fromarray(instance_map)
         inst_img.save(str(ann_dir / "aachen_000000_000019_gtFine_instanceIds.png"))
@@ -184,9 +182,7 @@ class TestCityscapesDetectionDataset:
         )
 
         root = self._make_cityscapes_root_with_train_instance(tmp_path)
-        ds = CityscapesDetectionDataset(
-            root, split="train", label_map=CITYSCAPES_BDD100K_LABEL_MAP
-        )
+        ds = CityscapesDetectionDataset(root, split="train", label_map=CITYSCAPES_BDD100K_LABEL_MAP)
         _, target = ds[0]
         # Only the car box should survive; train is not in the 7-class map
         assert target["boxes"].shape[0] == 1

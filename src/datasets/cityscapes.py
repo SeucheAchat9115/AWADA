@@ -68,9 +68,7 @@ class CityscapesDetectionDataset(Dataset):
             }
             # Map those class IDs to labels via the (potentially overridden) label map.
             self._allowed_labels = {
-                self._label_map[k]
-                for k in self._label_map
-                if k in allowed_class_ids
+                self._label_map[k] for k in self._label_map if k in allowed_class_ids
             }
         else:
             self._allowed_labels = None

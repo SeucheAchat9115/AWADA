@@ -28,9 +28,7 @@ class TestResizeToMinSizeCall:
     def _make_sample(self, h, w, n_boxes=1):
         image = torch.zeros(3, h, w)
         if n_boxes > 0:
-            boxes = torch.tensor(
-                [[5.0, 5.0, float(w // 2), float(h // 2)] for _ in range(n_boxes)]
-            )
+            boxes = torch.tensor([[5.0, 5.0, float(w // 2), float(h // 2)] for _ in range(n_boxes)])
             labels = torch.ones(n_boxes, dtype=torch.int64)
         else:
             boxes = torch.zeros((0, 4), dtype=torch.float32)
