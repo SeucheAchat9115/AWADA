@@ -39,7 +39,9 @@ class CityscapesDetectionDataset(Dataset):
             self._allowed_labels = None
         self.samples = []
 
-        img_base = image_root if image_root is not None else os.path.join(root, "leftImg8bit", split)
+        img_base = (
+            image_root if image_root is not None else os.path.join(root, "leftImg8bit", split)
+        )
         ann_base = os.path.join(root, "gtFine", split)
 
         for city in sorted(os.listdir(img_base)):

@@ -27,11 +27,7 @@ class Sim10kDataset(Dataset):
         self.transforms = transforms
         self.image_dir = image_dir if image_dir is not None else os.path.join(root, "images")
         self.image_files = sorted(
-            [
-                f
-                for f in os.listdir(self.image_dir)
-                if f.lower().endswith((".jpg", ".jpeg", ".png"))
-            ]
+            [f for f in os.listdir(self.image_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
         )
 
     def __len__(self):

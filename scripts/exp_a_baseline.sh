@@ -56,67 +56,15 @@ python train_detector.py \
 
 echo ""
 echo "[Step 2] Evaluating on target domain (cross-domain, no adaptation)..."
-python - <<EOF
-import torch
-from torch.utils.data import DataLoader
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from tqdm import tqdm
-import os
-import sys
-sys.path.insert(0, '.')
-
-target_dataset_name = "$TARGET_DATASET"
-target_root = "$TARGET_ROOT"
-output_dir = "$OUTPUT_DIR"
-num_classes = $NUM_CLASSES
-device = torch.device("${DEVICE:-cuda}" if torch.cuda.is_available() else "cpu")
-
-if target_dataset_name == "cityscapes":
-    from src.datasets.cityscapes import CityscapesDetectionDataset
-    classes_filter = ['car'] if "$BENCHMARK" == "sim10k_to_cityscapes" else None
-    dataset = CityscapesDetectionDataset(target_root, split='val', classes=classes_filter)
-elif target_dataset_name == "foggy_cityscapes":
-    from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
-    dataset = FoggyCityscapesDataset(target_root, split='val')
-
-def collate_fn(batch):
-    return tuple(zip(*batch))
-
-loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=collate_fn)
-
-model = fasterrcnn_resnet50_fpn(weights=None)
-in_features = model.roi_heads.box_predictor.cls_score.in_features
-model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes + 1)
-
-ckpt = torch.load(os.path.join(output_dir, 'detector_final.pth'), map_location=device)
-model.load_state_dict(ckpt)
-model.to(device).eval()
-
-from src.utils.metrics import compute_map_range
-
-predictions, targets_all = [], []
-with torch.no_grad():
-    for images, targets in tqdm(loader, desc='Evaluating on target domain'):
-        imgs = [img.to(device) for img in images]
-        outputs = model(imgs)
-        for out in outputs:
-            predictions.append({k: v.cpu() for k, v in out.items()})
-        for t in targets:
-            targets_all.append(t)
-
-metrics = compute_map_range(predictions, targets_all, num_classes=num_classes)
-print(f"Experiment A Results on {target_dataset_name}:")
-print(f"  mAP@0.5      = {metrics['mAP@0.5']:.4f}")
-print(f"  mAP@0.5:0.95 = {metrics['mAP@0.5:0.95']:.4f}")
-
-results_path = os.path.join(output_dir, 'results.txt')
-with open(results_path, 'w') as f:
-    f.write(f"Experiment A: Non-Adaptive Baseline\n")
-    f.write(f"Benchmark: $BENCHMARK\n")
-    f.write(f"mAP@0.5: {metrics['mAP@0.5']:.4f}\n")
-    f.write(f"mAP@0.5:0.95: {metrics['mAP@0.5:0.95']:.4f}\n")
-print(f"Results saved to {results_path}")
-EOF
+python evaluate_detector.py \
+    --detector_checkpoint "$OUTPUT_DIR/detector_final.pth" \
+    --dataset "$TARGET_DATASET" \
+    --data_root "$TARGET_ROOT" \
+    --num_classes "$NUM_CLASSES" \
+    --output_dir "$OUTPUT_DIR" \
+    --device "${DEVICE:-cuda}" \
+    --label "Experiment A: Non-Adaptive Baseline" \
+    --benchmark "$BENCHMARK" \
+    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
 
 echo "Experiment A complete!"
