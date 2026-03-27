@@ -25,7 +25,7 @@ class ResizeToMinSize:
         new_h = int(round(h * scale))
         new_w = int(round(w * scale))
         image = TF.resize(image, [new_h, new_w])
-        if target is not None and target.get("boxes") is not None and len(target["boxes"]) > 0:
+        if target is not None and target.get("boxes") is not None:
             target = dict(target)  # shallow copy to avoid mutating the original
             target["boxes"] = target["boxes"].clone() * scale
         return image, target

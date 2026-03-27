@@ -20,7 +20,7 @@ CITYSCAPES_LABEL_MAP = {
 }
 CLASS_NAMES = ["person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
 
-# 7-class label map used for the Cityscapes → BDD100k benchmark.
+# 7-class label map used for the Cityscapes -> BDD100k benchmark.
 # The "train" class (Cityscapes ID 31) is absent from BDD100k and is excluded
 # from both sides of the benchmark.  Motorcycle and bicycle are renumbered so
 # that the label IDs are contiguous and match BDD100K_LABEL_MAP in bdd100k.py.

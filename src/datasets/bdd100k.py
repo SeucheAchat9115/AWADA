@@ -7,6 +7,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 # BDD100k detection categories aligned with the Cityscapes 7-class benchmark.
+# Included classes: pedestrian, rider, car, truck, bus, motorcycle, bicycle.
 # The "train" class present in Cityscapes has no reliable equivalent in BDD100k
 # and is excluded from both sides of the benchmark.
 BDD100K_LABEL_MAP = {
