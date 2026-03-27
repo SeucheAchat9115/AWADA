@@ -83,13 +83,13 @@ class TestGetDataset:
         get_dataset("cityscapes", "/data/cs", "val", classes=["car"])
         mock_cls.assert_called_once_with("/data/cs", split="val", classes=["car"], transforms=None)
 
-    @patch("evaluate_detector.FoggyCityscapesDataset")
+    @patch("evaluate_detector.FoggyCityscapesDetectionDataset")
     def test_foggy_cityscapes_dataset_instantiated(self, mock_cls):
         mock_cls.return_value = MagicMock()
         get_dataset("foggy_cityscapes", "/data/foggy", "val")
         mock_cls.assert_called_once_with("/data/foggy", split="val", transforms=None)
 
-    @patch("evaluate_detector.Bdd100kDataset")
+    @patch("evaluate_detector.Bdd100kDetectionDataset")
     def test_bdd100k_dataset_instantiated(self, mock_cls):
         mock_cls.return_value = MagicMock()
         get_dataset("bdd100k", "/data/bdd", "val")

@@ -10,27 +10,27 @@ from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, faster
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
-from src.datasets.bdd100k import Bdd100kDataset
+from src.datasets.bdd100k import Bdd100kDetectionDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
-from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
-from src.datasets.sim10k import Sim10kDataset
+from src.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
+from src.datasets.sim10k import Sim10kDetectionDataset
 from src.utils.metrics import compute_map_range
 from src.utils.transforms import ResizeToMinSize
 
 
 def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None):
     if name == "sim10k":
-        return Sim10kDataset(root, transforms=transforms, image_dir=image_dir)
+        return Sim10kDetectionDataset(root, transforms=transforms, image_dir=image_dir)
     elif name == "cityscapes":
         return CityscapesDetectionDataset(
             root, split=split, transforms=transforms, classes=classes, image_root=image_dir
         )
     elif name == "foggy_cityscapes":
-        return FoggyCityscapesDataset(
+        return FoggyCityscapesDetectionDataset(
             root, split=split, transforms=transforms, image_root=image_dir
         )
     elif name == "bdd100k":
-        return Bdd100kDataset(root, split=split, transforms=transforms, image_root=image_dir)
+        return Bdd100kDetectionDataset(root, split=split, transforms=transforms, image_root=image_dir)
     else:
         raise ValueError(f"Unknown dataset: {name}")
 

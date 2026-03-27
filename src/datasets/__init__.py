@@ -1,6 +1,6 @@
 from .attention_dataset import AttentionPairedDataset as AttentionPairedDataset
-from .bdd100k import Bdd100kDataset as Bdd100kDataset
+from .bdd100k import Bdd100kDetectionDataset as Bdd100kDetectionDataset
 from .cityscapes import CityscapesDetectionDataset as CityscapesDetectionDataset
-from .foggy_cityscapes import FoggyCityscapesDataset as FoggyCityscapesDataset
-from .sim10k import Sim10kDataset as Sim10kDataset
+from .foggy_cityscapes import FoggyCityscapesDetectionDataset as FoggyCityscapesDetectionDataset
+from .sim10k import Sim10kDetectionDataset as Sim10kDetectionDataset
 from .unpaired_dataset import UnpairedImageDataset as UnpairedImageDataset

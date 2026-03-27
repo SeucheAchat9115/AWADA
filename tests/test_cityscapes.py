@@ -10,7 +10,7 @@ from src.datasets.cityscapes import (
     CLASS_NAMES,
     MIN_PIXELS_THRESHOLD,
 )
-from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
+from src.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
 
 
 class TestCityscapesConstants:
@@ -193,7 +193,7 @@ class TestCityscapesDetectionDataset:
         assert target["labels"][0].item() == CITYSCAPES_BDD100K_LABEL_MAP[26]
 
 
-class TestFoggyCityscapesDataset:
+class TestFoggyCityscapesDetectionDataset:
     def _make_foggy_root(self, tmp_path, split="val", beta=0.02):
         """Create a minimal Foggy Cityscapes directory structure."""
         suffix = f"_leftImg8bit_foggy_beta_{beta:.2f}.png"
@@ -216,12 +216,12 @@ class TestFoggyCityscapesDataset:
 
     def test_len(self, tmp_path):
         root = self._make_foggy_root(tmp_path)
-        ds = FoggyCityscapesDataset(root, split="val", beta=0.02)
+        ds = FoggyCityscapesDetectionDataset(root, split="val", beta=0.02)
         assert len(ds) == 1
 
     def test_getitem_target_keys(self, tmp_path):
         root = self._make_foggy_root(tmp_path)
-        ds = FoggyCityscapesDataset(root, split="val", beta=0.02)
+        ds = FoggyCityscapesDetectionDataset(root, split="val", beta=0.02)
         image, target = ds[0]
         assert "boxes" in target
         assert "labels" in target
@@ -229,7 +229,7 @@ class TestFoggyCityscapesDataset:
 
     def test_car_annotation_loaded(self, tmp_path):
         root = self._make_foggy_root(tmp_path)
-        ds = FoggyCityscapesDataset(root, split="val", beta=0.02)
+        ds = FoggyCityscapesDetectionDataset(root, split="val", beta=0.02)
         _, target = ds[0]
         assert target["boxes"].shape[0] == 1
         assert target["labels"][0].item() == CITYSCAPES_LABEL_MAP[26]

@@ -19,6 +19,7 @@ _REQUIRED_KEYS = (
     "lambda_sem",
     "batch_size",
     "patch_size",
+    "resize_min_side",
     "device",
 )
 
@@ -79,6 +80,9 @@ class TestAwadaConfig:
     def test_patch_size_positive(self, awada_config):
         assert awada_config["patch_size"] >= 1
 
+    def test_resize_min_side_positive(self, awada_config):
+        assert awada_config["resize_min_side"] > 0
+
     def test_device_is_string(self, awada_config):
         assert isinstance(awada_config["device"], str)
 
@@ -121,6 +125,9 @@ class TestCyCadaConfig:
     def test_patch_size_positive(self, cycada_config):
         assert cycada_config["patch_size"] >= 1
 
+    def test_resize_min_side_positive(self, cycada_config):
+        assert cycada_config["resize_min_side"] > 0
+
     def test_device_is_string(self, cycada_config):
         assert isinstance(cycada_config["device"], str)
 
@@ -159,6 +166,9 @@ class TestCycleGANConfig:
 
     def test_patch_size_positive(self, cyclegan_config):
         assert cyclegan_config["patch_size"] >= 1
+
+    def test_resize_min_side_positive(self, cyclegan_config):
+        assert cyclegan_config["resize_min_side"] > 0
 
     def test_device_is_string(self, cyclegan_config):
         assert isinstance(cyclegan_config["device"], str)

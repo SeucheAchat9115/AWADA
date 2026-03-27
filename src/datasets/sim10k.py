@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 CLASS_NAMES = ["car"]
 
 
-class Sim10kDataset(Dataset):
+class Sim10kDetectionDataset(Dataset):
     """Driving in the Matrix (sim10k) synthetic driving dataset for object detection.
 
     Annotations are in PASCAL VOC XML format and contain only the 'car' class.

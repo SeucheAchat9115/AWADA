@@ -1,11 +1,11 @@
-"""Tests for the Bdd100kDataset class and related constants."""
+"""Tests for the Bdd100kDetectionDataset class and related constants."""
 
 import json
 
 import numpy as np
 from PIL import Image
 
-from src.datasets.bdd100k import BDD100K_LABEL_MAP, CLASS_NAMES, Bdd100kDataset
+from src.datasets.bdd100k import BDD100K_LABEL_MAP, CLASS_NAMES, Bdd100kDetectionDataset
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -97,21 +97,21 @@ def _make_bdd100k_root(tmp_path, split="val", entries=None):
 # ---------------------------------------------------------------------------
 
 
-class TestBdd100kDataset:
+class TestBdd100kDetectionDataset:
     def test_len(self, tmp_path):
         root = _make_bdd100k_root(tmp_path)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         assert len(ds) == 1
 
     def test_getitem_returns_image_and_target(self, tmp_path):
         root = _make_bdd100k_root(tmp_path)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         image, target = ds[0]
         assert image.shape[0] == 3  # RGB channels
 
     def test_getitem_target_keys(self, tmp_path):
         root = _make_bdd100k_root(tmp_path)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         _, target = ds[0]
         assert "boxes" in target
         assert "labels" in target
@@ -119,7 +119,7 @@ class TestBdd100kDataset:
 
     def test_car_box_detected(self, tmp_path):
         root = _make_bdd100k_root(tmp_path)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         _, target = ds[0]
         assert target["boxes"].shape[0] == 1
         assert target["labels"][0].item() == BDD100K_LABEL_MAP["car"]
@@ -138,7 +138,7 @@ class TestBdd100kDataset:
                 }
             )
         root = _make_bdd100k_root(tmp_path, entries=entries)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         for idx, cat in enumerate(BDD100K_LABEL_MAP):
             _, target = ds[idx]
             assert target["labels"][0].item() == BDD100K_LABEL_MAP[cat], (
@@ -163,7 +163,7 @@ class TestBdd100kDataset:
             }
         ]
         root = _make_bdd100k_root(tmp_path, entries=entries)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         _, target = ds[0]
         # Only the car should be kept
         assert target["boxes"].shape[0] == 1
@@ -183,7 +183,7 @@ class TestBdd100kDataset:
             }
         ]
         root = _make_bdd100k_root(tmp_path, entries=entries)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         _, target = ds[0]
         assert target["boxes"].shape[0] == 0
 
@@ -191,7 +191,7 @@ class TestBdd100kDataset:
         """Images with null labels should yield zero annotations."""
         entries = [{"name": "img.jpg", "labels": None}]
         root = _make_bdd100k_root(tmp_path, entries=entries)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         _, target = ds[0]
         assert target["boxes"].shape == (0, 4)
         assert target["labels"].shape == (0,)
@@ -219,7 +219,7 @@ class TestBdd100kDataset:
         img = Image.fromarray(np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8))
         img.save(str(custom_img_dir / fname))
 
-        ds = Bdd100kDataset(str(tmp_path), split="val", image_root=str(custom_img_dir))
+        ds = Bdd100kDetectionDataset(str(tmp_path), split="val", image_root=str(custom_img_dir))
         assert len(ds) == 1
         image, target = ds[0]
         assert image.shape[0] == 3
@@ -233,7 +233,7 @@ class TestBdd100kDataset:
             call_log.append(True)
             return img, tgt
 
-        ds = Bdd100kDataset(root, split="val", transforms=record_transform)
+        ds = Bdd100kDetectionDataset(root, split="val", transforms=record_transform)
         ds[0]
         assert len(call_log) == 1
 
@@ -252,7 +252,7 @@ class TestBdd100kDataset:
             for i in range(5)
         ]
         root = _make_bdd100k_root(tmp_path, entries=entries)
-        ds = Bdd100kDataset(root, split="val")
+        ds = Bdd100kDetectionDataset(root, split="val")
         assert len(ds) == 5
 
 

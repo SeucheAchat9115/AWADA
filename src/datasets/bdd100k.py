@@ -26,7 +26,7 @@ CLASS_NAMES = ["pedestrian", "rider", "car", "truck", "bus", "motorcycle", "bicy
 _MIN_BOX_DIM = 5
 
 
-class Bdd100kDataset(Dataset):
+class Bdd100kDetectionDataset(Dataset):
     """BDD100k object-detection dataset aligned with the Cityscapes 7-class benchmark.
 
     Only the seven classes shared with Cityscapes are kept (the "train" class

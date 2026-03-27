@@ -29,9 +29,9 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
-from src.datasets.bdd100k import Bdd100kDataset
+from src.datasets.bdd100k import Bdd100kDetectionDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
-from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
+from src.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
 from src.utils.metrics import compute_map_range
 from src.utils.transforms import ResizeToMinSize
 
@@ -55,9 +55,9 @@ def get_dataset(name, root, split, classes=None, transforms=None):
     if name == "cityscapes":
         return CityscapesDetectionDataset(root, split=split, classes=classes, transforms=transforms)
     elif name == "foggy_cityscapes":
-        return FoggyCityscapesDataset(root, split=split, transforms=transforms)
+        return FoggyCityscapesDetectionDataset(root, split=split, transforms=transforms)
     elif name == "bdd100k":
-        return Bdd100kDataset(root, split=split, transforms=transforms)
+        return Bdd100kDetectionDataset(root, split=split, transforms=transforms)
     else:
         raise ValueError(f"Unknown dataset: {name}")
 
