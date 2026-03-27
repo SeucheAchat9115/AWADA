@@ -10,21 +10,27 @@ from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, faster
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
+from src.datasets.bdd100k import Bdd100kDetectionDataset
 from src.datasets.cityscapes import CityscapesDetectionDataset
-from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
-from src.datasets.sim10k import Sim10kDataset
+from src.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
+from src.datasets.sim10k import Sim10kDetectionDataset
 from src.utils.metrics import compute_map_range
+from src.utils.transforms import ResizeToMinSize
 
 
 def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None):
     if name == "sim10k":
-        return Sim10kDataset(root, transforms=transforms, image_dir=image_dir)
+        return Sim10kDetectionDataset(root, transforms=transforms, image_dir=image_dir)
     elif name == "cityscapes":
         return CityscapesDetectionDataset(
             root, split=split, transforms=transforms, classes=classes, image_root=image_dir
         )
     elif name == "foggy_cityscapes":
-        return FoggyCityscapesDataset(
+        return FoggyCityscapesDetectionDataset(
+            root, split=split, transforms=transforms, image_root=image_dir
+        )
+    elif name == "bdd100k":
+        return Bdd100kDetectionDataset(
             root, split=split, transforms=transforms, image_root=image_dir
         )
     else:
@@ -64,7 +70,7 @@ def evaluate(model, dataloader, device, num_classes):
 def main():
     parser = argparse.ArgumentParser(description="Train Faster R-CNN detector")
     parser.add_argument(
-        "--dataset", choices=["sim10k", "cityscapes", "foggy_cityscapes"], required=True
+        "--dataset", choices=["sim10k", "cityscapes", "foggy_cityscapes", "bdd100k"], required=True
     )
     parser.add_argument("--data_root", required=True)
     parser.add_argument("--num_classes", type=int, required=True)
@@ -92,17 +98,40 @@ def main():
             "subdirectory structure as the standard image root."
         ),
     )
+    parser.add_argument(
+        "--resize",
+        type=int,
+        default=None,
+        metavar="MIN_SIZE",
+        help=(
+            "Resize images so the shortest side equals MIN_SIZE pixels before training "
+            "(e.g. --resize 600).  Also scales bounding boxes accordingly.  "
+            "Works with both original and stylized images."
+        ),
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = torch.device(args.device)
 
+    resize_transform = ResizeToMinSize(args.resize) if args.resize is not None else None
     train_dataset = get_dataset(
-        args.dataset, args.data_root, split="train", classes=args.classes, image_dir=args.image_dir
+        args.dataset,
+        args.data_root,
+        split="train",
+        classes=args.classes,
+        image_dir=args.image_dir,
+        transforms=resize_transform,
     )
     # sim10k (GTA) does not require a validation split; all images are used for training.
     val_dataset = (
-        get_dataset(args.dataset, args.data_root, split="val", classes=args.classes)
+        get_dataset(
+            args.dataset,
+            args.data_root,
+            split="val",
+            classes=args.classes,
+            transforms=resize_transform,
+        )
         if args.dataset != "sim10k"
         else None
     )

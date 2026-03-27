@@ -9,8 +9,8 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 from src.datasets.cityscapes import CityscapesDetectionDataset
-from src.datasets.foggy_cityscapes import FoggyCityscapesDataset
-from src.datasets.sim10k import Sim10kDataset
+from src.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
+from src.datasets.sim10k import Sim10kDetectionDataset
 from src.utils.attention import generate_attention_maps
 
 
@@ -42,11 +42,11 @@ def main():
     device = torch.device(args.device)
 
     if args.dataset == "sim10k":
-        dataset = Sim10kDataset(args.data_root)
+        dataset = Sim10kDetectionDataset(args.data_root)
     elif args.dataset == "cityscapes":
         dataset = CityscapesDetectionDataset(args.data_root, split=args.split)
     else:
-        dataset = FoggyCityscapesDataset(args.data_root, split=args.split)
+        dataset = FoggyCityscapesDetectionDataset(args.data_root, split=args.split)
 
     dataloader = DataLoader(
         dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=collate_fn

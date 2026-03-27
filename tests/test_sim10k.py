@@ -1,4 +1,4 @@
-"""Tests for Sim10kDataset._parse_annotation and the full Sim10kDataset class."""
+"""Tests for Sim10kDetectionDataset._parse_annotation and the full Sim10kDataset class."""
 
 import xml.etree.ElementTree as ET
 
@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from src.datasets.sim10k import CLASS_NAMES, Sim10kDataset
+from src.datasets.sim10k import CLASS_NAMES, Sim10kDetectionDataset
 
 
 def _write_voc_xml(path, objects):
@@ -31,7 +31,7 @@ class TestSim10kParseAnnotation:
     def test_parses_single_car(self, tmp_path):
         xml_path = str(tmp_path / "test.xml")
         _write_voc_xml(xml_path, [("car", 10, 20, 100, 200)])
-        boxes, labels = Sim10kDataset._parse_annotation(xml_path)
+        boxes, labels = Sim10kDetectionDataset._parse_annotation(xml_path)
         assert len(boxes) == 1
         assert boxes[0] == [10.0, 20.0, 100.0, 200.0]
         assert labels[0] == 1  # 'car' is class 1
@@ -39,7 +39,7 @@ class TestSim10kParseAnnotation:
     def test_ignores_non_car_objects(self, tmp_path):
         xml_path = str(tmp_path / "test.xml")
         _write_voc_xml(xml_path, [("person", 10, 20, 100, 200), ("car", 5, 5, 50, 60)])
-        boxes, labels = Sim10kDataset._parse_annotation(xml_path)
+        boxes, labels = Sim10kDetectionDataset._parse_annotation(xml_path)
         assert len(boxes) == 1
         assert labels[0] == 1
 
@@ -47,12 +47,12 @@ class TestSim10kParseAnnotation:
         """Boxes with w<=5 or h<=5 should be skipped."""
         xml_path = str(tmp_path / "test.xml")
         _write_voc_xml(xml_path, [("car", 10, 10, 13, 13)])  # 3x3 box
-        boxes, labels = Sim10kDataset._parse_annotation(xml_path)
+        boxes, labels = Sim10kDetectionDataset._parse_annotation(xml_path)
         assert len(boxes) == 0
 
     def test_missing_file_returns_empty(self):
         """Missing annotation file returns empty lists without raising."""
-        boxes, labels = Sim10kDataset._parse_annotation("/nonexistent/path.xml")
+        boxes, labels = Sim10kDetectionDataset._parse_annotation("/nonexistent/path.xml")
         assert boxes == []
         assert labels == []
 
@@ -65,7 +65,7 @@ class TestSim10kParseAnnotation:
                 ("car", 200, 200, 400, 400),
             ],
         )
-        boxes, labels = Sim10kDataset._parse_annotation(xml_path)
+        boxes, labels = Sim10kDetectionDataset._parse_annotation(xml_path)
         assert len(boxes) == 2
 
     def test_class_names_contains_car(self):
@@ -74,7 +74,7 @@ class TestSim10kParseAnnotation:
     def test_parse_annotation_car_label_is_one_indexed(self, tmp_path):
         xml_path = str(tmp_path / "test.xml")
         _write_voc_xml(xml_path, [("car", 0, 0, 100, 100)])
-        _, labels = Sim10kDataset._parse_annotation(xml_path)
+        _, labels = Sim10kDetectionDataset._parse_annotation(xml_path)
         assert labels[0] == 1  # 1-indexed
 
 
@@ -93,25 +93,25 @@ def sim10k_root(tmp_path):
     return str(tmp_path)
 
 
-class TestSim10kDataset:
+class TestSim10kDetectionDataset:
     def test_len(self, sim10k_root):
-        ds = Sim10kDataset(sim10k_root)
+        ds = Sim10kDetectionDataset(sim10k_root)
         assert len(ds) == 1
 
     def test_getitem_returns_image_and_target(self, sim10k_root):
-        ds = Sim10kDataset(sim10k_root)
+        ds = Sim10kDetectionDataset(sim10k_root)
         image, target = ds[0]
         assert image.shape[0] == 3  # RGB
 
     def test_getitem_target_keys(self, sim10k_root):
-        ds = Sim10kDataset(sim10k_root)
+        ds = Sim10kDetectionDataset(sim10k_root)
         _, target = ds[0]
         assert "boxes" in target
         assert "labels" in target
         assert "image_id" in target
 
     def test_getitem_box_values(self, sim10k_root):
-        ds = Sim10kDataset(sim10k_root)
+        ds = Sim10kDetectionDataset(sim10k_root)
         _, target = ds[0]
         boxes = target["boxes"]
         assert boxes.shape == (1, 4)
@@ -127,6 +127,6 @@ class TestSim10kDataset:
         img.save(str(images_dir / "00001.jpg"))
         # No .xml file written
 
-        ds = Sim10kDataset(str(tmp_path))
+        ds = Sim10kDetectionDataset(str(tmp_path))
         _, target = ds[0]
         assert target["boxes"].shape == (0, 4)

@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from .cityscapes import CITYSCAPES_LABEL_MAP, MIN_PIXELS_THRESHOLD
 
 
-class FoggyCityscapesDataset(Dataset):
+class FoggyCityscapesDetectionDataset(Dataset):
     def __init__(self, root, split="val", beta=0.02, transforms=None, image_root=None):
         self.root = root
         self.split = split
