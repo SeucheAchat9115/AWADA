@@ -8,8 +8,9 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from src.datasets.unpaired_dataset import UnpairedImageDataset
 from src.models.cycada import CyCada
-from src.utils.train_utils import UnpairedImageDataset, get_lambda_lr, load_config
+from src.utils.train_utils import get_lambda_lr, load_config
 
 
 def main():

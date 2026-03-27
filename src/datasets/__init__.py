@@ -2,3 +2,4 @@ from .attention_dataset import AttentionPairedDataset as AttentionPairedDataset
 from .cityscapes import CityscapesDetectionDataset as CityscapesDetectionDataset
 from .foggy_cityscapes import FoggyCityscapesDataset as FoggyCityscapesDataset
 from .sim10k import Sim10kDataset as Sim10kDataset
+from .unpaired_dataset import UnpairedImageDataset as UnpairedImageDataset
