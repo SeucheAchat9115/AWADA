@@ -186,4 +186,3 @@ python evaluate_detector.py \
     $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
 
 echo "Experiment C (AWADA) complete!"
-

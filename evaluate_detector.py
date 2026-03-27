@@ -143,9 +143,7 @@ def main():
     device = torch.device(args.device)
 
     dataset = get_dataset(args.dataset, args.data_root, args.split, classes=args.classes)
-    loader = DataLoader(
-        dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=collate_fn
-    )
+    loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=collate_fn)
 
     model = build_model(args.num_classes)
     model = load_checkpoint(model, args.detector_checkpoint, device)
