@@ -140,7 +140,7 @@ value of the MyPy pass and making the API harder to understand at a glance.
 
 **Examples of missing annotations:**
 
-| Function | File | Should return |
+| Function | File | Return Type |
 |---|---|---|
 | `CycleGAN.forward` | `cyclegan.py` | `-> None` |
 | `CycleGAN.compute_generator_loss` | `cyclegan.py` | `-> dict[str, torch.Tensor]` |
@@ -351,7 +351,7 @@ misconfigured dataset.
 **Affected file:** `awada/utils/train_utils.py`
 
 **Current behaviour:** `load_config()` returns whatever is in the YAML file.  Typos
-in key names (e.g. `lamba_cyc` instead of `lambda_cyc`) are silently ignored and the
+in key names (e.g. `lamba_cyc`—note the missing `d`—instead of `lambda_cyc`) are silently ignored and the
 code falls back to hardcoded defaults, producing unexpected results with no error.
 
 **Proposed change:** Accept an optional set of required keys and validate them:
@@ -765,7 +765,9 @@ requires manually parsing log files.
 **Proposed change:** Add optional TensorBoard logging behind a `--log_dir` flag:
 
 ```python
-from torch.utils.tensorboard import SummaryWriter  # stdlib since PyTorch 1.1
+# torch.utils.tensorboard ships with PyTorch (since 1.1),
+# but TensorBoard itself must be installed separately: pip install tensorboard
+from torch.utils.tensorboard import SummaryWriter
 
 writer = SummaryWriter(log_dir=args.log_dir) if args.log_dir else None
 
@@ -778,9 +780,10 @@ if writer:
         (g_losses["cycle_A"] + g_losses["cycle_B"]).item(), global_step)
 ```
 
-**Rationale:** Experiment tracking is essential for ablation studies.  TensorBoard is
-already included with PyTorch—no new dependency is required.  W&B is an alternative if
-richer experiment management is needed.
+**Rationale:** Experiment tracking is essential for ablation studies.  `torch.utils.tensorboard`
+is bundled with PyTorch; only `tensorboard` itself needs to be added to the dev
+dependencies (`pip install tensorboard`).  W&B is an alternative if richer experiment
+management is needed.
 
 ---
 
