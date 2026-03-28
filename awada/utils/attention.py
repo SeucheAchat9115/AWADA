@@ -81,4 +81,4 @@ def generate_attention_maps(detector, dataloader, output_dir, score_threshold=0.
     finally:
         detector.rpn.filter_proposals = original_filter_proposals
 
-    print(f"Saved {len(dataloader.dataset)} attention maps to {output_dir}")
+    logger.info("Saved %d attention maps to %s", len(dataloader.dataset), output_dir)

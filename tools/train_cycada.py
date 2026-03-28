@@ -110,7 +110,7 @@ def main():
         sched_G.load_state_dict(ckpt["sched_G"])
         sched_D.load_state_dict(ckpt["sched_D"])
         start_epoch = ckpt["epoch"]
-        print(f"Resumed from checkpoint: {args.resume} (epoch {start_epoch})")
+        logger.info("Resumed from checkpoint: %s (epoch %d)", args.resume, start_epoch)
 
     for epoch in range(start_epoch, epochs):
         model.G_AB.train()
@@ -153,11 +153,13 @@ def main():
             opt_D.step()
 
             if (iteration + 1) % 100 == 0:
-                print(
-                    f"  [Epoch {epoch + 1}, Iter {iteration + 1}] "
-                    f"G={g_losses['total_G'].item():.3f} "
-                    f"D={d_losses['total_D'].item():.3f} "
-                    f"cyc={g_losses['cycle_A'].item() + g_losses['cycle_B'].item():.3f}"
+                logger.info(
+                    "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f",
+                    epoch + 1,
+                    iteration + 1,
+                    g_losses["total_G"].item(),
+                    d_losses["total_D"].item(),
+                    g_losses["cycle_A"].item() + g_losses["cycle_B"].item(),
                 )
 
         sched_G.step()
@@ -177,9 +179,9 @@ def main():
         }
         ckpt_path = os.path.join(args.output_dir, f"cycada_epoch_{epoch + 1}.pth")
         torch.save(ckpt, ckpt_path)
-        print(f"Checkpoint saved: {ckpt_path}")
+        logger.info("Checkpoint saved: %s", ckpt_path)
 
-    print("CyCada training complete.")
+    logger.info("CyCada training complete.")
 
 
 if __name__ == "__main__":
