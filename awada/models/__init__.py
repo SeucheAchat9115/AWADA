@@ -1,4 +1,8 @@
 from .awada import AWADA as AWADA
+from .constants import BUFFER_RETURN_PROBABILITY as BUFFER_RETURN_PROBABILITY
+from .constants import DISCRIMINATOR_LOSS_AVERAGING_FACTOR as DISCRIMINATOR_LOSS_AVERAGING_FACTOR
+from .constants import IMAGE_BUFFER_SIZE as IMAGE_BUFFER_SIZE
+from .constants import LOG_INTERVAL as LOG_INTERVAL
 from .cycada import CyCada as CyCada
 from .cyclegan import CycleGAN as CycleGAN
 from .cyclegan import ImageBuffer as ImageBuffer

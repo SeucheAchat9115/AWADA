@@ -3,6 +3,11 @@ import random
 import torch
 import torch.nn as nn
 
+from .constants import (
+    BUFFER_RETURN_PROBABILITY,
+    DISCRIMINATOR_LOSS_AVERAGING_FACTOR,
+    IMAGE_BUFFER_SIZE,
+)
 from .discriminator import PatchGANDiscriminator
 from .generator import ResNetGenerator
 
@@ -12,7 +17,7 @@ class ImageBuffer:
     Size of 50 matches the original CycleGAN implementation (Zhu et al., 2017).
     """
 
-    def __init__(self, max_size=50):
+    def __init__(self, max_size=IMAGE_BUFFER_SIZE):
         self.max_size = max_size
         self.data = []
 
@@ -24,7 +29,7 @@ class ImageBuffer:
                 self.data.append(element)
                 result.append(element)
             else:
-                if random.random() > 0.5:
+                if random.random() > BUFFER_RETURN_PROBABILITY:
                     idx = random.randint(0, self.max_size - 1)
                     tmp = self.data[idx].clone()
                     self.data[idx] = element
@@ -100,7 +105,7 @@ class CycleGAN(nn.Module):
         loss_D_B_real = self.criterion_GAN(pred_real_B, torch.ones_like(pred_real_B))
         pred_fake_B = self.D_B(fake_B)
         loss_D_B_fake = self.criterion_GAN(pred_fake_B, torch.zeros_like(pred_fake_B))
-        loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
+        loss_D_B = (loss_D_B_real + loss_D_B_fake) * DISCRIMINATOR_LOSS_AVERAGING_FACTOR
 
         # D_A
         fake_A = self.fake_A_buffer.push_and_pop(self.fake_A.detach())
@@ -108,6 +113,6 @@ class CycleGAN(nn.Module):
         loss_D_A_real = self.criterion_GAN(pred_real_A, torch.ones_like(pred_real_A))
         pred_fake_A = self.D_A(fake_A)
         loss_D_A_fake = self.criterion_GAN(pred_fake_A, torch.zeros_like(pred_fake_A))
-        loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
+        loss_D_A = (loss_D_A_real + loss_D_A_fake) * DISCRIMINATOR_LOSS_AVERAGING_FACTOR
 
         return {"D_A": loss_D_A, "D_B": loss_D_B, "total_D": loss_D_A + loss_D_B}

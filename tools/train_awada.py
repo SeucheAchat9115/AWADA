@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from awada.datasets.attention_dataset import AttentionPairedDataset
 from awada.models.awada import AWADA
+from awada.models.constants import LOG_INTERVAL
 from awada.utils.train_utils import get_lambda_lr, load_config, set_seed
 
 logger = logging.getLogger(__name__)
@@ -161,7 +162,7 @@ def main():
             d_losses["total_D"].backward()
             opt_D.step()
 
-            if (iteration + 1) % 100 == 0:
+            if (iteration + 1) % LOG_INTERVAL == 0:
                 logger.info(
                     "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f",
                     epoch + 1,
