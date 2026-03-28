@@ -1,9 +1,8 @@
 import torch
 import torch.nn.functional as F
 
+from awada.config import DEFAULT_DEVICE
 from .cycada import CyCada
-
-DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class AWADA(CyCada):

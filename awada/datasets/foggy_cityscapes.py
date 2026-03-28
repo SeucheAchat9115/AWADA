@@ -6,7 +6,7 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.utils.data import Dataset
 
-from .cityscapes import CITYSCAPES_LABEL_MAP, MIN_PIXELS_THRESHOLD
+from .cityscapes import CITYSCAPES_LABEL_MAP, MIN_BOX_DIM, MIN_PIXELS_THRESHOLD
 
 
 class FoggyCityscapesDetectionDataset(Dataset):
@@ -58,7 +58,7 @@ class FoggyCityscapesDetectionDataset(Dataset):
             if len(ys) < MIN_PIXELS_THRESHOLD:
                 continue
             x1, y1, x2, y2 = xs.min(), ys.min(), xs.max(), ys.max()
-            if (x2 - x1) > 5 and (y2 - y1) > 5:
+            if (x2 - x1) > MIN_BOX_DIM and (y2 - y1) > MIN_BOX_DIM:
                 boxes.append([float(x1), float(y1), float(x2), float(y2)])
                 labels.append(CITYSCAPES_LABEL_MAP[class_id])
 

@@ -3,11 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, deeplabv3_resnet50
 
-DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-# ImageNet normalisation constants used by DeepLabV3
-_IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406])
-_IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225])
+from awada.config import DEFAULT_DEVICE, IMAGENET_MEAN, IMAGENET_STD
 
 
 class SemanticConsistencyLoss(nn.Module):
@@ -32,8 +28,8 @@ class SemanticConsistencyLoss(nn.Module):
         self.net = net.to(device)
         self.device = device
         # Register normalisation tensors as buffers so they move with .to()
-        self.register_buffer("_mean", _IMAGENET_MEAN.view(1, 3, 1, 1))
-        self.register_buffer("_std", _IMAGENET_STD.view(1, 3, 1, 1))
+        self.register_buffer("_mean", torch.tensor(IMAGENET_MEAN).view(1, 3, 1, 1))
+        self.register_buffer("_std", torch.tensor(IMAGENET_STD).view(1, 3, 1, 1))
 
     def _to_imagenet(self, x: torch.Tensor) -> torch.Tensor:
         """Re-normalise a [-1, 1] CycleGAN tensor to ImageNet statistics."""

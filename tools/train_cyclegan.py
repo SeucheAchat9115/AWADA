@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from awada.config import DEFAULT_DEVICE
 from awada.datasets.unpaired_dataset import UnpairedImageDataset
 from awada.models.cyclegan import CycleGAN
 from awada.utils.train_utils import get_lambda_lr, load_config, set_seed
@@ -55,8 +56,7 @@ def main():
     lambda_idt = args.lambda_idt if args.lambda_idt is not None else cfg.get("lambda_idt", 0.0)
     patch_size = args.patch_size if args.patch_size is not None else cfg.get("patch_size", 128)
     betas = tuple(cfg.get("betas", [0.5, 0.999]))
-    default_device = "cuda" if torch.cuda.is_available() else "cpu"
-    device_str = args.device if args.device is not None else cfg.get("device", default_device)
+    device_str = args.device if args.device is not None else cfg.get("device", DEFAULT_DEVICE)
     buffer_size = cfg.get("buffer_size", 50)
     buffer_return_prob = cfg.get("buffer_return_prob", 0.5)
     disc_loss_avg_factor = cfg.get("disc_loss_avg_factor", 0.5)

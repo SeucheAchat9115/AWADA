@@ -6,7 +6,12 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.utils.data import Dataset
 
-CLASS_NAMES = ["car"]
+from awada.config import MIN_BOX_DIM, SIM10K_CLASS_NAMES as CLASS_NAMES
+
+__all__ = [
+    "CLASS_NAMES",
+    "Sim10kDetectionDataset",
+]
 
 
 class Sim10kDetectionDataset(Dataset):
@@ -73,7 +78,7 @@ class Sim10kDetectionDataset(Dataset):
             y1 = float(bndbox.find("ymin").text)
             x2 = float(bndbox.find("xmax").text)
             y2 = float(bndbox.find("ymax").text)
-            if (x2 - x1) > 5 and (y2 - y1) > 5:
+            if (x2 - x1) > MIN_BOX_DIM and (y2 - y1) > MIN_BOX_DIM:
                 boxes.append([x1, y1, x2, y2])
                 labels.append(CLASS_NAMES.index("car") + 1)
         return boxes, labels

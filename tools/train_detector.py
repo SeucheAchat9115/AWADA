@@ -11,6 +11,7 @@ from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, faster
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
+from awada.config import DEFAULT_DEVICE
 from awada.datasets.bdd100k import Bdd100kDetectionDataset
 from awada.datasets.cityscapes import CityscapesDetectionDataset
 from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
