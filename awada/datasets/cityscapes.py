@@ -9,10 +9,12 @@ from torch.utils.data import Dataset
 from awada.config import (
     BDD100K_ALIGNED_CLASSES,
     CITYSCAPES_BDD100K_LABEL_MAP,
-    CITYSCAPES_CLASS_NAMES as CLASS_NAMES,
     CITYSCAPES_LABEL_MAP,
     MIN_BOX_DIM,
     MIN_PIXELS_THRESHOLD,
+)
+from awada.config import (
+    CITYSCAPES_CLASS_NAMES as CLASS_NAMES,
 )
 
 __all__ = [

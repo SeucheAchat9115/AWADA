@@ -6,7 +6,8 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.utils.data import Dataset
 
-from awada.config import MIN_BOX_DIM, SIM10K_CLASS_NAMES as CLASS_NAMES
+from awada.config import MIN_BOX_DIM
+from awada.config import SIM10K_CLASS_NAMES as CLASS_NAMES
 
 __all__ = [
     "CLASS_NAMES",

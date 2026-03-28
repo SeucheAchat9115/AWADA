@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 
 from awada.config import DEFAULT_DEVICE
+
 from .discriminator import PatchGANDiscriminator
 from .generator import ResNetGenerator
 

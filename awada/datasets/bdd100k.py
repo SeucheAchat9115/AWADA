@@ -6,7 +6,8 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.utils.data import Dataset
 
-from awada.config import BDD100K_CLASS_NAMES as CLASS_NAMES, BDD100K_LABEL_MAP, MIN_BOX_DIM
+from awada.config import BDD100K_CLASS_NAMES as CLASS_NAMES
+from awada.config import BDD100K_LABEL_MAP, MIN_BOX_DIM
 
 __all__ = [
     "BDD100K_LABEL_MAP",

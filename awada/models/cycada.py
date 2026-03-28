@@ -3,6 +3,7 @@ from typing import Optional
 import torch
 
 from awada.config import DEFAULT_DEVICE
+
 from .cyclegan import CycleGAN
 from .semantic_loss import SemanticConsistencyLoss
 
