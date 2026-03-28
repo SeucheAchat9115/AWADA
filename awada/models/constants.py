@@ -1,6 +1,6 @@
 """Named constants for CycleGAN model configuration.
 
-Centralises magic numbers used across the model and training scripts so that
+Centralizes magic numbers used across the model and training scripts so that
 their intent is explicit and they can be changed in a single place.
 """
 
