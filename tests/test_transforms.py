@@ -2,7 +2,7 @@
 
 import torch
 
-from src.utils.transforms import ResizeToMinSize
+from awada.utils.transforms import ResizeToMinSize
 
 
 class TestResizeToMinSizeInit:

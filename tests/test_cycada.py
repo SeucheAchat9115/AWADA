@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import torch
 
-from src.models.cycada import CyCada
+from awada.models.cycada import CyCada
 
 DEVICE = "cpu"
 IMG_SIZE = 64
@@ -64,7 +64,7 @@ class TestCyCada:
     def test_semantic_loss_present_when_enabled(self):
         """Semantic loss keys MUST appear when lambda_sem > 0 and criterion_sem is set."""
         mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("src.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+        with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
             model = CyCada(device=DEVICE, lambda_sem=1.0)
         real_A, real_B = _real_pair()
         model.set_input(real_A, real_B)
@@ -76,14 +76,14 @@ class TestCyCada:
     def test_semantic_loss_instantiated_when_nonzero(self):
         """criterion_sem must NOT be None when lambda_sem > 0."""
         mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("src.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+        with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
             model = CyCada(device=DEVICE, lambda_sem=1.0)
         assert model.criterion_sem is not None
 
     def test_semantic_loss_included_in_total(self):
         """total_G must include the semantic losses when lambda_sem > 0."""
         mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("src.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+        with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
             model = CyCada(device=DEVICE, lambda_sem=1.0)
         real_A, real_B = _real_pair()
         model.set_input(real_A, real_B)
@@ -101,7 +101,7 @@ class TestCyCada:
 
     def test_semantic_loss_non_negative(self):
         mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("src.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+        with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
             model = CyCada(device=DEVICE, lambda_sem=1.0)
         real_A, real_B = _real_pair()
         model.set_input(real_A, real_B)

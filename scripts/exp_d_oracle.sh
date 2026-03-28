@@ -38,7 +38,7 @@ echo "========================================"
 
 # Train Faster R-CNN directly on target domain with labels
 echo "[Step 1] Training detector on target domain (oracle, with labels)..."
-python train_detector.py \
+python tools/train_detector.py \
     --dataset "$TARGET_DATASET" \
     --data_root "$TARGET_ROOT" \
     --num_classes "$NUM_CLASSES" \
@@ -51,7 +51,7 @@ python train_detector.py \
     $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
 
 echo "[Step 2] Evaluating on target domain validation set..."
-python evaluate_detector.py \
+python tools/evaluate_detector.py \
     --detector_checkpoint "$OUTPUT_DIR/detector_final.pth" \
     --dataset "$TARGET_DATASET" \
     --data_root "$TARGET_ROOT" \

@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from src.utils.metrics import _to_coco_format, compute_map_range
+from awada.utils.metrics import _to_coco_format, compute_map_range
 
 
 def _make_perfect_pair(n_boxes=3, num_classes=2):

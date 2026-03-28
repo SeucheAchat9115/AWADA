@@ -8,11 +8,11 @@ from torch.utils.data import DataLoader
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-from src.datasets.bdd100k import Bdd100kDetectionDataset
-from src.datasets.cityscapes import CityscapesDetectionDataset
-from src.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
-from src.datasets.sim10k import Sim10kDetectionDataset
-from src.utils.attention import generate_attention_maps
+from awada.datasets.bdd100k import Bdd100kDetectionDataset
+from awada.datasets.cityscapes import CityscapesDetectionDataset
+from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
+from awada.datasets.sim10k import Sim10kDetectionDataset
+from awada.utils.attention import generate_attention_maps
 
 
 def collate_fn(batch):

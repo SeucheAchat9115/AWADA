@@ -8,7 +8,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.utils.attention import generate_attention_maps
+from awada.utils.attention import generate_attention_maps
 
 
 def _build_detector(boxes_fn, scores_fn=None):

@@ -2,7 +2,7 @@
 
 import torch
 
-from src.models.cyclegan import CycleGAN, ImageBuffer
+from awada.models.cyclegan import CycleGAN, ImageBuffer
 
 DEVICE = "cpu"
 IMG_SIZE = 64  # Use small images to keep tests fast

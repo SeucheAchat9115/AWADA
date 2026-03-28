@@ -54,7 +54,7 @@ echo "========================================"
 
 # Step 1: Train CyCada GAN (CycleGAN + semantic consistency loss)
 echo "[Step 1] Training CyCada GAN..."
-python train_cycada.py \
+python tools/train_cycada.py \
     --source_dir "$SOURCE_IMAGES" \
     --target_dir "$TARGET_IMAGES" \
     --output_dir "$GAN_OUTPUT" \
@@ -66,7 +66,7 @@ python train_cycada.py \
 # Step 2: Stylize source images using the CyCada generator
 echo "[Step 2] Stylizing source images with CyCada generator..."
 LATEST_GAN=$(ls -t "$GAN_OUTPUT"/cycada_epoch_*.pth | head -1)
-python stylize_dataset.py \
+python tools/stylize_dataset.py \
     --generator_checkpoint "$LATEST_GAN" \
     --source_dir "$SOURCE_IMAGES" \
     --output_dir "$STYLIZED_DIR" \
@@ -75,7 +75,7 @@ python stylize_dataset.py \
 # Step 3: Train detector on CyCada-stylized source images
 # Images come from STYLIZED_DIR; annotations come from SOURCE_ROOT
 echo "[Step 3] Training detector on CyCada-stylized source images..."
-python train_detector.py \
+python tools/train_detector.py \
     --dataset "$SOURCE_DATASET" \
     --data_root "$SOURCE_ROOT" \
     --image_dir "$STYLIZED_DIR" \
@@ -89,7 +89,7 @@ python train_detector.py \
 
 # Step 4: Evaluate on target domain
 echo "[Step 4] Evaluating on target domain..."
-python evaluate_detector.py \
+python tools/evaluate_detector.py \
     --detector_checkpoint "$DETECTOR_OUTPUT/detector_final.pth" \
     --dataset "$TARGET_DATASET" \
     --data_root "$TARGET_ROOT" \

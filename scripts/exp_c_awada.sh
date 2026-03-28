@@ -86,7 +86,7 @@ if [ ! -f "$BASELINE_CKPT" ]; then
     exit 1
 fi
 
-python generate_attention_maps.py \
+python tools/generate_attention_maps.py \
     --detector_checkpoint "$BASELINE_CKPT" \
     --dataset "$SOURCE_DATASET" \
     --data_root "$SOURCE_ROOT" \
@@ -98,7 +98,7 @@ python generate_attention_maps.py \
 
 # Step 2: Train CyCada GAN to learn the source → target style mapping
 echo "[Step 2] Training CyCada GAN for source→target style transfer..."
-python train_cycada.py \
+python tools/train_cycada.py \
     --source_dir "$SOURCE_IMAGES" \
     --target_dir "$TARGET_IMAGES" \
     --output_dir "$CYCADA_GAN_OUTPUT" \
@@ -110,7 +110,7 @@ python train_cycada.py \
 # Step 3: Stylize source images using the CyCada generator
 echo "[Step 3] Stylizing source images with CyCada generator..."
 LATEST_CYCADA_GAN=$(ls -t "$CYCADA_GAN_OUTPUT"/cycada_epoch_*.pth | head -1)
-python stylize_dataset.py \
+python tools/stylize_dataset.py \
     --generator_checkpoint "$LATEST_CYCADA_GAN" \
     --source_dir "$SOURCE_IMAGES" \
     --output_dir "$CYCADA_STYLIZED_DIR" \
@@ -120,7 +120,7 @@ python stylize_dataset.py \
 # This detector has been exposed to the target visual style, making it suitable
 # for generating attention maps on real target-domain images.
 echo "[Step 4] Training CyCada detector on stylized source images..."
-python train_detector.py \
+python tools/train_detector.py \
     --dataset "$SOURCE_DATASET" \
     --data_root "$SOURCE_ROOT" \
     --image_dir "$CYCADA_STYLIZED_DIR" \
@@ -134,7 +134,7 @@ python train_detector.py \
 
 # Step 5: Generate target attention maps using the CyCada detector on real target images
 echo "[Step 5] Generating target RPN attention maps from CyCada detector..."
-python generate_attention_maps.py \
+python tools/generate_attention_maps.py \
     --detector_checkpoint "$CYCADA_DETECTOR_OUTPUT/detector_final.pth" \
     --dataset "$TARGET_DATASET" \
     --data_root "$TARGET_ROOT" \
@@ -148,7 +148,7 @@ python generate_attention_maps.py \
 # Source attention maps: from the source-trained detector (Step 1)
 # Target attention maps: from the CyCada-trained detector (Step 5)
 echo "[Step 6] Training AWADA CycleGAN with source and target attention maps..."
-python train_awada.py \
+python tools/train_awada.py \
     --source_dir "$SOURCE_IMAGES" \
     --target_dir "$TARGET_IMAGES" \
     --attention_dir "$SOURCE_ATTENTION_DIR" \
@@ -162,7 +162,7 @@ python train_awada.py \
 # Step 7: Stylize source images using the AWADA generator
 echo "[Step 7] Stylizing source images with AWADA generator..."
 LATEST_AWADA_GAN=$(ls -t "$AWADA_GAN_OUTPUT"/awada_epoch_*.pth | head -1)
-python stylize_dataset.py \
+python tools/stylize_dataset.py \
     --generator_checkpoint "$LATEST_AWADA_GAN" \
     --source_dir "$SOURCE_IMAGES" \
     --output_dir "$AWADA_STYLIZED_DIR" \
@@ -170,7 +170,7 @@ python stylize_dataset.py \
 
 # Step 8: Train final detector on AWADA-stylized images
 echo "[Step 8] Training final detector on AWADA-stylized source images..."
-python train_detector.py \
+python tools/train_detector.py \
     --dataset "$SOURCE_DATASET" \
     --data_root "$SOURCE_ROOT" \
     --image_dir "$AWADA_STYLIZED_DIR" \
@@ -184,7 +184,7 @@ python train_detector.py \
 
 # Step 9: Evaluate on target domain
 echo "[Step 9] Evaluating on target domain..."
-python evaluate_detector.py \
+python tools/evaluate_detector.py \
     --detector_checkpoint "$DETECTOR_OUTPUT/detector_final.pth" \
     --dataset "$TARGET_DATASET" \
     --data_root "$TARGET_ROOT" \

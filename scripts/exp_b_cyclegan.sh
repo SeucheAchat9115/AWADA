@@ -52,7 +52,7 @@ echo "========================================"
 
 # Step 1: Train CycleGAN
 echo "[Step 1] Training CycleGAN..."
-python train_cyclegan.py \
+python tools/train_cyclegan.py \
     --source_dir "$SOURCE_IMAGES" \
     --target_dir "$TARGET_IMAGES" \
     --output_dir "$GAN_OUTPUT" \
@@ -66,7 +66,7 @@ python train_cyclegan.py \
 # Step 2: Stylize source images
 echo "[Step 2] Stylizing source images..."
 LATEST_GAN=$(ls -t "$GAN_OUTPUT"/cyclegan_epoch_*.pth | head -1)
-python stylize_dataset.py \
+python tools/stylize_dataset.py \
     --generator_checkpoint "$LATEST_GAN" \
     --source_dir "$SOURCE_IMAGES" \
     --output_dir "$STYLIZED_DIR" \
@@ -75,7 +75,7 @@ python stylize_dataset.py \
 # Step 3: Train detector on stylized images
 # Note: use original source labels with stylized images
 echo "[Step 3] Training detector on stylized source images..."
-python train_detector.py \
+python tools/train_detector.py \
     --dataset "$SOURCE_DATASET" \
     --data_root "$SOURCE_ROOT" \
     --num_classes "$NUM_CLASSES" \
@@ -88,7 +88,7 @@ python train_detector.py \
 
 # Step 4: Evaluate on target domain
 echo "[Step 4] Evaluating on target domain..."
-python evaluate_detector.py \
+python tools/evaluate_detector.py \
     --detector_checkpoint "$DETECTOR_OUTPUT/detector_final.pth" \
     --dataset "$TARGET_DATASET" \
     --data_root "$TARGET_ROOT" \

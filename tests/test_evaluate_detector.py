@@ -6,7 +6,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from evaluate_detector import build_model, collate_fn, evaluate, get_dataset, load_checkpoint
+from tools.evaluate_detector import build_model, collate_fn, evaluate, get_dataset, load_checkpoint
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -77,28 +77,28 @@ class TestGetDataset:
         with pytest.raises(ValueError, match="Unknown dataset"):
             get_dataset("nonexistent", "/fake/root", "val")
 
-    @patch("evaluate_detector.CityscapesDetectionDataset")
+    @patch("tools.evaluate_detector.CityscapesDetectionDataset")
     def test_cityscapes_dataset_instantiated(self, mock_cls):
         mock_cls.return_value = MagicMock()
         get_dataset("cityscapes", "/data/cs", "val", classes=["car"])
         mock_cls.assert_called_once_with("/data/cs", split="val", classes=["car"], transforms=None)
 
-    @patch("evaluate_detector.FoggyCityscapesDetectionDataset")
+    @patch("tools.evaluate_detector.FoggyCityscapesDetectionDataset")
     def test_foggy_cityscapes_dataset_instantiated(self, mock_cls):
         mock_cls.return_value = MagicMock()
         get_dataset("foggy_cityscapes", "/data/foggy", "val")
         mock_cls.assert_called_once_with("/data/foggy", split="val", transforms=None)
 
-    @patch("evaluate_detector.Bdd100kDetectionDataset")
+    @patch("tools.evaluate_detector.Bdd100kDetectionDataset")
     def test_bdd100k_dataset_instantiated(self, mock_cls):
         mock_cls.return_value = MagicMock()
         get_dataset("bdd100k", "/data/bdd", "val")
         mock_cls.assert_called_once_with("/data/bdd", split="val", transforms=None)
 
-    @patch("evaluate_detector.CityscapesDetectionDataset")
+    @patch("tools.evaluate_detector.CityscapesDetectionDataset")
     def test_transforms_forwarded(self, mock_cls):
         mock_cls.return_value = MagicMock()
-        from src.utils.transforms import ResizeToMinSize
+        from awada.utils.transforms import ResizeToMinSize
 
         t = ResizeToMinSize(600)
         get_dataset("cityscapes", "/data/cs", "val", transforms=t)
@@ -189,8 +189,8 @@ class TestMain:
             )
         ]
 
-        with patch("evaluate_detector.get_dataset", return_value=mock_dataset):
-            from evaluate_detector import main
+        with patch("tools.evaluate_detector.get_dataset", return_value=mock_dataset):
+            from tools.evaluate_detector import main
 
             with patch(
                 "sys.argv",
@@ -240,8 +240,8 @@ class TestMain:
             )
         ]
 
-        with patch("evaluate_detector.get_dataset", return_value=mock_dataset):
-            from evaluate_detector import main
+        with patch("tools.evaluate_detector.get_dataset", return_value=mock_dataset):
+            from tools.evaluate_detector import main
 
             with patch(
                 "sys.argv",
