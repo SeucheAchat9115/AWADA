@@ -19,8 +19,20 @@ class CyCada(CycleGAN):
         Adaptation", ICML 2018.
     """
 
-    def __init__(self, device="cuda", lambda_sem: float = 0.0):
-        super().__init__(device=device)
+    def __init__(
+        self,
+        device: str = "cuda",
+        lambda_sem: float = 0.0,
+        buffer_size: int = 50,
+        buffer_return_prob: float = 0.5,
+        disc_loss_avg_factor: float = 0.5,
+    ):
+        super().__init__(
+            device=device,
+            buffer_size=buffer_size,
+            buffer_return_prob=buffer_return_prob,
+            disc_loss_avg_factor=disc_loss_avg_factor,
+        )
         # Semantic consistency loss: only instantiated when weight is non-zero
         self.criterion_sem: Optional[SemanticConsistencyLoss] = (
             SemanticConsistencyLoss(device=device) if lambda_sem > 0.0 else None

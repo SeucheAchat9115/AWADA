@@ -24,3 +24,14 @@ resize_min_side: 600
 
 # Hardware
 device: cuda
+
+# Replay buffer
+# Size of 50 and return probability of 0.5 match the original CycleGAN paper (Zhu et al., 2017)
+buffer_size: 50
+buffer_return_prob: 0.5
+
+# Discriminator loss averaging factor (weights real and fake losses equally)
+disc_loss_avg_factor: 0.5
+
+# Logging interval (iterations between loss log lines)
+log_interval: 100
