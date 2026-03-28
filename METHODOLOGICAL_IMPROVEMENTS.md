@@ -195,7 +195,7 @@ stub packages for PyTorch.
 
 ---
 
-### 2.3 Extract magic numbers into named constants
+### 2.3 Extract magic numbers into named configs
 
 **Affected files:** `awada/models/cyclegan.py`, `tools/train_*.py`
 
@@ -208,18 +208,9 @@ stub packages for PyTorch.
 | `100` | `train_awada.py:130` | Loss logging interval (iterations) |
 | `0.5` | `cyclegan.py:103` | Discriminator loss averaging factor |
 
-**Proposed change:** Define module-level constants and reference them by name:
+**Proposed change:** Define constants in config and reference them from there:
 
-```python
-# cyclegan.py
-_BUFFER_SIZE: int = 50          # Zhu et al. (2017) default
-_BUFFER_REPLAY_PROB: float = 0.5
-
-# train_awada.py  (or train_utils.py)
-_LOG_INTERVAL: int = 100        # iterations between loss printouts
-```
-
-**Rationale:** Named constants make intent explicit, ease experimentation (change one
+**Rationale:** Loding constants from config make intent explicit, ease experimentation (change one
 place instead of grepping for the literal), and prevent "why is this 50?" questions
 during code review.
 
@@ -240,10 +231,10 @@ an explicit `device` argument silently places tensors on CUDA and raises a
 ```python
 import torch
 
-_DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 class CycleGAN(nn.Module):
-    def __init__(self, device: str = _DEFAULT_DEVICE) -> None:
+    def __init__(self, device) -> None:
         ...
 ```
 
@@ -283,36 +274,7 @@ when a user inadvertently swaps argument order or forgets to run a prerequisite 
 
 ---
 
-### 3.2 Handle `DeepLabV3` weight download failures gracefully
-
-**Affected file:** `awada/models/semantic_loss.py`
-
-**Current behaviour:** If the pretrained weights cannot be downloaded (no internet
-access, firewall, quota exceeded), `deeplabv3_resnet50(weights=...)` raises a generic
-`urllib.error.URLError` or `RuntimeError` with no guidance on how to resolve it.
-
-**Proposed change:**
-
-```python
-try:
-    net = deeplabv3_resnet50(weights=weights)
-except Exception as exc:
-    raise RuntimeError(
-        "Failed to download DeepLabV3-ResNet50 weights. "
-        "Pre-download them with: "
-        "`python -c \"from torchvision.models.segmentation import "
-        "deeplabv3_resnet50, DeepLabV3_ResNet50_Weights; "
-        "deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1)\"`"
-        " or set TORCH_HOME to a directory containing the cached weights."
-    ) from exc
-```
-
-**Rationale:** This is a common failure mode in cluster environments with restricted
-internet access.  A single actionable message saves significant debugging time.
-
----
-
-### 3.3 Warn when an attention map is missing for a source image
+### 3.2 Raise error when an attention map is missing for a source or target image
 
 **Affected file:** `awada/datasets/attention_dataset.py`
 
@@ -320,28 +282,8 @@ internet access.  A single actionable message saves significant debugging time.
 is found, falling back to an all-ones mask.  This means a partially-generated attention
 directory is indistinguishable from a fully-generated one.
 
-**Proposed change:**
-
-```python
-import warnings
-
-def _load_attention(self, img_path: str, attention_root: str) -> np.ndarray | None:
-    filename_stem = os.path.splitext(os.path.basename(img_path))[0]
-    npy_path = os.path.join(attention_root, filename_stem + ".npy")
-    if os.path.exists(npy_path):
-        return np.load(npy_path).astype(np.float32)
-    warnings.warn(
-        f"Attention map not found for {os.path.basename(img_path)!r}; "
-        "falling back to uniform (all-ones) mask.  "
-        "Run generate_attention_maps.py to create missing maps.",
-        UserWarning,
-        stacklevel=3,
-    )
-    return None
-```
-
-**Rationale:** Silent degradation makes bugs very hard to find.  A `UserWarning` is
-visible in the training log without stopping the job, alerting the user to a
+**Rationale:** Silent degradation makes bugs very hard to find.  A raised error is
+visible and stopping the job, alerting the user to a
 misconfigured dataset.
 
 ---
@@ -354,26 +296,7 @@ misconfigured dataset.
 in key names (e.g. `lamba_cyc`—note the missing `d`—instead of `lambda_cyc`) are silently ignored and the
 code falls back to hardcoded defaults, producing unexpected results with no error.
 
-**Proposed change:** Accept an optional set of required keys and validate them:
-
-```python
-_REQUIRED_KEYS = {"epochs", "lr", "betas", "lambda_gan", "lambda_cyc", "batch_size"}
-
-def load_config(path: str, required_keys: set[str] | None = None) -> dict:
-    with open(path) as f:
-        cfg = yaml.safe_load(f) or {}
-    if required_keys:
-        missing = required_keys - cfg.keys()
-        if missing:
-            raise ValueError(
-                f"Config file {path!r} is missing required keys: {sorted(missing)}"
-            )
-    unknown = cfg.keys() - _ALL_KNOWN_KEYS  # define once in train_utils.py
-    if unknown:
-        import warnings
-        warnings.warn(f"Unknown config keys ignored: {sorted(unknown)}", UserWarning)
-    return cfg
-```
+**Proposed change:** Wrap the configs into hydra, which removes the argparsing as well:
 
 **Rationale:** Config validation is the cheapest way to catch typos before they waste
 a 200-epoch training run.
@@ -406,38 +329,7 @@ data loading.
 
 ---
 
-### 4.2 Use `bilinear` interpolation (with `align_corners=False`) for attention masks
-
-**Affected file:** `awada/models/awada.py`, line 31
-
-**Current behaviour:**
-
-```python
-mask_resized = F.interpolate(mask, size=pred.shape[2:], mode="nearest")
-```
-
-`nearest` interpolation on a binary mask can produce block-shaped foreground regions
-with hard step edges at the discriminator output resolution, potentially causing
-gradient discontinuities.
-
-**Proposed change:**
-
-```python
-mask_resized = F.interpolate(
-    mask, size=pred.shape[2:], mode="bilinear", align_corners=False
-)
-```
-
-This produces a soft spatial weighting that transitions smoothly between foreground and
-background regions.
-
-**Rationale:** Smooth spatial gradients improve GAN training stability.  The mask is
-already binary, so a soft interpolation only affects the spatial boundary regions—
-exactly where smooth weighting helps most.
-
----
-
-### 4.3 Pin DataLoader workers on GPU machines
+### 4.2 Pin DataLoader workers on GPU machines
 
 **Affected files:** `tools/train_cyclegan.py`, `tools/train_cycada.py`
 
@@ -539,26 +431,13 @@ repository lightweight.
 
 ---
 
-### 5.3 Validate that `lambda_sem > 0` requires attention maps to exist at startup
+### 5.3 Awada should require target attention maps and source attention maps. If not, it should raise an error.
 
 **Affected file:** `tools/train_awada.py`
 
-**Current behaviour:** A user can run `train_awada.py --lambda_sem 1.0` without
-providing `--target_attention_dir`.  The model will instantiate `DeepLabV3` but the
-target attention masks will silently default to all-ones, defeating the purpose.
+**Current behaviour:** A user can run `train_awada.py without e.g. `--target_attention_dir`.  The target attention maps will silently default to all-ones, defeating the purpose.
 
-**Proposed change:** Add an explicit check after argument parsing:
-
-```python
-if lambda_sem > 0 and args.target_attention_dir is None:
-    import warnings
-    warnings.warn(
-        "--lambda_sem > 0 but --target_attention_dir was not provided. "
-        "Target attention maps will default to all-ones. "
-        "Pass --target_attention_dir to use semantic-aware target masks.",
-        UserWarning,
-    )
-```
+**Proposed change:** Add an explicit check after argument parsing.
 
 **Rationale:** This is a common misconfiguration that silently produces suboptimal
 results with no error message.
@@ -715,75 +594,6 @@ finally:
 **Rationale:** `register_forward_hook` is a stable, public PyTorch API that will
 continue to work across torchvision versions.  Monkey-patching a private method is a
 maintenance liability.
-
----
-
-### 7.3 Consider soft (continuous) attention maps instead of hard binary masks
-
-**Affected files:** `awada/utils/attention.py`, `awada/datasets/attention_dataset.py`,
-`awada/models/awada.py`
-
-**Current behaviour:** Attention maps are thresholded to binary (0 or 1) at
-`score_threshold=0.5`.  Foreground regions receive a weight of 1.0 and background
-regions a weight of 0.0, with no gradation.
-
-**Proposed change:** Store the raw normalised objectness scores as the attention map,
-optionally scaled to [0, 1]:
-
-```python
-# In generate_attention_maps – accumulate max score per pixel
-for box, score in zip(boxes_np, scores_np):
-    x1, y1, x2, y2 = ...
-    attention_map[y1:y2, x1:x2] = np.maximum(
-        attention_map[y1:y2, x1:x2], float(score)
-    )
-```
-
-The threshold (`score_threshold`) then becomes a clipping floor rather than a hard
-binarisation:
-
-```python
-attention_map = np.clip(attention_map, score_threshold, 1.0)
-attention_map = (attention_map - score_threshold) / (1.0 - score_threshold)
-```
-
-**Rationale:** Soft attention weights provide a more informative signal to the
-discriminator—highly confident foreground regions receive higher weight than marginal
-proposals—and smooth out the sharp foreground/background boundary, potentially
-improving convergence.
-
----
-
-### 7.4 Log training metrics to TensorBoard or W&B for experiment tracking
-
-**Affected files:** `tools/train_*.py`
-
-**Current behaviour:** Loss values are printed to stdout at fixed intervals and not
-persisted anywhere.  Comparing multiple runs (e.g. CycleGAN vs CyCada vs AWADA)
-requires manually parsing log files.
-
-**Proposed change:** Add optional TensorBoard logging behind a `--log_dir` flag:
-
-```python
-# torch.utils.tensorboard ships with PyTorch (since 1.1),
-# but TensorBoard itself must be installed separately: pip install tensorboard
-from torch.utils.tensorboard import SummaryWriter
-
-writer = SummaryWriter(log_dir=args.log_dir) if args.log_dir else None
-
-# Inside training loop:
-global_step = epoch * len(dataloader) + iteration
-if writer:
-    writer.add_scalar("loss/G_total", g_losses["total_G"].item(), global_step)
-    writer.add_scalar("loss/D_total", d_losses["total_D"].item(), global_step)
-    writer.add_scalar("loss/cycle",
-        (g_losses["cycle_A"] + g_losses["cycle_B"]).item(), global_step)
-```
-
-**Rationale:** Experiment tracking is essential for ablation studies.  `torch.utils.tensorboard`
-is bundled with PyTorch; only `tensorboard` itself needs to be added to the dev
-dependencies (`pip install tensorboard`).  W&B is an alternative if richer experiment
-management is needed.
 
 ---
 
