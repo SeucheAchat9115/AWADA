@@ -119,6 +119,12 @@ def main():
                 p.requires_grad_(False)
             opt_G.zero_grad()
             g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt, lambda_sem)
+            for loss_name, loss_val in g_losses.items():
+                if not torch.isfinite(loss_val):
+                    raise RuntimeError(
+                        f"Non-finite generator loss '{loss_name}' detected at epoch {epoch + 1}, "
+                        f"iteration {iteration + 1}: {loss_val.item()}"
+                    )
             g_losses["total_G"].backward()
             opt_G.step()
 
@@ -127,6 +133,12 @@ def main():
                 p.requires_grad_(True)
             opt_D.zero_grad()
             d_losses = model.compute_discriminator_loss()
+            for loss_name, loss_val in d_losses.items():
+                if not torch.isfinite(loss_val):
+                    raise RuntimeError(
+                        f"Non-finite discriminator loss '{loss_name}' detected at epoch {epoch + 1}, "
+                        f"iteration {iteration + 1}: {loss_val.item()}"
+                    )
             d_losses["total_D"].backward()
             opt_D.step()
 
