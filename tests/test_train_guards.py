@@ -420,8 +420,12 @@ class TestTrainScriptGuardsIntegration:
 
 def _make_minimal_checkpoint(tmp_path, prefix="cyclegan"):
     """Create a minimal checkpoint file with all required keys and return its path."""
-    param = torch.nn.Parameter(torch.zeros(1))
-    opt = torch.optim.Adam([param], lr=1e-4, betas=(0.5, 0.999))
+    # Use 2 parameters per optimizer to match the training scripts, which build
+    # opt_G from list(G_AB.parameters()) + list(G_BA.parameters()) and
+    # opt_D from list(D_A.parameters()) + list(D_B.parameters()).
+    p1 = torch.nn.Parameter(torch.zeros(1))
+    p2 = torch.nn.Parameter(torch.zeros(1))
+    opt = torch.optim.Adam([p1, p2], lr=1e-4, betas=(0.5, 0.999))
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda=lambda ep: 1.0)
 
     ckpt = {
@@ -467,6 +471,10 @@ class TestResumeCheckpointing:
         mock_model.D_B.parameters.return_value = iter(
             [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
         )
+        mock_model.G_AB.state_dict.return_value = {}
+        mock_model.G_BA.state_dict.return_value = {}
+        mock_model.D_A.state_dict.return_value = {}
+        mock_model.D_B.state_dict.return_value = {}
         mock_model.compute_generator_loss.return_value = {
             "total_G": torch.tensor(0.5, requires_grad=True),
             "cycle_A": torch.tensor(0.2),
@@ -519,6 +527,7 @@ class TestResumeCheckpointing:
             getattr(mock_model, attr).parameters.return_value = iter(
                 [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
             )
+            getattr(mock_model, attr).state_dict.return_value = {}
         mock_model.compute_generator_loss.return_value = {
             "total_G": torch.tensor(0.5, requires_grad=True),
             "cycle_A": torch.tensor(0.2),
@@ -580,6 +589,7 @@ class TestResumeCheckpointing:
             getattr(mock_model, attr).parameters.return_value = iter(
                 [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
             )
+            getattr(mock_model, attr).state_dict.return_value = {}
         mock_model.compute_generator_loss.return_value = {
             "total_G": torch.tensor(0.5, requires_grad=True),
             "cycle_A": torch.tensor(0.2),
@@ -633,6 +643,7 @@ class TestResumeCheckpointing:
             getattr(mock_model, attr).parameters.return_value = iter(
                 [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
             )
+            getattr(mock_model, attr).state_dict.return_value = {}
         mock_model.compute_generator_loss.return_value = {
             "total_G": torch.tensor(0.5, requires_grad=True),
             "cycle_A": torch.tensor(0.2),
