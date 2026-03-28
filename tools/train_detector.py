@@ -2,6 +2,7 @@
 """Train Faster R-CNN on a source or target domain dataset."""
 
 import argparse
+import logging
 import os
 
 import torch
@@ -17,6 +18,8 @@ from awada.datasets.sim10k import Sim10kDetectionDataset
 from awada.utils.metrics import compute_map_range
 from awada.utils.train_utils import set_seed
 from awada.utils.transforms import ResizeToMinSize
+
+logger = logging.getLogger(__name__)
 
 
 def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None):
@@ -69,6 +72,7 @@ def evaluate(model, dataloader, device, num_classes):
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="Train Faster R-CNN detector")
     parser.add_argument(
         "--dataset", choices=["sim10k", "cityscapes", "foggy_cityscapes", "bdd100k"], required=True

@@ -1,8 +1,11 @@
+import logging
 import os
 
 import numpy as np
 import torch
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 
 def generate_attention_maps(detector, dataloader, output_dir, score_threshold=0.5, device="cuda"):

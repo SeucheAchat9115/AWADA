@@ -2,6 +2,7 @@
 """Train AWADA CycleGAN with attention-masked adversarial losses."""
 
 import argparse
+import logging
 import os
 
 import torch
@@ -12,8 +13,11 @@ from awada.datasets.attention_dataset import AttentionPairedDataset
 from awada.models.awada import AWADA
 from awada.utils.train_utils import get_lambda_lr, load_config, set_seed
 
+logger = logging.getLogger(__name__)
+
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="Train AWADA CycleGAN")
     parser.add_argument("--source_dir", required=True)
     parser.add_argument("--target_dir", required=True)

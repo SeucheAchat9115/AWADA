@@ -2,6 +2,7 @@
 """Train standard CycleGAN for domain translation."""
 
 import argparse
+import logging
 import os
 
 import torch
@@ -12,8 +13,11 @@ from awada.datasets.unpaired_dataset import UnpairedImageDataset
 from awada.models.cyclegan import CycleGAN
 from awada.utils.train_utils import get_lambda_lr, load_config, set_seed
 
+logger = logging.getLogger(__name__)
+
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="Train CycleGAN")
     parser.add_argument("--source_dir", required=True)
     parser.add_argument("--target_dir", required=True)
