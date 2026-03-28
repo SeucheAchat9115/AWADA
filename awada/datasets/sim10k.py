@@ -28,7 +28,15 @@ class Sim10kDetectionDataset(Dataset):
         └── Annotations/  # PASCAL VOC XML files (e.g. 00001.xml)
     """
 
-    def __init__(self, root, transforms=None, image_dir=None):
+    def __init__(self, root: str, transforms: object = None, image_dir: str | None = None) -> None:
+        """Initialise the Sim10k detection dataset.
+
+        Args:
+            root: Root directory containing ``images/`` and ``Annotations/``.
+            transforms: Optional callable ``(image_tensor, target) -> (image_tensor, target)``
+                applied after loading each sample.
+            image_dir: Override the default ``<root>/images`` directory.
+        """
         self.root = root
         self.transforms = transforms
         self.image_dir = image_dir if image_dir is not None else os.path.join(root, "images")
@@ -37,9 +45,20 @@ class Sim10kDetectionDataset(Dataset):
         )
 
     def __len__(self) -> int:
+        """Return the number of images in the dataset."""
         return len(self.image_files)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        """Load and return a single sample.
+
+        Args:
+            idx: Sample index.
+
+        Returns:
+            Tuple of ``(image_tensor, target)`` where ``image_tensor`` has
+            shape ``[3, H, W]`` and ``target`` is a dict with keys
+            ``"boxes"`` ``[N, 4]``, ``"labels"`` ``[N]``, and ``"image_id"`` ``[1]``.
+        """
         fname = self.image_files[idx]
         stem = os.path.splitext(fname)[0]
         img_path = os.path.join(self.image_dir, fname)

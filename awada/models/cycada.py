@@ -28,7 +28,17 @@ class CyCada(CycleGAN):
         buffer_size: int = 50,
         buffer_return_prob: float = 0.5,
         disc_loss_avg_factor: float = 0.5,
-    ):
+    ) -> None:
+        """Initialise CyCada.
+
+        Args:
+            device: Torch device string.
+            lambda_sem: Weight for the semantic consistency loss.  Pass ``0``
+                (default) to skip instantiating the DeepLabV3 backbone.
+            buffer_size: Capacity of each fake-image replay buffer.
+            buffer_return_prob: Replay probability for the image buffers.
+            disc_loss_avg_factor: Averaging factor for discriminator loss.
+        """
         super().__init__(
             device=device,
             buffer_size=buffer_size,
@@ -47,6 +57,17 @@ class CyCada(CycleGAN):
         lambda_idt: float = 0.0,
         lambda_sem: float = 0.0,
     ) -> dict[str, torch.Tensor]:
+        """Compute the combined generator loss including the semantic term.
+
+        Args:
+            lambda_cyc: Weight for the cycle-consistency loss.
+            lambda_gan: Weight for the adversarial GAN loss.
+            lambda_idt: Weight for the identity loss (0 disables it).
+            lambda_sem: Weight for the semantic consistency loss (0 disables it).
+
+        Returns:
+            Dictionary with individual loss components and ``"total_G"``.
+        """
         losses = super().compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt)
         total = losses.pop("total_G")
 

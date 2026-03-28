@@ -22,7 +22,17 @@ class AWADA(CyCada):
         buffer_size: int = 50,
         buffer_return_prob: float = 0.5,
         disc_loss_avg_factor: float = 0.5,
-    ):
+    ) -> None:
+        """Initialise AWADA.
+
+        Args:
+            device: Torch device string.
+            lambda_sem: Weight for the semantic consistency loss.  Pass ``0``
+                (default) to skip instantiating the DeepLabV3 backbone.
+            buffer_size: Capacity of each fake-image replay buffer.
+            buffer_return_prob: Replay probability for the image buffers.
+            disc_loss_avg_factor: Averaging factor for discriminator loss.
+        """
         super().__init__(
             device=device,
             lambda_sem=lambda_sem,
@@ -38,6 +48,16 @@ class AWADA(CyCada):
         attention_A: torch.Tensor | None = None,
         attention_B: torch.Tensor | None = None,
     ) -> None:
+        """Store input tensors and transfer them to the configured device.
+
+        Args:
+            real_A: Batch of source-domain images, shape ``[B, C, H, W]``.
+            real_B: Batch of target-domain images, shape ``[B, C, H, W]``.
+            attention_A: Source-domain attention mask, shape ``[B, 1, H, W]``,
+                or ``None`` to disable masking for domain A.
+            attention_B: Target-domain attention mask, shape ``[B, 1, H, W]``,
+                or ``None`` to disable masking for domain B.
+        """
         super().set_input(real_A, real_B)
         # attention_A: binary mask for source, attention_B: binary mask for target
         # Both [B, 1, H, W] float tensors
@@ -63,6 +83,21 @@ class AWADA(CyCada):
         lambda_idt: float = 0.0,
         lambda_sem: float = 0.0,
     ) -> dict[str, torch.Tensor]:
+        """Compute the attention-weighted generator loss.
+
+        Builds cycle, identity, and semantic losses via CyCada, then replaces
+        the unmasked GAN terms with attention-masked versions that focus the
+        adversarial objective on foreground regions.
+
+        Args:
+            lambda_cyc: Weight for the cycle-consistency loss.
+            lambda_gan: Weight for the adversarial GAN loss.
+            lambda_idt: Weight for the identity loss (0 disables it).
+            lambda_sem: Weight for the semantic consistency loss (0 disables it).
+
+        Returns:
+            Dictionary with individual loss components and ``"total_G"``.
+        """
         # Build losses using CyCada (cycle, identity, semantic) with unmasked GAN
         losses = super().compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt, lambda_sem)
         total = losses.pop("total_G")
@@ -88,6 +123,14 @@ class AWADA(CyCada):
         return losses
 
     def compute_discriminator_loss(self) -> dict[str, torch.Tensor]:
+        """Compute the attention-weighted discriminator loss for both domains.
+
+        Uses the replay buffers to stabilise training and applies the attention
+        masks so that real/fake classifications focus on foreground regions.
+
+        Returns:
+            Dictionary with ``"D_A"``, ``"D_B"``, and ``"total_D"`` losses.
+        """
         # D_B with attention mask from source (A -> B translation)
         fake_B = self.fake_B_buffer.push_and_pop(self.fake_B.detach())
         pred_real_B = self.D_B(self.real_B)

@@ -9,13 +9,31 @@ logger = logging.getLogger(__name__)
 
 
 def generate_attention_maps(
-    detector, dataloader, output_dir, score_threshold=0.5, device="cuda"
+    detector: object,
+    dataloader: object,
+    output_dir: str,
+    score_threshold: float = 0.5,
+    device: str = "cuda",
 ) -> None:
-    """
-    Run source domain images through Faster R-CNN, extract RPN proposals,
-    create binary attention maps where pixels inside RPN boxes with objectness
-    score >= score_threshold = 1, else 0.
-    Save as .npy files (float32, 0 or 1, same H x W as input image).
+    """Run source-domain images through Faster R-CNN and save binary attention maps.
+
+    Monkey-patches the RPN ``filter_proposals`` method to capture box
+    proposals and their objectness scores.  For each image, pixels inside
+    RPN boxes whose objectness score meets ``score_threshold`` are set to
+    ``1``; all other pixels are ``0``.  Maps are saved as float32 ``.npy``
+    files with the same ``H × W`` spatial dimensions as the input image.
+
+    Args:
+        detector: A torchvision Faster R-CNN model (or compatible) with an
+            ``rpn.filter_proposals`` attribute.
+        dataloader: DataLoader yielding batches of images (or ``(images, targets)``
+            tuples).  When targets are present they must be dicts with an
+            optional ``"image_id"`` key used to name the output file.
+        output_dir: Directory where ``.npy`` attention maps are written.
+        score_threshold: Minimum objectness score for a proposal box to
+            contribute to the attention map (default: ``0.5``).
+        device: Torch device string used to move images and the model
+            (default: ``"cuda"``).
     """
     os.makedirs(output_dir, exist_ok=True)
     detector.eval()
@@ -26,7 +44,8 @@ def generate_attention_maps(
     # Monkey-patch filter_proposals to capture both boxes and objectness scores
     original_filter_proposals = detector.rpn.filter_proposals
 
-    def capturing_filter_proposals(*args, **kwargs):
+    def capturing_filter_proposals(*args: object, **kwargs: object) -> object:
+        """Wrapper that records RPN proposals before returning the original result."""
         result = original_filter_proposals(*args, **kwargs)
         rpn_proposals["boxes"] = result[0]
         rpn_proposals["scores"] = result[1]

@@ -10,7 +10,49 @@ from .cityscapes import CITYSCAPES_LABEL_MAP, MIN_BOX_DIM, MIN_PIXELS_THRESHOLD
 
 
 class FoggyCityscapesDetectionDataset(Dataset):
-    def __init__(self, root, split="val", beta=0.02, transforms=None, image_root=None):
+    """Foggy Cityscapes instance-level object-detection dataset.
+
+    Wraps the Foggy Cityscapes extension of Cityscapes.  Only files matching
+    the requested ``beta`` value are loaded; annotation files are shared with
+    the original Cityscapes ``gtFine`` directory.
+
+    Expected directory structure::
+
+        root/
+        ├── leftImg8bit_foggy/
+        │   └── <split>/
+        │       └── <city>/   # PNG images with fog suffix
+        └── gtFine/
+            └── <split>/
+                └── <city>/   # *_gtFine_instanceIds.png annotation files
+
+    Args:
+        root: Root directory of the Foggy Cityscapes dataset.
+        split: Dataset split (default: ``"val"``).
+        beta: Fog density coefficient; controls which foggy images are loaded
+            (default: ``0.02``).
+        transforms: Optional callable ``(image_tensor, target) -> (image_tensor, target)``
+            applied after loading each sample.
+        image_root: Override the default image directory.
+    """
+
+    def __init__(
+        self,
+        root: str,
+        split: str = "val",
+        beta: float = 0.02,
+        transforms: object = None,
+        image_root: str | None = None,
+    ) -> None:
+        """Initialise the Foggy Cityscapes detection dataset.
+
+        Args:
+            root: Root directory of the Foggy Cityscapes dataset.
+            split: Dataset split (e.g. ``"train"`` or ``"val"``).
+            beta: Fog density coefficient for image-file matching.
+            transforms: Optional callable applied after loading each sample.
+            image_root: Override the default foggy-image directory.
+        """
         self.root = root
         self.split = split
         self.beta = beta
@@ -38,9 +80,20 @@ class FoggyCityscapesDetectionDataset(Dataset):
                     self.samples.append((os.path.join(city_img_dir, fname), ann_path))
 
     def __len__(self) -> int:
+        """Return the number of samples in the dataset."""
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        """Load and return a single sample.
+
+        Args:
+            idx: Sample index.
+
+        Returns:
+            Tuple of ``(image_tensor, target)`` where ``image_tensor`` has
+            shape ``[3, H, W]`` and ``target`` is a dict with keys
+            ``"boxes"`` ``[N, 4]``, ``"labels"`` ``[N]``, and ``"image_id"`` ``[1]``.
+        """
         img_path, ann_path = self.samples[idx]
         image = Image.open(img_path).convert("RGB")
         instance_map = np.array(Image.open(ann_path))

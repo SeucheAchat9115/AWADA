@@ -49,7 +49,23 @@ class Bdd100kDetectionDataset(Dataset):
             directory with a custom path (useful for stylized images).
     """
 
-    def __init__(self, root, split="val", transforms=None, image_root=None):
+    def __init__(
+        self,
+        root: str,
+        split: str = "val",
+        transforms: object = None,
+        image_root: str | None = None,
+    ) -> None:
+        """Initialise the BDD100k detection dataset.
+
+        Args:
+            root: Root directory of the BDD100k dataset.
+            split: Dataset split, either ``"train"`` or ``"val"``.
+            transforms: Optional callable applied after loading each sample,
+                with signature ``(image_tensor, target) -> (image_tensor, target)``.
+            image_root: Override the default image directory with a custom path
+                (useful for stylized images that share the same filenames).
+        """
         self.root = root
         self.split = split
         self.transforms = transforms
@@ -76,9 +92,20 @@ class Bdd100kDetectionDataset(Dataset):
             self.samples.append((img_path, relevant))
 
     def __len__(self) -> int:
+        """Return the number of samples in the dataset."""
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        """Load and return a single sample.
+
+        Args:
+            idx: Sample index.
+
+        Returns:
+            Tuple of ``(image_tensor, target)`` where ``image_tensor`` has
+            shape ``[3, H, W]`` and ``target`` is a dict with keys
+            ``"boxes"`` ``[N, 4]``, ``"labels"`` ``[N]``, and ``"image_id"`` ``[1]``.
+        """
         img_path, label_dicts = self.samples[idx]
         image = Image.open(img_path).convert("RGB")
 

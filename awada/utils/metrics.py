@@ -12,7 +12,19 @@ def _to_coco_format(
     targets: List[Dict[str, torch.Tensor]],
     num_classes: int,
 ) -> tuple[dict, list]:
-    """Convert predictions and targets to COCO-compatible structures."""
+    """Convert predictions and targets to COCO-compatible structures.
+
+    Args:
+        predictions: List of prediction dicts, each with ``"boxes"`` ``[N, 4]``,
+            ``"labels"`` ``[N]``, and ``"scores"`` ``[N]``.
+        targets: List of ground-truth dicts, each with ``"boxes"`` ``[M, 4]``
+            and ``"labels"`` ``[M]``.
+        num_classes: Number of foreground classes (used to build the category list).
+
+    Returns:
+        Tuple of ``(gt_dataset, results)`` where ``gt_dataset`` is a COCO-format
+        ground-truth dict and ``results`` is a list of COCO-format detection dicts.
+    """
     images = []
     annotations = []
     results = []
