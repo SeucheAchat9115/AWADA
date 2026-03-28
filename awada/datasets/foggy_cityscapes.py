@@ -37,10 +37,10 @@ class FoggyCityscapesDetectionDataset(Dataset):
                 if os.path.exists(ann_path):
                     self.samples.append((os.path.join(city_img_dir, fname), ann_path))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         img_path, ann_path = self.samples[idx]
         image = Image.open(img_path).convert("RGB")
         instance_map = np.array(Image.open(ann_path))

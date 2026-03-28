@@ -41,10 +41,10 @@ class AttentionPairedDataset(Dataset):
         self.attention_root = attention_root
         self.target_attention_root = target_attention_root
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.source_files)
 
-    def _load_attention(self, img_path, attention_root):
+    def _load_attention(self, img_path: str, attention_root: str) -> np.ndarray | None:
         filename_stem = os.path.splitext(os.path.basename(img_path))[0]
         npy_path = os.path.join(attention_root, filename_stem + ".npy")
         if os.path.exists(npy_path):
@@ -52,7 +52,7 @@ class AttentionPairedDataset(Dataset):
         # If no attention map found, return None (will use all-ones later)
         return None
 
-    def _crop_attention(self, img_path, attention_root, x, y, p):
+    def _crop_attention(self, img_path: str, attention_root: str, x: int, y: int, p: int) -> torch.Tensor:
         """Load an attention map and crop a patch at position (x, y) with size p×p."""
         attention = self._load_attention(img_path, attention_root)
         if attention is not None:
@@ -65,7 +65,7 @@ class AttentionPairedDataset(Dataset):
             return torch.from_numpy(att_patch).unsqueeze(0)  # [1, p, p]
         return torch.ones(1, p, p)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         src_path = self.source_files[idx]
         tgt_path = random.choice(self.target_files)
         p = self.patch_size

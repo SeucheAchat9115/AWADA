@@ -16,14 +16,22 @@ class AWADA(CyCada):
     def __init__(self, device="cuda", lambda_sem: float = 0.0):
         super().__init__(device=device, lambda_sem=lambda_sem)
 
-    def set_input(self, real_A, real_B, attention_A=None, attention_B=None):
+    def set_input(
+        self,
+        real_A: torch.Tensor,
+        real_B: torch.Tensor,
+        attention_A: torch.Tensor | None = None,
+        attention_B: torch.Tensor | None = None,
+    ) -> None:
         super().set_input(real_A, real_B)
         # attention_A: binary mask for source, attention_B: binary mask for target
         # Both [B, 1, H, W] float tensors
         self.attention_A = attention_A.to(self.device) if attention_A is not None else None
         self.attention_B = attention_B.to(self.device) if attention_B is not None else None
 
-    def _masked_mse_loss(self, pred, target, mask):
+    def _masked_mse_loss(
+        self, pred: torch.Tensor, target: torch.Tensor, mask: torch.Tensor | None
+    ) -> torch.Tensor:
         """MSE loss with spatial mask applied to discriminator output map."""
         if mask is None:
             return ((pred - target) ** 2).mean()
@@ -39,7 +47,7 @@ class AWADA(CyCada):
         lambda_gan: float = 1.0,
         lambda_idt: float = 0.0,
         lambda_sem: float = 0.0,
-    ):
+    ) -> dict[str, torch.Tensor]:
         # Build losses using CyCada (cycle, identity, semantic) with unmasked GAN
         losses = super().compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt, lambda_sem)
         total = losses.pop("total_G")
@@ -64,7 +72,7 @@ class AWADA(CyCada):
         losses["total_G"] = total + loss_G_AB + loss_G_BA
         return losses
 
-    def compute_discriminator_loss(self):
+    def compute_discriminator_loss(self) -> dict[str, torch.Tensor]:
         # D_B with attention mask from source (A -> B translation)
         fake_B = self.fake_B_buffer.push_and_pop(self.fake_B.detach())
         pred_real_B = self.D_B(self.real_B)

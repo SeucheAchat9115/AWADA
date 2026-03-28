@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 
@@ -14,7 +15,7 @@ class ResidualBlock(nn.Module):
             nn.InstanceNorm2d(channels),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x + self.block(x)
 
 
@@ -55,5 +56,5 @@ class ResNetGenerator(nn.Module):
         ]
         self.model = nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)

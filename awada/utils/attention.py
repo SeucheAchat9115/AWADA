@@ -8,7 +8,9 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 
-def generate_attention_maps(detector, dataloader, output_dir, score_threshold=0.5, device="cuda"):
+def generate_attention_maps(
+    detector, dataloader, output_dir, score_threshold=0.5, device="cuda"
+) -> None:
     """
     Run source domain images through Faster R-CNN, extract RPN proposals,
     create binary attention maps where pixels inside RPN boxes with objectness

@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 
@@ -24,5 +25,5 @@ class PatchGANDiscriminator(nn.Module):
             nn.Conv2d(ndf * 8, 1, 4, stride=1, padding=1),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)

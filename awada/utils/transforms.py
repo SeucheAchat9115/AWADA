@@ -1,5 +1,6 @@
 """Dataset transforms for object detection."""
 
+import torch
 import torchvision.transforms.functional as TF
 
 
@@ -17,7 +18,9 @@ class ResizeToMinSize:
             raise ValueError(f"min_size must be positive, got {min_size}")
         self.min_size = min_size
 
-    def __call__(self, image, target):
+    def __call__(
+        self, image: torch.Tensor, target: dict | None
+    ) -> tuple[torch.Tensor, dict | None]:
         _, h, w = image.shape
         scale = self.min_size / min(h, w)
         if scale == 1.0:

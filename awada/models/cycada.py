@@ -1,5 +1,7 @@
 from typing import Optional
 
+import torch
+
 from .cyclegan import CycleGAN
 from .semantic_loss import SemanticConsistencyLoss
 
@@ -30,7 +32,7 @@ class CyCada(CycleGAN):
         lambda_gan: float = 1.0,
         lambda_idt: float = 0.0,
         lambda_sem: float = 0.0,
-    ):
+    ) -> dict[str, torch.Tensor]:
         losses = super().compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt)
         total = losses.pop("total_G")
 

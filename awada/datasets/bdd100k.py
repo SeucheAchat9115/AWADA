@@ -84,10 +84,10 @@ class Bdd100kDetectionDataset(Dataset):
             ]
             self.samples.append((img_path, relevant))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         img_path, label_dicts = self.samples[idx]
         image = Image.open(img_path).convert("RGB")
 
