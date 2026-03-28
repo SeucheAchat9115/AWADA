@@ -6,38 +6,24 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.utils.data import Dataset
 
-# Cityscapes instance ID: class_id * 1000 + instance_id
-# We extract bboxes from instanceIds map: pixels where value >= 24000 (class 24+)
-CITYSCAPES_LABEL_MAP = {
-    24: 1,  # person
-    25: 2,  # rider
-    26: 3,  # car
-    27: 4,  # truck
-    28: 5,  # bus
-    31: 6,  # train
-    32: 7,  # motorcycle
-    33: 8,  # bicycle
-}
-CLASS_NAMES = ["person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
+from awada.config import (
+    BDD100K_ALIGNED_CLASSES,
+    CITYSCAPES_BDD100K_LABEL_MAP,
+    CITYSCAPES_CLASS_NAMES as CLASS_NAMES,
+    CITYSCAPES_LABEL_MAP,
+    MIN_BOX_DIM,
+    MIN_PIXELS_THRESHOLD,
+)
 
-# 7-class label map used for the Cityscapes -> BDD100k benchmark.
-# The "train" class (Cityscapes ID 31) is absent from BDD100k and is excluded
-# from both sides of the benchmark.  Motorcycle and bicycle are renumbered so
-# that the label IDs are contiguous and match BDD100K_LABEL_MAP in bdd100k.py.
-CITYSCAPES_BDD100K_LABEL_MAP = {
-    24: 1,  # person
-    25: 2,  # rider
-    26: 3,  # car
-    27: 4,  # truck
-    28: 5,  # bus
-    # 31 (train) excluded
-    32: 6,  # motorcycle
-    33: 7,  # bicycle
-}
-BDD100K_ALIGNED_CLASSES = ["person", "rider", "car", "truck", "bus", "motorcycle", "bicycle"]
-
-# Minimum number of foreground pixels for an instance to be kept as a detection box
-MIN_PIXELS_THRESHOLD = 10
+__all__ = [
+    "BDD100K_ALIGNED_CLASSES",
+    "CITYSCAPES_BDD100K_LABEL_MAP",
+    "CITYSCAPES_LABEL_MAP",
+    "CLASS_NAMES",
+    "MIN_BOX_DIM",
+    "MIN_PIXELS_THRESHOLD",
+    "CityscapesDetectionDataset",
+]
 
 
 class CityscapesDetectionDataset(Dataset):
@@ -118,7 +104,7 @@ class CityscapesDetectionDataset(Dataset):
             if len(ys) < MIN_PIXELS_THRESHOLD:
                 continue
             x1, y1, x2, y2 = xs.min(), ys.min(), xs.max(), ys.max()
-            if (x2 - x1) > 5 and (y2 - y1) > 5:
+            if (x2 - x1) > MIN_BOX_DIM and (y2 - y1) > MIN_BOX_DIM:
                 boxes.append([float(x1), float(y1), float(x2), float(y2)])
                 labels.append(label)
 

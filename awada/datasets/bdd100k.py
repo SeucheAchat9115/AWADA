@@ -6,24 +6,14 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from torch.utils.data import Dataset
 
-# BDD100k detection categories aligned with the Cityscapes 7-class benchmark.
-# Included classes: pedestrian, rider, car, truck, bus, motorcycle, bicycle.
-# The "train" class present in Cityscapes has no reliable equivalent in BDD100k
-# and is excluded from both sides of the benchmark.
-BDD100K_LABEL_MAP = {
-    "pedestrian": 1,
-    "rider": 2,
-    "car": 3,
-    "truck": 4,
-    "bus": 5,
-    "motorcycle": 6,
-    "bicycle": 7,
-}
+from awada.config import BDD100K_CLASS_NAMES as CLASS_NAMES, BDD100K_LABEL_MAP, MIN_BOX_DIM
 
-CLASS_NAMES = ["pedestrian", "rider", "car", "truck", "bus", "motorcycle", "bicycle"]
-
-# Minimum box dimension (width or height) below which detections are discarded
-_MIN_BOX_DIM = 5
+__all__ = [
+    "BDD100K_LABEL_MAP",
+    "CLASS_NAMES",
+    "MIN_BOX_DIM",
+    "Bdd100kDetectionDataset",
+]
 
 
 class Bdd100kDetectionDataset(Dataset):
@@ -98,7 +88,7 @@ class Bdd100kDetectionDataset(Dataset):
             y1 = float(box2d["y1"])
             x2 = float(box2d["x2"])
             y2 = float(box2d["y2"])
-            if (x2 - x1) > _MIN_BOX_DIM and (y2 - y1) > _MIN_BOX_DIM:
+            if (x2 - x1) > MIN_BOX_DIM and (y2 - y1) > MIN_BOX_DIM:
                 boxes.append([x1, y1, x2, y2])
                 labels.append(BDD100K_LABEL_MAP[lbl["category"]])
 

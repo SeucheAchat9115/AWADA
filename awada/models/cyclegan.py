@@ -3,10 +3,9 @@ import random
 import torch
 import torch.nn as nn
 
+from awada.config import DEFAULT_DEVICE
 from .discriminator import PatchGANDiscriminator
 from .generator import ResNetGenerator
-
-DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class ImageBuffer:

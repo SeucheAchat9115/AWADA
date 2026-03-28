@@ -2,10 +2,9 @@ from typing import Optional
 
 import torch
 
+from awada.config import DEFAULT_DEVICE
 from .cyclegan import CycleGAN
 from .semantic_loss import SemanticConsistencyLoss
-
-DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class CyCada(CycleGAN):
