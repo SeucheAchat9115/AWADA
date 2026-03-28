@@ -11,7 +11,7 @@ def _to_coco_format(
     predictions: List[Dict[str, torch.Tensor]],
     targets: List[Dict[str, torch.Tensor]],
     num_classes: int,
-) -> tuple:
+) -> tuple[dict, list]:
     """Convert predictions and targets to COCO-compatible structures."""
     images = []
     annotations = []

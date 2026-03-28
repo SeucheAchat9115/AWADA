@@ -16,7 +16,7 @@ class ImageBuffer:
         self.max_size = max_size
         self.data = []
 
-    def push_and_pop(self, data):
+    def push_and_pop(self, data: torch.Tensor) -> torch.Tensor:
         result = []
         for element in data:
             element = element.unsqueeze(0)
@@ -47,11 +47,11 @@ class CycleGAN(nn.Module):
         self.criterion_GAN = nn.MSELoss()  # LSGAN
         self.criterion_cycle = nn.L1Loss()
 
-    def set_input(self, real_A, real_B):
+    def set_input(self, real_A: torch.Tensor, real_B: torch.Tensor) -> None:
         self.real_A = real_A.to(self.device)
         self.real_B = real_B.to(self.device)
 
-    def forward(self):
+    def forward(self) -> None:
         self.fake_B = self.G_AB(self.real_A)
         self.rec_A = self.G_BA(self.fake_B)
         self.fake_A = self.G_BA(self.real_B)
@@ -62,7 +62,7 @@ class CycleGAN(nn.Module):
         lambda_cyc: float = 10.0,
         lambda_gan: float = 1.0,
         lambda_idt: float = 0.0,
-    ):
+    ) -> dict[str, torch.Tensor]:
         # GAN loss (generators try to fool discriminators)
         pred_fake_B = self.D_B(self.fake_B)
         loss_G_AB = self.criterion_GAN(pred_fake_B, torch.ones_like(pred_fake_B)) * lambda_gan
@@ -93,7 +93,7 @@ class CycleGAN(nn.Module):
         losses["total_G"] = total
         return losses
 
-    def compute_discriminator_loss(self):
+    def compute_discriminator_loss(self) -> dict[str, torch.Tensor]:
         # D_B
         fake_B = self.fake_B_buffer.push_and_pop(self.fake_B.detach())
         pred_real_B = self.D_B(self.real_B)

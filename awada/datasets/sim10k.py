@@ -30,10 +30,10 @@ class Sim10kDetectionDataset(Dataset):
             [f for f in os.listdir(self.image_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.image_files)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         fname = self.image_files[idx]
         stem = os.path.splitext(fname)[0]
         img_path = os.path.join(self.image_dir, fname)
@@ -57,7 +57,7 @@ class Sim10kDetectionDataset(Dataset):
         return image_t, target
 
     @staticmethod
-    def _parse_annotation(ann_path):
+    def _parse_annotation(ann_path: str) -> tuple[list[list[float]], list[int]]:
         """Parse a PASCAL VOC XML annotation file and return boxes and labels."""
         boxes, labels = [], []
         if not os.path.exists(ann_path):

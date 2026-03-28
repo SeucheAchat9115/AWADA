@@ -2,6 +2,7 @@
 
 import os
 
+import torch
 import torchvision.transforms as T
 from PIL import Image
 from torch.utils.data import Dataset
@@ -44,7 +45,7 @@ class UnpairedImageDataset(Dataset):
     def __len__(self) -> int:
         return max(len(self.files_A), len(self.files_B))
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         img_A = Image.open(self.files_A[idx % len(self.files_A)]).convert("RGB")
         img_B = Image.open(self.files_B[idx % len(self.files_B)]).convert("RGB")
         return self.transform(img_A), self.transform(img_B)
