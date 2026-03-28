@@ -13,6 +13,7 @@ from awada.datasets.cityscapes import CityscapesDetectionDataset
 from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
 from awada.datasets.sim10k import Sim10kDetectionDataset
 from awada.utils.attention import generate_attention_maps
+from awada.utils.train_utils import set_seed
 
 
 def collate_fn(batch):
@@ -38,7 +39,10 @@ def main():
     parser.add_argument("--num_classes", type=int, required=True)
     parser.add_argument("--split", default="train")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     args = parser.parse_args()
+
+    set_seed(args.seed)
 
     device = torch.device(args.device)
 

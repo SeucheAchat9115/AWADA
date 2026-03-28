@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from awada.datasets.unpaired_dataset import UnpairedImageDataset
 from awada.models.cycada import CyCada
-from awada.utils.train_utils import get_lambda_lr, load_config
+from awada.utils.train_utils import get_lambda_lr, load_config, set_seed
 
 
 def main():
@@ -37,7 +37,10 @@ def main():
     )
     parser.add_argument("--patch_size", type=int)
     parser.add_argument("--device")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     args = parser.parse_args()
+
+    set_seed(args.seed)
 
     # Load defaults from config file, then apply CLI overrides
     cfg: dict = {}
