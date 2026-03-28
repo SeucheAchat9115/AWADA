@@ -52,7 +52,9 @@ class AttentionPairedDataset(Dataset):
         # If no attention map found, return None (will use all-ones later)
         return None
 
-    def _crop_attention(self, img_path: str, attention_root: str, x: int, y: int, p: int) -> torch.Tensor:
+    def _crop_attention(
+        self, img_path: str, attention_root: str, x: int, y: int, p: int
+    ) -> torch.Tensor:
         """Load an attention map and crop a patch at position (x, y) with size p×p."""
         attention = self._load_attention(img_path, attention_root)
         if attention is not None:
@@ -65,7 +67,9 @@ class AttentionPairedDataset(Dataset):
             return torch.from_numpy(att_patch).unsqueeze(0)  # [1, p, p]
         return torch.ones(1, p, p)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __getitem__(
+        self, idx: int
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         src_path = self.source_files[idx]
         tgt_path = random.choice(self.target_files)
         p = self.patch_size
