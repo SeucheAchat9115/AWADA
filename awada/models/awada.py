@@ -13,8 +13,21 @@ class AWADA(CyCada):
     unmasked global regularisers.
     """
 
-    def __init__(self, device="cuda", lambda_sem: float = 0.0):
-        super().__init__(device=device, lambda_sem=lambda_sem)
+    def __init__(
+        self,
+        device: str = "cuda",
+        lambda_sem: float = 0.0,
+        buffer_size: int = 50,
+        buffer_return_prob: float = 0.5,
+        disc_loss_avg_factor: float = 0.5,
+    ):
+        super().__init__(
+            device=device,
+            lambda_sem=lambda_sem,
+            buffer_size=buffer_size,
+            buffer_return_prob=buffer_return_prob,
+            disc_loss_avg_factor=disc_loss_avg_factor,
+        )
 
     def set_input(
         self,
@@ -83,7 +96,7 @@ class AWADA(CyCada):
         loss_D_B_fake = self._masked_mse_loss(
             pred_fake_B, torch.zeros_like(pred_fake_B), self.attention_A
         )
-        loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
+        loss_D_B = (loss_D_B_real + loss_D_B_fake) * self.disc_loss_avg_factor
 
         # D_A with attention mask
         fake_A = self.fake_A_buffer.push_and_pop(self.fake_A.detach())
@@ -95,6 +108,6 @@ class AWADA(CyCada):
         loss_D_A_fake = self._masked_mse_loss(
             pred_fake_A, torch.zeros_like(pred_fake_A), self.attention_B
         )
-        loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
+        loss_D_A = (loss_D_A_real + loss_D_A_fake) * self.disc_loss_avg_factor
 
         return {"D_A": loss_D_A, "D_B": loss_D_B, "total_D": loss_D_A + loss_D_B}

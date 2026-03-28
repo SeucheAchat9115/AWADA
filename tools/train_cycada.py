@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from awada.datasets.unpaired_dataset import UnpairedImageDataset
-from awada.models.constants import LOG_INTERVAL
 from awada.models.cycada import CyCada
 from awada.utils.train_utils import get_lambda_lr, load_config, set_seed
 
@@ -64,6 +63,10 @@ def main():
     betas = tuple(cfg.get("betas", [0.5, 0.999]))
     default_device = "cuda" if torch.cuda.is_available() else "cpu"
     device_str = args.device if args.device is not None else cfg.get("device", default_device)
+    buffer_size = cfg.get("buffer_size", 50)
+    buffer_return_prob = cfg.get("buffer_return_prob", 0.5)
+    disc_loss_avg_factor = cfg.get("disc_loss_avg_factor", 0.5)
+    log_interval = cfg.get("log_interval", 100)
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = torch.device(device_str)
@@ -78,7 +81,13 @@ def main():
         drop_last=True,
     )
 
-    model = CyCada(device=str(device), lambda_sem=lambda_sem)
+    model = CyCada(
+        device=str(device),
+        lambda_sem=lambda_sem,
+        buffer_size=buffer_size,
+        buffer_return_prob=buffer_return_prob,
+        disc_loss_avg_factor=disc_loss_avg_factor,
+    )
 
     n_epochs_decay = epochs // 2
     n_epochs_stable = epochs - n_epochs_decay
@@ -153,7 +162,7 @@ def main():
             d_losses["total_D"].backward()
             opt_D.step()
 
-            if (iteration + 1) % LOG_INTERVAL == 0:
+            if (iteration + 1) % log_interval == 0:
                 logger.info(
                     "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f",
                     epoch + 1,
