@@ -2,6 +2,7 @@
 """Train Faster R-CNN on a source or target domain dataset."""
 
 import argparse
+import logging
 import os
 
 import torch
@@ -17,6 +18,8 @@ from awada.datasets.sim10k import Sim10kDetectionDataset
 from awada.utils.metrics import compute_map_range
 from awada.utils.train_utils import set_seed
 from awada.utils.transforms import ResizeToMinSize
+
+logger = logging.getLogger(__name__)
 
 
 def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None):
@@ -69,6 +72,7 @@ def evaluate(model, dataloader, device, num_classes):
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="Train Faster R-CNN detector")
     parser.add_argument(
         "--dataset", choices=["sim10k", "cityscapes", "foggy_cityscapes", "bdd100k"], required=True
@@ -188,7 +192,12 @@ def main():
 
             running_loss += losses.item()
             if (iteration + 1) % 100 == 0:
-                print(f"  [Epoch {epoch + 1}, Iter {iteration + 1}] Loss: {running_loss / 100:.4f}")
+                logger.info(
+                    "  [Epoch %d, Iter %d] Loss: %.4f",
+                    epoch + 1,
+                    iteration + 1,
+                    running_loss / 100,
+                )
                 running_loss = 0.0
 
         scheduler.step()
@@ -203,19 +212,22 @@ def main():
             },
             ckpt_path,
         )
-        print(f"Checkpoint saved: {ckpt_path}")
+        logger.info("Checkpoint saved: %s", ckpt_path)
 
         # Evaluate
         if val_loader is not None:
             metrics = evaluate(model, val_loader, device, args.num_classes)
-            print(
-                f"Epoch {epoch + 1} Validation: mAP@0.5={metrics['mAP@0.5']:.4f}, mAP@0.5:0.95={metrics['mAP@0.5:0.95']:.4f}"
+            logger.info(
+                "Epoch %d Validation: mAP@0.5=%.4f, mAP@0.5:0.95=%.4f",
+                epoch + 1,
+                metrics["mAP@0.5"],
+                metrics["mAP@0.5:0.95"],
             )
 
     # Save final model
     final_path = os.path.join(args.output_dir, "detector_final.pth")
     torch.save(model.state_dict(), final_path)
-    print(f"Final model saved to {final_path}")
+    logger.info("Final model saved to %s", final_path)
 
 
 if __name__ == "__main__":
