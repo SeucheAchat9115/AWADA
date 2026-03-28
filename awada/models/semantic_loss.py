@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, deeplabv3_resnet50
 
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 # ImageNet normalisation constants used by DeepLabV3
 _IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406])
 _IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225])
@@ -20,7 +22,7 @@ class SemanticConsistencyLoss(nn.Module):
     ImageNet statistics before being passed to DeepLabV3.
     """
 
-    def __init__(self, device: str = "cuda") -> None:
+    def __init__(self, device: str = DEFAULT_DEVICE) -> None:
         super().__init__()
         weights = DeepLabV3_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1
         net = deeplabv3_resnet50(weights=weights)

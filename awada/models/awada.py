@@ -3,6 +3,8 @@ import torch.nn.functional as F
 
 from .cycada import CyCada
 
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class AWADA(CyCada):
     """AWADA: Attention-Weighted Adversarial Domain Adaptation.
@@ -15,7 +17,7 @@ class AWADA(CyCada):
 
     def __init__(
         self,
-        device: str = "cuda",
+        device: str = DEFAULT_DEVICE,
         lambda_sem: float = 0.0,
         buffer_size: int = 50,
         buffer_return_prob: float = 0.5,
