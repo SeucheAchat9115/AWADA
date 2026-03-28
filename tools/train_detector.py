@@ -15,8 +15,8 @@ from awada.datasets.cityscapes import CityscapesDetectionDataset
 from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
 from awada.datasets.sim10k import Sim10kDetectionDataset
 from awada.utils.metrics import compute_map_range
-from awada.utils.transforms import ResizeToMinSize
 from awada.utils.train_utils import set_seed
+from awada.utils.transforms import ResizeToMinSize
 
 
 def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None):
