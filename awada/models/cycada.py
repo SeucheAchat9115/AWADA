@@ -5,6 +5,8 @@ import torch
 from .cyclegan import CycleGAN
 from .semantic_loss import SemanticConsistencyLoss
 
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class CyCada(CycleGAN):
     """CyCada: CycleGAN extended with a semantic consistency loss.
@@ -21,7 +23,7 @@ class CyCada(CycleGAN):
 
     def __init__(
         self,
-        device: str = "cuda",
+        device: str = DEFAULT_DEVICE,
         lambda_sem: float = 0.0,
         buffer_size: int = 50,
         buffer_return_prob: float = 0.5,

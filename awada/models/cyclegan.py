@@ -6,6 +6,8 @@ import torch.nn as nn
 from .discriminator import PatchGANDiscriminator
 from .generator import ResNetGenerator
 
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class ImageBuffer:
     """Replay buffer to stabilize discriminator training.
@@ -38,7 +40,7 @@ class ImageBuffer:
 class CycleGAN(nn.Module):
     def __init__(
         self,
-        device: str = "cuda",
+        device: str = DEFAULT_DEVICE,
         buffer_size: int = 50,
         buffer_return_prob: float = 0.5,
         disc_loss_avg_factor: float = 0.5,
