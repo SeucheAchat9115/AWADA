@@ -23,6 +23,28 @@ class AttentionPairedDataset(Dataset):
     def __init__(
         self, source_root, target_root, attention_root, target_attention_root=None, patch_size=128
     ):
+        if not os.path.isdir(source_root):
+            raise FileNotFoundError(
+                f"source_root directory not found: '{source_root}'. "
+                "Please ensure the source domain images are present before constructing the dataset."
+            )
+        if not os.path.isdir(target_root):
+            raise FileNotFoundError(
+                f"target_root directory not found: '{target_root}'. "
+                "Please ensure the target domain images are present before constructing the dataset."
+            )
+        if not os.path.isdir(attention_root):
+            raise FileNotFoundError(
+                f"attention_root directory not found: '{attention_root}'. "
+                "Please run 'generate_attention_maps.py' to produce the required attention maps "
+                "before constructing the dataset."
+            )
+        if target_attention_root is not None and not os.path.isdir(target_attention_root):
+            raise FileNotFoundError(
+                f"target_attention_root directory not found: '{target_attention_root}'. "
+                "Please run 'generate_attention_maps.py' to produce the required target attention "
+                "maps before constructing the dataset."
+            )
         self.patch_size = patch_size
         self.source_files = sorted(
             [

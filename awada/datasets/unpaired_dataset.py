@@ -18,6 +18,16 @@ class UnpairedImageDataset(Dataset):
     """
 
     def __init__(self, dir_A: str, dir_B: str, patch_size: int = 128):
+        if not os.path.isdir(dir_A):
+            raise FileNotFoundError(
+                f"Domain A directory not found: '{dir_A}'. "
+                "Please ensure the domain A images are present before constructing the dataset."
+            )
+        if not os.path.isdir(dir_B):
+            raise FileNotFoundError(
+                f"Domain B directory not found: '{dir_B}'. "
+                "Please ensure the domain B images are present before constructing the dataset."
+            )
         self.patch_size = patch_size
         self.files_A = sorted(
             [
