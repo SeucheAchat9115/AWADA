@@ -152,9 +152,7 @@ class TestAttentionPairedDatasetDirectoryChecks:
         tgt_dir.mkdir()
         att_dir.mkdir()
         with pytest.raises(FileNotFoundError, match="source_root"):
-            AttentionPairedDataset(
-                str(tmp_path / "nonexistent_source"), str(tgt_dir), str(att_dir)
-            )
+            AttentionPairedDataset(str(tmp_path / "nonexistent_source"), str(tgt_dir), str(att_dir))
 
     def test_missing_target_root_raises(self, tmp_path):
         """FileNotFoundError must be raised when target_root does not exist."""
@@ -163,9 +161,7 @@ class TestAttentionPairedDatasetDirectoryChecks:
         src_dir.mkdir()
         att_dir.mkdir()
         with pytest.raises(FileNotFoundError, match="target_root"):
-            AttentionPairedDataset(
-                str(src_dir), str(tmp_path / "nonexistent_target"), str(att_dir)
-            )
+            AttentionPairedDataset(str(src_dir), str(tmp_path / "nonexistent_target"), str(att_dir))
 
     def test_missing_attention_root_raises(self, tmp_path):
         """FileNotFoundError must be raised when attention_root does not exist."""
