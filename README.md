@@ -331,6 +331,59 @@ python tools/train_cycada.py --config configs/cycada.yaml --lr 0.0001 --epochs 1
 python tools/train_awada.py --config configs/awada.yaml --lambda_sem 1.0 ...
 ```
 
+## Resuming Training
+
+All three GAN training scripts support fully resumable training via the `--resume` flag. Checkpoints saved during training include not only the model weights but also the optimizer and learning-rate scheduler states, so training can be continued from any saved epoch without loss of training dynamics.
+
+### Checkpoint format
+
+Every `.pth` file produced by the training scripts contains:
+
+| Key | Contents |
+|---|---|
+| `epoch` | Epoch number at which the checkpoint was saved (1-based) |
+| `G_AB` | Generator A→B weights |
+| `G_BA` | Generator B→A weights |
+| `D_A` | Discriminator A weights |
+| `D_B` | Discriminator B weights |
+| `opt_G` | Generator Adam optimizer state (momentum buffers, step count) |
+| `opt_D` | Discriminator Adam optimizer state |
+| `sched_G` | Generator LR scheduler state |
+| `sched_D` | Discriminator LR scheduler state |
+
+### Usage
+
+Pass the path of any previously saved checkpoint to `--resume`. Training will restore all states and continue from the next epoch:
+
+```bash
+# Resume CycleGAN from epoch 50 (continues at epoch 51)
+python tools/train_cyclegan.py \
+    --source_dir /data/sim10k/images \
+    --target_dir /data/cityscapes/leftImg8bit/train \
+    --output_dir outputs/cyclegan \
+    --epochs     200 \
+    --resume     outputs/cyclegan/cyclegan_epoch_50.pth
+
+# Resume CyCada from epoch 100
+python tools/train_cycada.py \
+    --source_dir /data/sim10k/images \
+    --target_dir /data/cityscapes/leftImg8bit/train \
+    --output_dir outputs/cycada \
+    --epochs     200 \
+    --resume     outputs/cycada/cycada_epoch_100.pth
+
+# Resume AWADA from epoch 75
+python tools/train_awada.py \
+    --source_dir         /data/sim10k/images \
+    --target_dir         /data/cityscapes/leftImg8bit/train \
+    --attention_dir      outputs/attention_maps \
+    --output_dir         outputs/awada \
+    --epochs             200 \
+    --resume             outputs/awada/awada_epoch_75.pth
+```
+
+`--epochs` must still be set to the **total** number of epochs for the run (not the number of remaining epochs). Training will skip epochs already completed according to the checkpoint.
+
 ## Visualization
 
 Use `tools/visualize_inference.py` to run style transfer on a set of images and produce

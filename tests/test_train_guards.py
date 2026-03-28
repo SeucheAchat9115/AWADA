@@ -1,5 +1,6 @@
-"""Tests for NaN/Inf safety guards in training loops."""
+"""Tests for NaN/Inf safety guards and resumable checkpointing in training loops."""
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -415,3 +416,273 @@ class TestTrainScriptGuardsIntegration:
         ):
             with pytest.raises(RuntimeError, match="discriminator loss"):
                 awada_main()
+
+
+def _make_minimal_checkpoint(tmp_path, prefix="cyclegan"):
+    """Create a minimal checkpoint file with all required keys and return its path."""
+    # Use 2 parameters per optimizer to match the training scripts, which build
+    # opt_G from list(G_AB.parameters()) + list(G_BA.parameters()) and
+    # opt_D from list(D_A.parameters()) + list(D_B.parameters()).
+    p1 = torch.nn.Parameter(torch.zeros(1))
+    p2 = torch.nn.Parameter(torch.zeros(1))
+    opt = torch.optim.Adam([p1, p2], lr=1e-4, betas=(0.5, 0.999))
+    sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda=lambda ep: 1.0)
+
+    ckpt = {
+        "epoch": 3,
+        "G_AB": {},
+        "G_BA": {},
+        "D_A": {},
+        "D_B": {},
+        "opt_G": opt.state_dict(),
+        "opt_D": opt.state_dict(),
+        "sched_G": sched.state_dict(),
+        "sched_D": sched.state_dict(),
+    }
+    path = os.path.join(str(tmp_path), f"{prefix}_epoch_3.pth")
+    torch.save(ckpt, path)
+    return path
+
+
+class TestResumeCheckpointing:
+    """Tests that the --resume flag correctly loads checkpoint state in training scripts."""
+
+    def _make_dataloader_mock(self, real_A, real_B, att_A=None, att_B=None, with_attention=False):
+        batch = (real_A, real_B, att_A, att_B) if with_attention else (real_A, real_B)
+        return [batch]
+
+    def test_cyclegan_checkpoint_contains_optimizer_and_scheduler_states(self, tmp_path):
+        """Saved checkpoint must include opt_G, opt_D, sched_G, sched_D keys."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+
+        from tools.train_cyclegan import main as cyclegan_main
+
+        mock_model = MagicMock()
+        mock_model.G_AB.parameters.return_value = iter(
+            [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+        )
+        mock_model.G_BA.parameters.return_value = iter(
+            [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+        )
+        mock_model.D_A.parameters.return_value = iter(
+            [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+        )
+        mock_model.D_B.parameters.return_value = iter(
+            [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+        )
+        mock_model.G_AB.state_dict.return_value = {}
+        mock_model.G_BA.state_dict.return_value = {}
+        mock_model.D_A.state_dict.return_value = {}
+        mock_model.D_B.state_dict.return_value = {}
+        mock_model.compute_generator_loss.return_value = {
+            "total_G": torch.tensor(0.5, requires_grad=True),
+            "cycle_A": torch.tensor(0.2),
+            "cycle_B": torch.tensor(0.2),
+        }
+        mock_model.compute_discriminator_loss.return_value = {
+            "total_D": torch.tensor(0.4, requires_grad=True),
+        }
+
+        with (
+            patch("tools.train_cyclegan.CycleGAN", return_value=mock_model),
+            patch(
+                "tools.train_cyclegan.DataLoader",
+                return_value=self._make_dataloader_mock(real_A, real_B),
+            ),
+            patch("tools.train_cyclegan.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cyclegan.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                ],
+            ),
+        ):
+            cyclegan_main()
+
+        ckpt_path = os.path.join(str(tmp_path), "cyclegan_epoch_1.pth")
+        assert os.path.exists(ckpt_path)
+        ckpt = torch.load(ckpt_path, map_location="cpu")
+        for key in ("epoch", "G_AB", "G_BA", "D_A", "D_B", "opt_G", "opt_D", "sched_G", "sched_D"):
+            assert key in ckpt, f"Missing key '{key}' in checkpoint"
+
+    def test_cyclegan_resume_loads_start_epoch(self, tmp_path):
+        """--resume should set start_epoch from checkpoint so the loop starts at epoch 3."""
+        ckpt_path = _make_minimal_checkpoint(tmp_path, "cyclegan")
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+
+        from tools.train_cyclegan import main as cyclegan_main
+
+        mock_model = MagicMock()
+        for attr in ("G_AB", "G_BA", "D_A", "D_B"):
+            getattr(mock_model, attr).parameters.return_value = iter(
+                [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+            )
+            getattr(mock_model, attr).state_dict.return_value = {}
+        mock_model.compute_generator_loss.return_value = {
+            "total_G": torch.tensor(0.5, requires_grad=True),
+            "cycle_A": torch.tensor(0.2),
+            "cycle_B": torch.tensor(0.2),
+        }
+        mock_model.compute_discriminator_loss.return_value = {
+            "total_D": torch.tensor(0.4, requires_grad=True),
+        }
+
+        epochs_seen = []
+
+        original_tqdm = __import__("tqdm").tqdm
+
+        def tracking_tqdm(iterable, desc=""):
+            epochs_seen.append(desc)
+            return original_tqdm(iterable, desc=desc)
+
+        with (
+            patch("tools.train_cyclegan.CycleGAN", return_value=mock_model),
+            patch(
+                "tools.train_cyclegan.DataLoader",
+                return_value=self._make_dataloader_mock(real_A, real_B),
+            ),
+            patch("tools.train_cyclegan.UnpairedImageDataset"),
+            patch("tools.train_cyclegan.tqdm", side_effect=tracking_tqdm),
+            patch(
+                "sys.argv",
+                [
+                    "train_cyclegan.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "5",
+                    "--resume",
+                    ckpt_path,
+                ],
+            ),
+        ):
+            cyclegan_main()
+
+        # With start_epoch=3 and total epochs=5, we expect epochs 4 and 5 (indices 3 and 4)
+        assert len(epochs_seen) == 2
+        assert "4/5" in epochs_seen[0]
+        assert "5/5" in epochs_seen[1]
+
+    def test_cycada_checkpoint_contains_optimizer_and_scheduler_states(self, tmp_path):
+        """Saved CyCada checkpoint must include opt_G, opt_D, sched_G, sched_D keys."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+
+        from tools.train_cycada import main as cycada_main
+
+        mock_model = MagicMock()
+        for attr in ("G_AB", "G_BA", "D_A", "D_B"):
+            getattr(mock_model, attr).parameters.return_value = iter(
+                [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+            )
+            getattr(mock_model, attr).state_dict.return_value = {}
+        mock_model.compute_generator_loss.return_value = {
+            "total_G": torch.tensor(0.5, requires_grad=True),
+            "cycle_A": torch.tensor(0.2),
+            "cycle_B": torch.tensor(0.2),
+        }
+        mock_model.compute_discriminator_loss.return_value = {
+            "total_D": torch.tensor(0.4, requires_grad=True),
+        }
+
+        with (
+            patch("tools.train_cycada.CyCada", return_value=mock_model),
+            patch(
+                "tools.train_cycada.DataLoader",
+                return_value=self._make_dataloader_mock(real_A, real_B),
+            ),
+            patch("tools.train_cycada.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cycada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                ],
+            ),
+        ):
+            cycada_main()
+
+        ckpt_path = os.path.join(str(tmp_path), "cycada_epoch_1.pth")
+        assert os.path.exists(ckpt_path)
+        ckpt = torch.load(ckpt_path, map_location="cpu")
+        for key in ("epoch", "G_AB", "G_BA", "D_A", "D_B", "opt_G", "opt_D", "sched_G", "sched_D"):
+            assert key in ckpt, f"Missing key '{key}' in checkpoint"
+
+    def test_awada_checkpoint_contains_optimizer_and_scheduler_states(self, tmp_path):
+        """Saved AWADA checkpoint must include opt_G, opt_D, sched_G, sched_D keys."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+        att_A = torch.zeros(1, 1, 64, 64)
+        att_B = torch.zeros(1, 1, 64, 64)
+
+        from tools.train_awada import main as awada_main
+
+        mock_model = MagicMock()
+        for attr in ("G_AB", "G_BA", "D_A", "D_B"):
+            getattr(mock_model, attr).parameters.return_value = iter(
+                [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+            )
+            getattr(mock_model, attr).state_dict.return_value = {}
+        mock_model.compute_generator_loss.return_value = {
+            "total_G": torch.tensor(0.5, requires_grad=True),
+            "cycle_A": torch.tensor(0.2),
+            "cycle_B": torch.tensor(0.2),
+        }
+        mock_model.compute_discriminator_loss.return_value = {
+            "total_D": torch.tensor(0.4, requires_grad=True),
+        }
+
+        with (
+            patch("tools.train_awada.AWADA", return_value=mock_model),
+            patch(
+                "tools.train_awada.DataLoader",
+                return_value=self._make_dataloader_mock(
+                    real_A, real_B, att_A, att_B, with_attention=True
+                ),
+            ),
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                ],
+            ),
+        ):
+            awada_main()
+
+        ckpt_path = os.path.join(str(tmp_path), "awada_epoch_1.pth")
+        assert os.path.exists(ckpt_path)
+        ckpt = torch.load(ckpt_path, map_location="cpu")
+        for key in ("epoch", "G_AB", "G_BA", "D_A", "D_B", "opt_G", "opt_D", "sched_G", "sched_D"):
+            assert key in ckpt, f"Missing key '{key}' in checkpoint"

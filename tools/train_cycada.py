@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--patch_size", type=int)
     parser.add_argument("--device")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--resume", default=None, help="Path to checkpoint to resume training from")
     args = parser.parse_args()
 
     set_seed(args.seed)
@@ -93,7 +94,21 @@ def main():
         opt_D, lr_lambda=lambda ep: get_lambda_lr(ep, n_epochs_stable, n_epochs_decay)
     )
 
-    for epoch in range(epochs):
+    start_epoch = 0
+    if args.resume:
+        ckpt = torch.load(args.resume, map_location=device)
+        model.G_AB.load_state_dict(ckpt["G_AB"])
+        model.G_BA.load_state_dict(ckpt["G_BA"])
+        model.D_A.load_state_dict(ckpt["D_A"])
+        model.D_B.load_state_dict(ckpt["D_B"])
+        opt_G.load_state_dict(ckpt["opt_G"])
+        opt_D.load_state_dict(ckpt["opt_D"])
+        sched_G.load_state_dict(ckpt["sched_G"])
+        sched_D.load_state_dict(ckpt["sched_D"])
+        start_epoch = ckpt["epoch"]
+        print(f"Resumed from checkpoint: {args.resume} (epoch {start_epoch})")
+
+    for epoch in range(start_epoch, epochs):
         model.G_AB.train()
         model.G_BA.train()
         model.D_A.train()
@@ -151,6 +166,10 @@ def main():
             "G_BA": model.G_BA.state_dict(),
             "D_A": model.D_A.state_dict(),
             "D_B": model.D_B.state_dict(),
+            "opt_G": opt_G.state_dict(),
+            "opt_D": opt_D.state_dict(),
+            "sched_G": sched_G.state_dict(),
+            "sched_D": sched_D.state_dict(),
         }
         ckpt_path = os.path.join(args.output_dir, f"cycada_epoch_{epoch + 1}.pth")
         torch.save(ckpt, ckpt_path)
