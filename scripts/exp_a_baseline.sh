@@ -50,7 +50,7 @@ echo "========================================"
 
 # Step 1: Train Faster R-CNN on source domain
 echo "[Step 1] Training detector on source domain..."
-python train_detector.py \
+python tools/train_detector.py \
     --dataset "$SOURCE_DATASET" \
     --data_root "$SOURCE_ROOT" \
     --num_classes "$NUM_CLASSES" \
@@ -63,7 +63,7 @@ python train_detector.py \
 
 echo ""
 echo "[Step 2] Evaluating on target domain (cross-domain, no adaptation)..."
-python evaluate_detector.py \
+python tools/evaluate_detector.py \
     --detector_checkpoint "$OUTPUT_DIR/detector_final.pth" \
     --dataset "$TARGET_DATASET" \
     --data_root "$TARGET_ROOT" \

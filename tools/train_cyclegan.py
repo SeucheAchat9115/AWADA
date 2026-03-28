@@ -8,9 +8,9 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.datasets.unpaired_dataset import UnpairedImageDataset
-from src.models.cyclegan import CycleGAN
-from src.utils.train_utils import get_lambda_lr, load_config
+from awada.datasets.unpaired_dataset import UnpairedImageDataset
+from awada.models.cyclegan import CycleGAN
+from awada.utils.train_utils import get_lambda_lr, load_config
 
 
 def main():

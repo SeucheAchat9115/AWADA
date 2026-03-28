@@ -10,7 +10,7 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from tqdm import tqdm
 
-from src.models.generator import ResNetGenerator
+from awada.models.generator import ResNetGenerator
 
 
 def main():

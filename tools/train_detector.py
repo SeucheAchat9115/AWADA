@@ -10,12 +10,12 @@ from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, faster
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from tqdm import tqdm
 
-from src.datasets.bdd100k import Bdd100kDetectionDataset
-from src.datasets.cityscapes import CityscapesDetectionDataset
-from src.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
-from src.datasets.sim10k import Sim10kDetectionDataset
-from src.utils.metrics import compute_map_range
-from src.utils.transforms import ResizeToMinSize
+from awada.datasets.bdd100k import Bdd100kDetectionDataset
+from awada.datasets.cityscapes import CityscapesDetectionDataset
+from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
+from awada.datasets.sim10k import Sim10kDetectionDataset
+from awada.utils.metrics import compute_map_range
+from awada.utils.transforms import ResizeToMinSize
 
 
 def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None):

@@ -3,14 +3,14 @@
 import numpy as np
 from PIL import Image
 
-from src.datasets.cityscapes import (
+from awada.datasets.cityscapes import (
     BDD100K_ALIGNED_CLASSES,
     CITYSCAPES_BDD100K_LABEL_MAP,
     CITYSCAPES_LABEL_MAP,
     CLASS_NAMES,
     MIN_PIXELS_THRESHOLD,
 )
-from src.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
+from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
 
 
 class TestCityscapesConstants:
@@ -99,14 +99,14 @@ class TestCityscapesDetectionDataset:
         return str(tmp_path)
 
     def test_len(self, tmp_path):
-        from src.datasets.cityscapes import CityscapesDetectionDataset
+        from awada.datasets.cityscapes import CityscapesDetectionDataset
 
         root = self._make_cityscapes_root(tmp_path)
         ds = CityscapesDetectionDataset(root, split="train")
         assert len(ds) == 1
 
     def test_getitem_returns_image_and_target(self, tmp_path):
-        from src.datasets.cityscapes import CityscapesDetectionDataset
+        from awada.datasets.cityscapes import CityscapesDetectionDataset
 
         root = self._make_cityscapes_root(tmp_path)
         ds = CityscapesDetectionDataset(root, split="train")
@@ -114,7 +114,7 @@ class TestCityscapesDetectionDataset:
         assert image.shape[0] == 3
 
     def test_getitem_target_keys(self, tmp_path):
-        from src.datasets.cityscapes import CityscapesDetectionDataset
+        from awada.datasets.cityscapes import CityscapesDetectionDataset
 
         root = self._make_cityscapes_root(tmp_path)
         ds = CityscapesDetectionDataset(root, split="train")
@@ -124,7 +124,7 @@ class TestCityscapesDetectionDataset:
         assert "image_id" in target
 
     def test_car_box_detected(self, tmp_path):
-        from src.datasets.cityscapes import CityscapesDetectionDataset
+        from awada.datasets.cityscapes import CityscapesDetectionDataset
 
         root = self._make_cityscapes_root(tmp_path)
         ds = CityscapesDetectionDataset(root, split="train")
@@ -135,7 +135,7 @@ class TestCityscapesDetectionDataset:
 
     def test_class_filter(self, tmp_path):
         """When classes=['person'] is specified, car annotations should be excluded."""
-        from src.datasets.cityscapes import CityscapesDetectionDataset
+        from awada.datasets.cityscapes import CityscapesDetectionDataset
 
         root = self._make_cityscapes_root(tmp_path)
         ds = CityscapesDetectionDataset(root, split="train", classes=["person"])
@@ -144,7 +144,7 @@ class TestCityscapesDetectionDataset:
 
     def test_label_map_override_remaps_car_label(self, tmp_path):
         """When label_map=CITYSCAPES_BDD100K_LABEL_MAP, car (class 26) should get label 3."""
-        from src.datasets.cityscapes import (
+        from awada.datasets.cityscapes import (
             CITYSCAPES_BDD100K_LABEL_MAP,
             CityscapesDetectionDataset,
         )
@@ -176,7 +176,7 @@ class TestCityscapesDetectionDataset:
 
     def test_label_map_override_excludes_train(self, tmp_path):
         """CITYSCAPES_BDD100K_LABEL_MAP must cause train instances to be ignored."""
-        from src.datasets.cityscapes import (
+        from awada.datasets.cityscapes import (
             CITYSCAPES_BDD100K_LABEL_MAP,
             CityscapesDetectionDataset,
         )

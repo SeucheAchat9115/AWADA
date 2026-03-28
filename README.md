@@ -181,7 +181,7 @@ bash scripts/exp_d_oracle.sh cityscapes_to_bdd100k
 
 ## Attention Map Generation
 
-Before training the AWADA CycleGAN you need binary foreground attention masks for every source-domain image. `generate_attention_maps.py` extracts the top-K RPN proposals from a trained Faster R-CNN checkpoint and saves one `.npy` mask per image (float32, 0 or 1, same H × W as the input image).
+Before training the AWADA CycleGAN you need binary foreground attention masks for every source-domain image. `tools/generate_attention_maps.py` extracts the top-K RPN proposals from a trained Faster R-CNN checkpoint and saves one `.npy` mask per image (float32, 0 or 1, same H × W as the input image).
 
 **Arguments**
 
@@ -200,7 +200,7 @@ Before training the AWADA CycleGAN you need binary foreground attention masks fo
 
 ```bash
 # sim10k → Cityscapes (1 foreground class: car)
-python generate_attention_maps.py \
+python tools/generate_attention_maps.py \
     --detector_checkpoint outputs/exp_a_sim10k2cs/detector_final.pth \
     --dataset            sim10k \
     --data_root          /data/sim10k \
@@ -211,7 +211,7 @@ python generate_attention_maps.py \
     --device             cuda
 
 # Cityscapes → Foggy Cityscapes (8 foreground classes)
-python generate_attention_maps.py \
+python tools/generate_attention_maps.py \
     --detector_checkpoint outputs/exp_a_cs2foggy/detector_final.pth \
     --dataset            cityscapes \
     --data_root          /data/cityscapes \
@@ -222,7 +222,7 @@ python generate_attention_maps.py \
     --device             cuda
 
 # Cityscapes → BDD100K (7 foreground classes, source attention maps)
-python generate_attention_maps.py \
+python tools/generate_attention_maps.py \
     --detector_checkpoint outputs/exp_a_cs2bdd/detector_final.pth \
     --dataset            cityscapes \
     --data_root          /data/cityscapes \
@@ -233,7 +233,7 @@ python generate_attention_maps.py \
     --device             cuda
 
 # Cityscapes → BDD100K (7 foreground classes, target attention maps)
-python generate_attention_maps.py \
+python tools/generate_attention_maps.py \
     --detector_checkpoint outputs/exp_c_cs2bdd/cycada_detector/detector_final.pth \
     --dataset            bdd100k \
     --data_root          /data/bdd100k \
@@ -244,7 +244,7 @@ python generate_attention_maps.py \
     --device             cuda
 ```
 
-The generated masks are automatically consumed by `train_awada.py` via the `--attention_dir` flag. When running Experiment C end-to-end, `scripts/exp_c_awada.sh` calls this script automatically; the examples above are useful when you need to regenerate or inspect the masks independently.
+The generated masks are automatically consumed by `tools/train_awada.py` via the `--attention_dir` flag. When running Experiment C end-to-end, `scripts/exp_c_awada.sh` calls this script automatically; the examples above are useful when you need to regenerate or inspect the masks independently.
 
 ## Project Structure
 
@@ -255,20 +255,21 @@ AWADA/
 │   ├── cyclegan.yaml              # CycleGAN hyperparameter config
 │   ├── cycada.yaml                # CyCada hyperparameter config (lambda_sem > 0)
 │   └── awada.yaml                 # AWADA hyperparameter config
-├── train_detector.py              # Faster R-CNN training script
-├── train_cyclegan.py              # CycleGAN training (reads configs/cyclegan.yaml)
-├── train_cycada.py                # CyCada training (reads configs/cycada.yaml)
-├── train_awada.py                 # AWADA training (reads configs/awada.yaml)
-├── generate_attention_maps.py     # Generate RPN attention maps
-├── stylize_dataset.py             # Stylize images with trained generator
-├── visualize_inference.py         # Side-by-side visualization of style transfer
+├── tools/
+│   ├── train_detector.py          # Faster R-CNN training script
+│   ├── train_cyclegan.py          # CycleGAN training (reads configs/cyclegan.yaml)
+│   ├── train_cycada.py            # CyCada training (reads configs/cycada.yaml)
+│   ├── train_awada.py             # AWADA training (reads configs/awada.yaml)
+│   ├── generate_attention_maps.py # Generate RPN attention maps
+│   ├── stylize_dataset.py         # Stylize images with trained generator
+│   └── visualize_inference.py     # Side-by-side visualization of style transfer
 ├── scripts/
 │   ├── exp_a_baseline.sh          # Experiment A: Baseline
 │   ├── exp_b_cyclegan.sh          # Experiment B: CycleGAN
 │   ├── exp_b_cycada.sh            # Experiment B2: CyCada
 │   ├── exp_c_awada.sh             # Experiment C: AWADA
 │   └── exp_d_oracle.sh            # Experiment D: Oracle
-└── src/
+└── awada/
     ├── models/
     │   ├── generator.py            # ResNet-9 generator
     │   ├── discriminator.py        # PatchGAN discriminator
@@ -326,31 +327,31 @@ device: cuda
 Each training script loads its own config file automatically. Any value can be overridden with the corresponding CLI flag, e.g.:
 
 ```bash
-python train_cycada.py --config configs/cycada.yaml --lr 0.0001 --epochs 100 ...
-python train_awada.py --config configs/awada.yaml --lambda_sem 1.0 ...
+python tools/train_cycada.py --config configs/cycada.yaml --lr 0.0001 --epochs 100 ...
+python tools/train_awada.py --config configs/awada.yaml --lambda_sem 1.0 ...
 ```
 
 ## Visualization
 
-Use `visualize_inference.py` to run style transfer on a set of images and produce
+Use `tools/visualize_inference.py` to run style transfer on a set of images and produce
 side-by-side comparison PNGs (original | translated):
 
 ```bash
 # Visualize AWADA-translated images (source → target direction, A→B)
-python visualize_inference.py \
+python tools/visualize_inference.py \
     --checkpoint outputs/awada_gan/awada_epoch_200.pth \
     --input_dir  /data/sim10k/images \
     --output_dir outputs/visualizations
 
 # Visualize only the first 10 images
-python visualize_inference.py \
+python tools/visualize_inference.py \
     --checkpoint outputs/cyclegan/cyclegan_epoch_200.pth \
     --input_dir  /data/sim10k/images \
     --output_dir outputs/visualizations \
     --num_images 10
 
 # Use the inverse generator (B → A)
-python visualize_inference.py \
+python tools/visualize_inference.py \
     --checkpoint outputs/awada_gan/awada_epoch_200.pth \
     --input_dir  /data/cityscapes/leftImg8bit/val/aachen \
     --output_dir outputs/visualizations \

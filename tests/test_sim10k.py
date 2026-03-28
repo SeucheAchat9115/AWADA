@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from src.datasets.sim10k import CLASS_NAMES, Sim10kDetectionDataset
+from awada.datasets.sim10k import CLASS_NAMES, Sim10kDetectionDataset
 
 
 def _write_voc_xml(path, objects):

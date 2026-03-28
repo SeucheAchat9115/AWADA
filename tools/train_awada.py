@@ -8,9 +8,9 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.datasets.attention_dataset import AttentionPairedDataset
-from src.models.awada import AWADA
-from src.utils.train_utils import get_lambda_lr, load_config
+from awada.datasets.attention_dataset import AttentionPairedDataset
+from awada.models.awada import AWADA
+from awada.utils.train_utils import get_lambda_lr, load_config
 
 
 def main():

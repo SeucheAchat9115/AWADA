@@ -37,7 +37,7 @@ import torchvision.transforms.functional as TF
 from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
 
-from src.models.generator import ResNetGenerator
+from awada.models.generator import ResNetGenerator
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -5,7 +5,7 @@ import json
 import numpy as np
 from PIL import Image
 
-from src.datasets.bdd100k import BDD100K_LABEL_MAP, CLASS_NAMES, Bdd100kDetectionDataset
+from awada.datasets.bdd100k import BDD100K_LABEL_MAP, CLASS_NAMES, Bdd100kDetectionDataset
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -262,19 +262,19 @@ class TestBdd100kDetectionDataset:
 class TestCityscapesBdd100kAlignment:
     def test_aligned_label_ids_match(self):
         """Cityscapes BDD100k label map and BDD100k label map must use the same IDs."""
-        from src.datasets.cityscapes import CITYSCAPES_BDD100K_LABEL_MAP
+        from awada.datasets.cityscapes import CITYSCAPES_BDD100K_LABEL_MAP
 
         cs_ids = set(CITYSCAPES_BDD100K_LABEL_MAP.values())
         bdd_ids = set(BDD100K_LABEL_MAP.values())
         assert cs_ids == bdd_ids, f"Label ID sets differ: Cityscapes={cs_ids}, BDD100k={bdd_ids}"
 
     def test_same_number_of_classes(self):
-        from src.datasets.cityscapes import CITYSCAPES_BDD100K_LABEL_MAP
+        from awada.datasets.cityscapes import CITYSCAPES_BDD100K_LABEL_MAP
 
         assert len(CITYSCAPES_BDD100K_LABEL_MAP) == len(BDD100K_LABEL_MAP) == 7
 
     def test_cityscapes_bdd100k_map_excludes_train(self):
-        from src.datasets.cityscapes import CITYSCAPES_BDD100K_LABEL_MAP
+        from awada.datasets.cityscapes import CITYSCAPES_BDD100K_LABEL_MAP
 
         # Cityscapes class ID 31 is "train"; it must not appear in the aligned map
         assert 31 not in CITYSCAPES_BDD100K_LABEL_MAP

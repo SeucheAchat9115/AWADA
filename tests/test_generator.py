@@ -2,7 +2,7 @@
 
 import torch
 
-from src.models.generator import ResidualBlock, ResNetGenerator
+from awada.models.generator import ResidualBlock, ResNetGenerator
 
 
 class TestResidualBlock:

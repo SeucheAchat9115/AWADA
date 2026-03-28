@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from src.datasets.attention_dataset import AttentionPairedDataset
+from awada.datasets.attention_dataset import AttentionPairedDataset
 
 
 @pytest.fixture()

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from src.models.awada import AWADA
+from awada.models.awada import AWADA
 
 DEVICE = "cpu"
 IMG_SIZE = 64
@@ -183,7 +183,7 @@ class TestAWADA:
     def test_semantic_loss_present_when_enabled(self):
         """Semantic loss keys MUST appear when lambda_sem > 0 and criterion_sem is set."""
         mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("src.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+        with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
             model = AWADA(device=DEVICE, lambda_sem=1.0)
         real_A, real_B, att_A, att_B = _inputs()
         model.set_input(real_A, real_B, att_A, att_B)
@@ -194,7 +194,7 @@ class TestAWADA:
 
     def test_semantic_loss_included_in_total(self):
         mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("src.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+        with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
             model = AWADA(device=DEVICE, lambda_sem=1.0)
         real_A, real_B, att_A, att_B = _inputs()
         model.set_input(real_A, real_B, att_A, att_B)

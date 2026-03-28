@@ -2,7 +2,7 @@
 
 import torch
 
-from src.models.discriminator import PatchGANDiscriminator
+from awada.models.discriminator import PatchGANDiscriminator
 
 
 class TestPatchGANDiscriminator:
