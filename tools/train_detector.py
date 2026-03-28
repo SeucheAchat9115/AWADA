@@ -16,6 +16,7 @@ from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
 from awada.datasets.sim10k import Sim10kDetectionDataset
 from awada.utils.metrics import compute_map_range
 from awada.utils.transforms import ResizeToMinSize
+from awada.utils.train_utils import set_seed
 
 
 def get_dataset(name, root, split, transforms=None, classes=None, image_dir=None):
@@ -109,7 +110,10 @@ def main():
             "Works with both original and stylized images."
         ),
     )
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     args = parser.parse_args()
+
+    set_seed(args.seed)
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = torch.device(args.device)

@@ -1,6 +1,19 @@
 """Shared utilities for training scripts."""
 
+import random
+
+import numpy as np
+import torch
 import yaml
+
+
+def set_seed(seed: int = 42) -> None:
+    """Set seeds for random, numpy, torch, and torch.cuda (when available) for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 def load_config(path: str) -> dict:
