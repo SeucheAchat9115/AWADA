@@ -1,4 +1,6 @@
 import os
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -62,7 +64,7 @@ class CityscapesDetectionDataset(Dataset):
         self,
         root: str,
         split: str = "train",
-        transforms: object = None,
+        transforms: Callable[..., Any] | None = None,
         classes: list[str] | None = None,
         image_root: str | None = None,
         label_map: dict[int, int] | None = None,
@@ -84,6 +86,7 @@ class CityscapesDetectionDataset(Dataset):
         # the 7-class Cityscapes → BDD100k benchmark).  Falls back to the default 8-class map.
         self._label_map = label_map if label_map is not None else CITYSCAPES_LABEL_MAP
         # Build set of allowed label indices (1-based); None means all classes
+        self._allowed_labels: set[int] | None = None
         if classes is not None:
             # Identify Cityscapes class IDs whose human-readable name is requested.
             # We always use CLASS_NAMES + CITYSCAPES_LABEL_MAP for the name lookup so that
@@ -97,8 +100,6 @@ class CityscapesDetectionDataset(Dataset):
             self._allowed_labels = {
                 self._label_map[k] for k in self._label_map if k in allowed_class_ids
             }
-        else:
-            self._allowed_labels = None
         self.samples = []
 
         img_base = (

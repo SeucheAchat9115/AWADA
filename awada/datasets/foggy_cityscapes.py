@@ -1,4 +1,6 @@
 import os
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -41,7 +43,7 @@ class FoggyCityscapesDetectionDataset(Dataset):
         root: str,
         split: str = "val",
         beta: float = 0.02,
-        transforms: object = None,
+        transforms: Callable[..., Any] | None = None,
         image_root: str | None = None,
     ) -> None:
         """Initialise the Foggy Cityscapes detection dataset.

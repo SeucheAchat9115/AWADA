@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Any
 
 import numpy as np
 import torch
@@ -9,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 def generate_attention_maps(
-    detector: object,
-    dataloader: object,
+    detector: Any,
+    dataloader: Any,
     output_dir: str,
     score_threshold: float = 0.5,
     device: str = "cuda",
@@ -44,7 +45,7 @@ def generate_attention_maps(
     # Monkey-patch filter_proposals to capture both boxes and objectness scores
     original_filter_proposals = detector.rpn.filter_proposals
 
-    def capturing_filter_proposals(*args: object, **kwargs: object) -> object:
+    def capturing_filter_proposals(*args: Any, **kwargs: Any) -> Any:
         """Wrapper that records RPN proposals before returning the original result."""
         result = original_filter_proposals(*args, **kwargs)
         rpn_proposals["boxes"] = result[0]

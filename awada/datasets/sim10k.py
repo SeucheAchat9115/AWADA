@@ -1,5 +1,7 @@
 import os
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
+from typing import Any
 
 import torch
 import torchvision.transforms.functional as TF
@@ -28,7 +30,9 @@ class Sim10kDetectionDataset(Dataset):
         └── Annotations/  # PASCAL VOC XML files (e.g. 00001.xml)
     """
 
-    def __init__(self, root: str, transforms: object = None, image_dir: str | None = None) -> None:
+    def __init__(
+        self, root: str, transforms: Callable[..., Any] | None = None, image_dir: str | None = None
+    ) -> None:
         """Initialise the Sim10k detection dataset.
 
         Args:
@@ -84,20 +88,39 @@ class Sim10kDetectionDataset(Dataset):
     @staticmethod
     def _parse_annotation(ann_path: str) -> tuple[list[list[float]], list[int]]:
         """Parse a PASCAL VOC XML annotation file and return boxes and labels."""
-        boxes, labels = [], []
+        boxes: list[list[float]] = []
+        labels: list[int] = []
         if not os.path.exists(ann_path):
             return boxes, labels
         tree = ET.parse(ann_path)
         root = tree.getroot()
         for obj in root.findall("object"):
-            name = obj.find("name").text.strip().lower()
+            name_el = obj.find("name")
+            if name_el is None or name_el.text is None:
+                continue
+            name = name_el.text.strip().lower()
             if name != "car":
                 continue
             bndbox = obj.find("bndbox")
-            x1 = float(bndbox.find("xmin").text)
-            y1 = float(bndbox.find("ymin").text)
-            x2 = float(bndbox.find("xmax").text)
-            y2 = float(bndbox.find("ymax").text)
+            if bndbox is None:
+                continue
+            xmin_el = bndbox.find("xmin")
+            ymin_el = bndbox.find("ymin")
+            xmax_el = bndbox.find("xmax")
+            ymax_el = bndbox.find("ymax")
+            if xmin_el is None or ymin_el is None or xmax_el is None or ymax_el is None:
+                continue
+            if (
+                xmin_el.text is None
+                or ymin_el.text is None
+                or xmax_el.text is None
+                or ymax_el.text is None
+            ):
+                continue
+            x1 = float(xmin_el.text)
+            y1 = float(ymin_el.text)
+            x2 = float(xmax_el.text)
+            y2 = float(ymax_el.text)
             if (x2 - x1) > MIN_BOX_DIM and (y2 - y1) > MIN_BOX_DIM:
                 boxes.append([x1, y1, x2, y2])
                 labels.append(CLASS_NAMES.index("car") + 1)

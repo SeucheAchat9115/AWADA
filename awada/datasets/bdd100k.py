@@ -1,5 +1,7 @@
 import json
 import os
+from collections.abc import Callable
+from typing import Any
 
 import torch
 import torchvision.transforms.functional as TF
@@ -53,7 +55,7 @@ class Bdd100kDetectionDataset(Dataset):
         self,
         root: str,
         split: str = "val",
-        transforms: object = None,
+        transforms: Callable[..., Any] | None = None,
         image_root: str | None = None,
     ) -> None:
         """Initialise the BDD100k detection dataset.

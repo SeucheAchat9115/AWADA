@@ -24,7 +24,7 @@ class ImageBuffer:
         """
         self.max_size = max_size
         self.return_prob = return_prob
-        self.data = []
+        self.data: list[torch.Tensor] = []
 
     def push_and_pop(self, data: torch.Tensor) -> torch.Tensor:
         """Push new images into the buffer and return a mixed batch.
