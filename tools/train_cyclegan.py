@@ -113,6 +113,9 @@ def main():
         opt_D, lr_lambda=lambda ep: get_lambda_lr(ep, n_epochs_stable, n_epochs_decay)
     )
 
+    scaler_G = torch.cuda.amp.GradScaler(enabled=args.amp)
+    scaler_D = torch.cuda.amp.GradScaler(enabled=args.amp)
+
     start_epoch = 0
     if args.resume:
         ckpt = torch.load(args.resume, map_location=device)
@@ -124,6 +127,10 @@ def main():
         opt_D.load_state_dict(ckpt["opt_D"])
         sched_G.load_state_dict(ckpt["sched_G"])
         sched_D.load_state_dict(ckpt["sched_D"])
+        if "scaler_G" in ckpt:
+            scaler_G.load_state_dict(ckpt["scaler_G"])
+        if "scaler_D" in ckpt:
+            scaler_D.load_state_dict(ckpt["scaler_D"])
         start_epoch = ckpt["epoch"]
         logger.info("Resumed from checkpoint: %s (epoch %d)", args.resume, start_epoch)
 
@@ -136,36 +143,41 @@ def main():
         for iteration, (real_A, real_B) in enumerate(
             tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}")
         ):
-            model.set_input(real_A, real_B)
-            model.forward()
+            with torch.cuda.amp.autocast(enabled=args.amp):
+                model.set_input(real_A, real_B)
+                model.forward()
 
             # Update generators
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(False)
             opt_G.zero_grad()
-            g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt)
+            with torch.cuda.amp.autocast(enabled=args.amp):
+                g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt)
             for loss_name, loss_val in g_losses.items():
                 if not torch.isfinite(loss_val):
                     raise RuntimeError(
                         f"Non-finite generator loss '{loss_name}' detected at epoch {epoch + 1}, "
                         f"iteration {iteration + 1}: {loss_val.item()}"
                     )
-            g_losses["total_G"].backward()
-            opt_G.step()
+            scaler_G.scale(g_losses["total_G"]).backward()
+            scaler_G.step(opt_G)
+            scaler_G.update()
 
             # Update discriminators
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(True)
             opt_D.zero_grad()
-            d_losses = model.compute_discriminator_loss()
+            with torch.cuda.amp.autocast(enabled=args.amp):
+                d_losses = model.compute_discriminator_loss()
             for loss_name, loss_val in d_losses.items():
                 if not torch.isfinite(loss_val):
                     raise RuntimeError(
                         f"Non-finite discriminator loss '{loss_name}' detected at epoch {epoch + 1}, "
                         f"iteration {iteration + 1}: {loss_val.item()}"
                     )
-            d_losses["total_D"].backward()
-            opt_D.step()
+            scaler_D.scale(d_losses["total_D"]).backward()
+            scaler_D.step(opt_D)
+            scaler_D.update()
 
             if (iteration + 1) % log_interval == 0:
                 logger.info(
@@ -191,6 +203,8 @@ def main():
             "opt_D": opt_D.state_dict(),
             "sched_G": sched_G.state_dict(),
             "sched_D": sched_D.state_dict(),
+            "scaler_G": scaler_G.state_dict(),
+            "scaler_D": scaler_D.state_dict(),
         }
         ckpt_path = os.path.join(args.output_dir, f"cyclegan_epoch_{epoch + 1}.pth")
         if (epoch + 1) % args.save_every == 0 or (epoch + 1) == epochs:
