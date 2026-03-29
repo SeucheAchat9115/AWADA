@@ -10,31 +10,31 @@ BENCHMARK=${1:-sim10k_to_cityscapes}
 
 if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
     SOURCE_DATASET="sim10k"
-    SOURCE_ROOT="${SIM10K_ROOT:-/data/sim10k}"
-    SOURCE_IMAGES="${SIM10K_ROOT:-/data/sim10k}/images"
+    SOURCE_ROOT="/data/sim10k"
+    SOURCE_IMAGES="/data/sim10k/images"
     TARGET_DATASET="cityscapes"
-    TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    TARGET_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    TARGET_ROOT="/data/cityscapes"
+    TARGET_IMAGES="/data/cityscapes/leftImg8bit/train"
     NUM_CLASSES=1
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_cycada_sim10k2cs"
+    OUTPUT_BASE="./outputs/exp_b_cycada_sim10k2cs"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     SOURCE_DATASET="cityscapes"
-    SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    SOURCE_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    SOURCE_ROOT="/data/cityscapes"
+    SOURCE_IMAGES="/data/cityscapes/leftImg8bit/train"
     TARGET_DATASET="foggy_cityscapes"
-    TARGET_ROOT="${FOGGY_ROOT:-/data/foggy_cityscapes}"
-    TARGET_IMAGES="${FOGGY_ROOT:-/data/foggy_cityscapes}/leftImg8bit_foggy/train"
+    TARGET_ROOT="/data/foggy_cityscapes"
+    TARGET_IMAGES="/data/foggy_cityscapes/leftImg8bit_foggy/train"
     NUM_CLASSES=8
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_cycada_cs2foggy"
+    OUTPUT_BASE="./outputs/exp_b_cycada_cs2foggy"
 elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
     SOURCE_DATASET="cityscapes"
-    SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    SOURCE_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    SOURCE_ROOT="/data/cityscapes"
+    SOURCE_IMAGES="/data/cityscapes/leftImg8bit/train"
     TARGET_DATASET="bdd100k"
-    TARGET_ROOT="${BDD100K_ROOT:-/data/bdd100k}"
-    TARGET_IMAGES="${BDD100K_ROOT:-/data/bdd100k}/images/100k/train"
+    TARGET_ROOT="/data/bdd100k"
+    TARGET_IMAGES="/data/bdd100k/images/100k/train"
     NUM_CLASSES=7
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_cycada_cs2bdd"
+    OUTPUT_BASE="./outputs/exp_b_cycada_cs2bdd"
 else
     echo "Unknown benchmark: $BENCHMARK"
     echo "Usage: $0 [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]"
@@ -59,9 +59,9 @@ python tools/train_cycada.py \
     --target_dir "$TARGET_IMAGES" \
     --output_dir "$GAN_OUTPUT" \
     --config configs/cycada.yaml \
-    --epochs "${GAN_EPOCHS:-200}" \
-    --batch_size "${GAN_BATCH:-1}" \
-    --device "${DEVICE:-cuda}"
+    --epochs 200 \
+    --batch_size 1 \
+    --device cuda
 
 # Step 2: Stylize source images using the CyCada generator
 echo "[Step 2] Stylizing source images with CyCada generator..."
@@ -70,9 +70,7 @@ python tools/stylize_dataset.py \
     --generator_checkpoint "$LATEST_GAN" \
     --source_dir "$SOURCE_IMAGES" \
     --output_dir "$STYLIZED_DIR" \
-    --device "${DEVICE:-cuda}"
-
-# Step 3: Train detector on CyCada-stylized source images
+    --device cuda
 # Images come from STYLIZED_DIR; annotations come from SOURCE_ROOT
 echo "[Step 3] Training detector on CyCada-stylized source images..."
 python tools/train_detector.py \
@@ -81,10 +79,10 @@ python tools/train_detector.py \
     --image_dir "$STYLIZED_DIR" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$DETECTOR_OUTPUT" \
-    --epochs "${DET_EPOCHS:-10}" \
-    --batch_size "${BATCH_SIZE:-2}" \
+    --epochs 10 \
+    --batch_size 2 \
     --lr 0.005 \
-    --device "${DEVICE:-cuda}" \
+    --device cuda \
     --pretrained
 
 # Step 4: Evaluate on target domain
@@ -95,8 +93,7 @@ python tools/evaluate_detector.py \
     --data_root "$TARGET_ROOT" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$DETECTOR_OUTPUT" \
-    --device "${DEVICE:-cuda}" \
-    --label "Experiment B: CyCada" \
+    --device cuda \
     --benchmark "$BENCHMARK" \
     $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
 

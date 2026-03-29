@@ -9,31 +9,31 @@ BENCHMARK=${1:-sim10k_to_cityscapes}
 
 if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
     SOURCE_DATASET="sim10k"
-    SOURCE_ROOT="${SIM10K_ROOT:-/data/sim10k}"
-    SOURCE_IMAGES="${SIM10K_ROOT:-/data/sim10k}/images"
+    SOURCE_ROOT="/data/sim10k"
+    SOURCE_IMAGES="/data/sim10k/images"
     TARGET_DATASET="cityscapes"
-    TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    TARGET_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    TARGET_ROOT="/data/cityscapes"
+    TARGET_IMAGES="/data/cityscapes/leftImg8bit/train"
     NUM_CLASSES=1
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_sim10k2cs"
+    OUTPUT_BASE="./outputs/exp_b_sim10k2cs"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     SOURCE_DATASET="cityscapes"
-    SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    SOURCE_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    SOURCE_ROOT="/data/cityscapes"
+    SOURCE_IMAGES="/data/cityscapes/leftImg8bit/train"
     TARGET_DATASET="foggy_cityscapes"
-    TARGET_ROOT="${FOGGY_ROOT:-/data/foggy_cityscapes}"
-    TARGET_IMAGES="${FOGGY_ROOT:-/data/foggy_cityscapes}/leftImg8bit_foggy/train"
+    TARGET_ROOT="/data/foggy_cityscapes"
+    TARGET_IMAGES="/data/foggy_cityscapes/leftImg8bit_foggy/train"
     NUM_CLASSES=8
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_cs2foggy"
+    OUTPUT_BASE="./outputs/exp_b_cs2foggy"
 elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
     SOURCE_DATASET="cityscapes"
-    SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    SOURCE_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    SOURCE_ROOT="/data/cityscapes"
+    SOURCE_IMAGES="/data/cityscapes/leftImg8bit/train"
     TARGET_DATASET="bdd100k"
-    TARGET_ROOT="${BDD100K_ROOT:-/data/bdd100k}"
-    TARGET_IMAGES="${BDD100K_ROOT:-/data/bdd100k}/images/100k/train"
+    TARGET_ROOT="/data/bdd100k"
+    TARGET_IMAGES="/data/bdd100k/images/100k/train"
     NUM_CLASSES=7
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_b_cs2bdd"
+    OUTPUT_BASE="./outputs/exp_b_cs2bdd"
 else
     echo "Unknown benchmark: $BENCHMARK"
     exit 1
@@ -56,12 +56,12 @@ python tools/train_cyclegan.py \
     --source_dir "$SOURCE_IMAGES" \
     --target_dir "$TARGET_IMAGES" \
     --output_dir "$GAN_OUTPUT" \
-    --epochs "${GAN_EPOCHS:-200}" \
-    --batch_size "${GAN_BATCH:-1}" \
+    --epochs 200 \
+    --batch_size 1 \
     --lr 0.0002 \
     --lambda_cyc 10.0 \
     --lambda_idt 5.0 \
-    --device "${DEVICE:-cuda}"
+    --device cuda
 
 # Step 2: Stylize source images
 echo "[Step 2] Stylizing source images..."
@@ -70,7 +70,7 @@ python tools/stylize_dataset.py \
     --generator_checkpoint "$LATEST_GAN" \
     --source_dir "$SOURCE_IMAGES" \
     --output_dir "$STYLIZED_DIR" \
-    --device "${DEVICE:-cuda}"
+    --device cuda
 
 # Step 3: Train detector on stylized images
 # Note: use original source labels with stylized images
@@ -80,10 +80,10 @@ python tools/train_detector.py \
     --data_root "$SOURCE_ROOT" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$DETECTOR_OUTPUT" \
-    --epochs "${DET_EPOCHS:-10}" \
-    --batch_size "${BATCH_SIZE:-2}" \
+    --epochs 10 \
+    --batch_size 2 \
     --lr 0.005 \
-    --device "${DEVICE:-cuda}" \
+    --device cuda \
     --pretrained
 
 # Step 4: Evaluate on target domain
@@ -94,7 +94,7 @@ python tools/evaluate_detector.py \
     --data_root "$TARGET_ROOT" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$DETECTOR_OUTPUT" \
-    --device "${DEVICE:-cuda}" \
+    --device cuda \
     --label "Experiment B: CycleGAN" \
     --benchmark "$BENCHMARK" \
     $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")

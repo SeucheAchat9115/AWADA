@@ -20,34 +20,34 @@ BENCHMARK=${1:-sim10k_to_cityscapes}
 
 if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
     SOURCE_DATASET="sim10k"
-    SOURCE_ROOT="${SIM10K_ROOT:-/data/sim10k}"
-    SOURCE_IMAGES="${SIM10K_ROOT:-/data/sim10k}/images"
+    SOURCE_ROOT="/data/sim10k"
+    SOURCE_IMAGES="/data/sim10k/images"
     TARGET_DATASET="cityscapes"
-    TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    TARGET_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    TARGET_ROOT="/data/cityscapes"
+    TARGET_IMAGES="/data/cityscapes/leftImg8bit/train"
     NUM_CLASSES=1
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_c_sim10k2cs"
-    BASELINE_CKPT="${OUTPUT_ROOT:-./outputs}/exp_a_sim10k2cs/detector_final.pth"
+    OUTPUT_BASE="./outputs/exp_c_sim10k2cs"
+    BASELINE_CKPT="./outputs/exp_a_sim10k2cs/detector_final.pth"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     SOURCE_DATASET="cityscapes"
-    SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    SOURCE_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    SOURCE_ROOT="/data/cityscapes"
+    SOURCE_IMAGES="/data/cityscapes/leftImg8bit/train"
     TARGET_DATASET="foggy_cityscapes"
-    TARGET_ROOT="${FOGGY_ROOT:-/data/foggy_cityscapes}"
-    TARGET_IMAGES="${FOGGY_ROOT:-/data/foggy_cityscapes}/leftImg8bit_foggy/train"
+    TARGET_ROOT="/data/foggy_cityscapes"
+    TARGET_IMAGES="/data/foggy_cityscapes/leftImg8bit_foggy/train"
     NUM_CLASSES=8
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_c_cs2foggy"
-    BASELINE_CKPT="${OUTPUT_ROOT:-./outputs}/exp_a_cs2foggy/detector_final.pth"
+    OUTPUT_BASE="./outputs/exp_c_cs2foggy"
+    BASELINE_CKPT="./outputs/exp_a_cs2foggy/detector_final.pth"
 elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
     SOURCE_DATASET="cityscapes"
-    SOURCE_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
-    SOURCE_IMAGES="${CITYSCAPES_ROOT:-/data/cityscapes}/leftImg8bit/train"
+    SOURCE_ROOT="/data/cityscapes"
+    SOURCE_IMAGES="/data/cityscapes/leftImg8bit/train"
     TARGET_DATASET="bdd100k"
-    TARGET_ROOT="${BDD100K_ROOT:-/data/bdd100k}"
-    TARGET_IMAGES="${BDD100K_ROOT:-/data/bdd100k}/images/100k/train"
+    TARGET_ROOT="/data/bdd100k"
+    TARGET_IMAGES="/data/bdd100k/images/100k/train"
     NUM_CLASSES=7
-    OUTPUT_BASE="${OUTPUT_ROOT:-./outputs}/exp_c_cs2bdd"
-    BASELINE_CKPT="${OUTPUT_ROOT:-./outputs}/exp_a_cs2bdd/detector_final.pth"
+    OUTPUT_BASE="./outputs/exp_c_cs2bdd"
+    BASELINE_CKPT="./outputs/exp_a_cs2bdd/detector_final.pth"
 else
     echo "Unknown benchmark: $BENCHMARK"
     exit 1
@@ -91,10 +91,10 @@ python tools/generate_attention_maps.py \
     --dataset "$SOURCE_DATASET" \
     --data_root "$SOURCE_ROOT" \
     --output_dir "$SOURCE_ATTENTION_DIR" \
-    --score_threshold "${SCORE_THRESHOLD:-0.5}" \
+    --score_threshold 0.5 \
     --num_classes "$NUM_CLASSES" \
     --split train \
-    --device "${DEVICE:-cuda}"
+    --device cuda
 
 # Step 2: Train CyCada GAN to learn the source → target style mapping
 echo "[Step 2] Training CyCada GAN for source→target style transfer..."
@@ -103,9 +103,9 @@ python tools/train_cycada.py \
     --target_dir "$TARGET_IMAGES" \
     --output_dir "$CYCADA_GAN_OUTPUT" \
     --config configs/cycada.yaml \
-    --epochs "${GAN_EPOCHS:-200}" \
-    --batch_size "${GAN_BATCH:-1}" \
-    --device "${DEVICE:-cuda}"
+    --epochs 200 \
+    --batch_size 1 \
+    --device cuda
 
 # Step 3: Stylize source images using the CyCada generator
 echo "[Step 3] Stylizing source images with CyCada generator..."
@@ -114,7 +114,7 @@ python tools/stylize_dataset.py \
     --generator_checkpoint "$LATEST_CYCADA_GAN" \
     --source_dir "$SOURCE_IMAGES" \
     --output_dir "$CYCADA_STYLIZED_DIR" \
-    --device "${DEVICE:-cuda}"
+    --device cuda
 
 # Step 4: Train a detector on the CyCada-stylized images
 # This detector has been exposed to the target visual style, making it suitable
@@ -126,10 +126,10 @@ python tools/train_detector.py \
     --image_dir "$CYCADA_STYLIZED_DIR" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$CYCADA_DETECTOR_OUTPUT" \
-    --epochs "${DET_EPOCHS:-10}" \
-    --batch_size "${BATCH_SIZE:-2}" \
+    --epochs 10 \
+    --batch_size 2 \
     --lr 0.005 \
-    --device "${DEVICE:-cuda}" \
+    --device cuda \
     --pretrained
 
 # Step 5: Generate target attention maps using the CyCada detector on real target images
@@ -139,10 +139,10 @@ python tools/generate_attention_maps.py \
     --dataset "$TARGET_DATASET" \
     --data_root "$TARGET_ROOT" \
     --output_dir "$TARGET_ATTENTION_DIR" \
-    --score_threshold "${SCORE_THRESHOLD:-0.5}" \
+    --score_threshold 0.5 \
     --num_classes "$NUM_CLASSES" \
     --split train \
-    --device "${DEVICE:-cuda}"
+    --device cuda
 
 # Step 6: Train AWADA CycleGAN with attention-masked losses
 # Source attention maps: from the source-trained detector (Step 1)
@@ -155,9 +155,9 @@ python tools/train_awada.py \
     --target_attention_dir "$TARGET_ATTENTION_DIR" \
     --output_dir "$AWADA_GAN_OUTPUT" \
     --config configs/awada.yaml \
-    --epochs "${GAN_EPOCHS:-200}" \
-    --batch_size "${GAN_BATCH:-1}" \
-    --device "${DEVICE:-cuda}"
+    --epochs 200 \
+    --batch_size 1 \
+    --device cuda
 
 # Step 7: Stylize source images using the AWADA generator
 echo "[Step 7] Stylizing source images with AWADA generator..."
@@ -166,7 +166,7 @@ python tools/stylize_dataset.py \
     --generator_checkpoint "$LATEST_AWADA_GAN" \
     --source_dir "$SOURCE_IMAGES" \
     --output_dir "$AWADA_STYLIZED_DIR" \
-    --device "${DEVICE:-cuda}"
+    --device cuda
 
 # Step 8: Train final detector on AWADA-stylized images
 echo "[Step 8] Training final detector on AWADA-stylized source images..."
@@ -176,10 +176,10 @@ python tools/train_detector.py \
     --image_dir "$AWADA_STYLIZED_DIR" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$DETECTOR_OUTPUT" \
-    --epochs "${DET_EPOCHS:-10}" \
-    --batch_size "${BATCH_SIZE:-2}" \
+    --epochs 10 \
+    --batch_size 2 \
     --lr 0.005 \
-    --device "${DEVICE:-cuda}" \
+    --device cuda \
     --pretrained
 
 # Step 9: Evaluate on target domain
@@ -190,7 +190,7 @@ python tools/evaluate_detector.py \
     --data_root "$TARGET_ROOT" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$DETECTOR_OUTPUT" \
-    --device "${DEVICE:-cuda}" \
+    --device cuda \
     --label "Experiment C: AWADA" \
     --benchmark "$BENCHMARK" \
     $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
