@@ -56,6 +56,13 @@ def main():
     parser.add_argument("--resume", default=None, help="Path to checkpoint to resume training from")
     args = parser.parse_args()
 
+    if args.target_attention_dir is None:
+        parser.error(
+            "--target_attention_dir is required. "
+            "Provide the path to the target domain attention map directory to avoid "
+            "silently executing with dummy all-ones maps."
+        )
+
     set_seed(args.seed)
 
     # Load defaults from config file, then apply CLI overrides
