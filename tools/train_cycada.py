@@ -12,7 +12,7 @@ from tqdm import tqdm
 from awada.config import DEFAULT_DEVICE
 from awada.datasets.unpaired_dataset import UnpairedImageDataset
 from awada.models.cycada import CyCada
-from awada.utils.train_utils import get_lambda_lr, load_config, set_seed
+from awada.utils.train_utils import get_lambda_lr, load_config, set_seed, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +81,7 @@ def main():
     log_interval = cfg.get("log_interval", 100)
 
     os.makedirs(args.output_dir, exist_ok=True)
+    setup_logging(args.output_dir)
     device = torch.device(device_str)
 
     dataset = UnpairedImageDataset(args.source_dir, args.target_dir, patch_size)
