@@ -51,27 +51,27 @@ echo "========================================"
 # Step 1: Train Faster R-CNN on source domain
 echo "[Step 1] Training detector on source domain..."
 python tools/train_detector.py \
-    --dataset "$SOURCE_DATASET" \
-    --data_root "$SOURCE_ROOT" \
-    --num_classes "$NUM_CLASSES" \
-    --output_dir "$OUTPUT_DIR" \
-    --epochs "${EPOCHS:-10}" \
-    --batch_size "${BATCH_SIZE:-2}" \
-    --lr 0.005 \
-    --device "${DEVICE:-cuda}" \
-    --pretrained
+    detector.dataset="$SOURCE_DATASET" \
+    detector.data_root="$SOURCE_ROOT" \
+    detector.num_classes="$NUM_CLASSES" \
+    detector.output_dir="$OUTPUT_DIR" \
+    detector.epochs="${EPOCHS:-10}" \
+    detector.batch_size="${BATCH_SIZE:-2}" \
+    detector.lr=0.005 \
+    hardware.device="${DEVICE:-cuda}" \
+    detector.pretrained=true
 
 echo ""
 echo "[Step 2] Evaluating on target domain (cross-domain, no adaptation)..."
 python tools/evaluate_detector.py \
-    --detector_checkpoint "$OUTPUT_DIR/detector_final.pth" \
-    --dataset "$TARGET_DATASET" \
-    --data_root "$TARGET_ROOT" \
-    --num_classes "$NUM_CLASSES" \
-    --output_dir "$OUTPUT_DIR" \
-    --device "${DEVICE:-cuda}" \
-    --label "Experiment A: Non-Adaptive Baseline" \
-    --benchmark "$BENCHMARK" \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
+    evaluate.detector_checkpoint="$OUTPUT_DIR/detector_final.pth" \
+    evaluate.dataset="$TARGET_DATASET" \
+    evaluate.data_root="$TARGET_ROOT" \
+    evaluate.num_classes="$NUM_CLASSES" \
+    evaluate.output_dir="$OUTPUT_DIR" \
+    hardware.device="${DEVICE:-cuda}" \
+    "evaluate.label=Experiment A: Non-Adaptive Baseline" \
+    evaluate.benchmark="$BENCHMARK" \
+    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "evaluate.classes=[car]")
 
 echo "Experiment A complete!"
