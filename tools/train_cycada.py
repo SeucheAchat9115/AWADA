@@ -73,12 +73,7 @@ def main():
 
     dataset = UnpairedImageDataset(args.source_dir, args.target_dir, patch_size)
     dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=4,
-        pin_memory=True,
-        drop_last=True,
+        dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True, drop_last=True
     )
 
     model = CyCada(
