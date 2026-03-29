@@ -1,0 +1,21 @@
+defaults:
+  - hardware: default
+  - _self_
+
+attention:
+  detector_checkpoint: ???
+  dataset: ???
+  data_root: ???
+  output_dir: ???
+  num_classes: ???
+  score_threshold: 0.5
+  split: train
+  seed: 42
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job_logging:
+    root:
+      handlers: []

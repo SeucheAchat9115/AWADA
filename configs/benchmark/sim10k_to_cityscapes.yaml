@@ -1,0 +1,7 @@
+# @package _global_
+# Sim10k (GTA synthetic) → Cityscapes (real urban) benchmark
+# Car detection: 1 foreground class
+data:
+  source_dir: /data/sim10k/images
+  target_dir: /data/cityscapes/leftImg8bit/train
+  output_dir: outputs/sim10k_to_cityscapes

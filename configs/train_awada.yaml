@@ -1,0 +1,33 @@
+defaults:
+  - model: awada
+  - hardware: default
+  - _self_
+
+training:
+  epochs: 200
+  lr: 0.0002
+  betas: [0.5, 0.999]
+  batch_size: 1
+  patch_size: 128
+  resize_min_side: 600
+  seed: 42
+  amp: false
+  save_every: 10
+  resume: null
+  log_interval: 100
+
+data:
+  source_dir: ???
+  target_dir: ???
+  source_attention_dir: ???
+  target_attention_dir: ???
+  output_dir: ???
+
+# Disable Hydra's default output directory management
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job_logging:
+    root:
+      handlers: []

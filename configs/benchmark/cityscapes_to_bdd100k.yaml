@@ -1,0 +1,7 @@
+# @package _global_
+# Cityscapes (European urban) → BDD100k (diverse driving) benchmark
+# 7-class detection (train class excluded)
+data:
+  source_dir: /data/cityscapes/leftImg8bit/train
+  target_dir: /data/bdd100k/images/100k/train
+  output_dir: outputs/cityscapes_to_bdd100k

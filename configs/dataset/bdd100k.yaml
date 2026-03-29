@@ -1,0 +1,10 @@
+# @package dataset
+class_names:
+  - pedestrian
+  - rider
+  - car
+  - truck
+  - bus
+  - motorcycle
+  - bicycle
+min_box_dim: 5

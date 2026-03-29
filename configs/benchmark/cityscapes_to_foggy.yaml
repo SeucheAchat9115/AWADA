@@ -1,0 +1,7 @@
+# @package _global_
+# Cityscapes (clear) → Foggy Cityscapes (foggy) benchmark
+# 8-class detection
+data:
+  source_dir: /data/cityscapes/leftImg8bit/train
+  target_dir: /data/foggy_cityscapes/leftImg8bit_foggy/train
+  output_dir: outputs/cityscapes_to_foggy

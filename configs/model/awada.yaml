@@ -1,0 +1,8 @@
+# @package model
+lambda_gan: 1.0
+lambda_cyc: 10.0
+lambda_idt: 0.0
+lambda_sem: 0.0
+buffer_size: 50
+buffer_return_prob: 0.5
+disc_loss_avg_factor: 0.5

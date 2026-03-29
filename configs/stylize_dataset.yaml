@@ -1,0 +1,16 @@
+defaults:
+  - hardware: default
+  - _self_
+
+stylize:
+  generator_checkpoint: ???
+  source_dir: ???
+  output_dir: ???
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job_logging:
+    root:
+      handlers: []

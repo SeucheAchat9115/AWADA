@@ -1,0 +1,19 @@
+# @package dataset
+class_names:
+  - person
+  - rider
+  - car
+  - truck
+  - bus
+  - train
+  - motorcycle
+  - bicycle
+min_pixels_threshold: 10
+bdd100k_aligned_classes:
+  - person
+  - rider
+  - car
+  - truck
+  - bus
+  - motorcycle
+  - bicycle

@@ -1,0 +1,23 @@
+defaults:
+  - hardware: default
+  - _self_
+
+evaluate:
+  detector_checkpoint: ???
+  dataset: ???
+  data_root: ???
+  num_classes: ???
+  output_dir: ???
+  split: val
+  classes: null
+  resize: null
+  label: ""
+  benchmark: ""
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job_logging:
+    root:
+      handlers: []

@@ -1,0 +1,27 @@
+defaults:
+  - hardware: default
+  - _self_
+
+detector:
+  dataset: ???
+  data_root: ???
+  num_classes: ???
+  output_dir: ???
+  epochs: 10
+  batch_size: 2
+  lr: 0.005
+  pretrained: true
+  classes: null
+  image_dir: null
+  resize: null
+  seed: 42
+  log_interval: 100
+  amp: false
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job_logging:
+    root:
+      handlers: []
