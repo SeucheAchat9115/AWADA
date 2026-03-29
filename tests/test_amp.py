@@ -1,7 +1,6 @@
 """Tests for Automatic Mixed Precision (AMP) support in training scripts."""
 
 import argparse
-import sys
 from unittest.mock import patch
 
 import pytest
@@ -9,7 +8,6 @@ import torch
 
 from awada.models.awada import AWADA
 from awada.models.cyclegan import CycleGAN
-
 
 # ---------------------------------------------------------------------------
 # Argument parsing tests
@@ -55,14 +53,28 @@ def test_amp_flag_defaults_to_false(module):
     # Provide the minimum required positional args so argparse doesn't error
     # before we capture the namespace.
     if module == "tools.train_detector":
-        argv = ["--dataset", "sim10k", "--data_root", "/tmp", "--num_classes", "1", "--output_dir", "/tmp"]
+        argv = [
+            "--dataset",
+            "sim10k",
+            "--data_root",
+            "/tmp",
+            "--num_classes",
+            "1",
+            "--output_dir",
+            "/tmp",
+        ]
     elif module == "tools.train_awada":
         argv = [
-            "--source_dir", "/tmp",
-            "--target_dir", "/tmp",
-            "--source_attention_dir", "/tmp",
-            "--target_attention_dir", "/tmp",
-            "--output_dir", "/tmp",
+            "--source_dir",
+            "/tmp",
+            "--target_dir",
+            "/tmp",
+            "--source_attention_dir",
+            "/tmp",
+            "--target_attention_dir",
+            "/tmp",
+            "--output_dir",
+            "/tmp",
         ]
     else:
         argv = ["--source_dir", "/tmp", "--target_dir", "/tmp", "--output_dir", "/tmp"]
@@ -84,14 +96,29 @@ def test_amp_flag_defaults_to_false(module):
 def test_amp_flag_set_to_true(module):
     """Passing --amp sets the flag to True."""
     if module == "tools.train_detector":
-        argv = ["--dataset", "sim10k", "--data_root", "/tmp", "--num_classes", "1", "--output_dir", "/tmp", "--amp"]
+        argv = [
+            "--dataset",
+            "sim10k",
+            "--data_root",
+            "/tmp",
+            "--num_classes",
+            "1",
+            "--output_dir",
+            "/tmp",
+            "--amp",
+        ]
     elif module == "tools.train_awada":
         argv = [
-            "--source_dir", "/tmp",
-            "--target_dir", "/tmp",
-            "--source_attention_dir", "/tmp",
-            "--target_attention_dir", "/tmp",
-            "--output_dir", "/tmp",
+            "--source_dir",
+            "/tmp",
+            "--target_dir",
+            "/tmp",
+            "--source_attention_dir",
+            "/tmp",
+            "--target_attention_dir",
+            "/tmp",
+            "--output_dir",
+            "/tmp",
             "--amp",
         ]
     else:
@@ -120,12 +147,8 @@ def _make_gan_tensors():
 def test_cyclegan_amp_code_path():
     """CycleGAN training step runs without error with AMP code path (disabled on CPU)."""
     model = CycleGAN(device=DEVICE)
-    opt_G = torch.optim.Adam(
-        list(model.G_AB.parameters()) + list(model.G_BA.parameters()), lr=2e-4
-    )
-    opt_D = torch.optim.Adam(
-        list(model.D_A.parameters()) + list(model.D_B.parameters()), lr=2e-4
-    )
+    opt_G = torch.optim.Adam(list(model.G_AB.parameters()) + list(model.G_BA.parameters()), lr=2e-4)
+    opt_D = torch.optim.Adam(list(model.D_A.parameters()) + list(model.D_B.parameters()), lr=2e-4)
     scaler_G = torch.cuda.amp.GradScaler(enabled=False)
     scaler_D = torch.cuda.amp.GradScaler(enabled=False)
 
@@ -160,12 +183,8 @@ def test_cyclegan_amp_code_path():
 def test_awada_amp_code_path():
     """AWADA training step runs without error with AMP code path (disabled on CPU)."""
     model = AWADA(device=DEVICE)
-    opt_G = torch.optim.Adam(
-        list(model.G_AB.parameters()) + list(model.G_BA.parameters()), lr=2e-4
-    )
-    opt_D = torch.optim.Adam(
-        list(model.D_A.parameters()) + list(model.D_B.parameters()), lr=2e-4
-    )
+    opt_G = torch.optim.Adam(list(model.G_AB.parameters()) + list(model.G_BA.parameters()), lr=2e-4)
+    opt_D = torch.optim.Adam(list(model.D_A.parameters()) + list(model.D_B.parameters()), lr=2e-4)
     scaler_G = torch.cuda.amp.GradScaler(enabled=False)
     scaler_D = torch.cuda.amp.GradScaler(enabled=False)
 

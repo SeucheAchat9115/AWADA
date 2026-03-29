@@ -159,7 +159,9 @@ def main():
                 p.requires_grad_(False)
             opt_G.zero_grad()
             with torch.cuda.amp.autocast(enabled=args.amp):
-                g_losses = model.compute_generator_loss(lambda_cyc, lambda_gan, lambda_idt, lambda_sem)
+                g_losses = model.compute_generator_loss(
+                    lambda_cyc, lambda_gan, lambda_idt, lambda_sem
+                )
             for loss_name, loss_val in g_losses.items():
                 if not torch.isfinite(loss_val):
                     raise RuntimeError(
