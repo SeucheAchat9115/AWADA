@@ -16,7 +16,7 @@ from awada.datasets.cityscapes import CityscapesDetectionDataset
 from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
 from awada.datasets.sim10k import Sim10kDetectionDataset
 from awada.utils.metrics import compute_map_range
-from awada.utils.train_utils import set_seed
+from awada.utils.train_utils import set_seed, setup_logging
 from awada.utils.transforms import ResizeToMinSize
 
 logger = logging.getLogger(__name__)
@@ -116,6 +116,12 @@ def main():
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument(
+        "--log_interval",
+        type=int,
+        default=100,
+        help="Log training loss every N iterations",
+    )
+    parser.add_argument(
         "--amp",
         action="store_true",
         default=False,
@@ -126,6 +132,7 @@ def main():
     set_seed(args.seed)
 
     os.makedirs(args.output_dir, exist_ok=True)
+    setup_logging(args.output_dir)
     device = torch.device(args.device)
 
     resize_transform = ResizeToMinSize(args.resize) if args.resize is not None else None
@@ -200,12 +207,12 @@ def main():
             scaler.update()
 
             running_loss += losses.item()
-            if (iteration + 1) % 100 == 0:
+            if (iteration + 1) % args.log_interval == 0:
                 logger.info(
                     "  [Epoch %d, Iter %d] Loss: %.4f",
                     epoch + 1,
                     iteration + 1,
-                    running_loss / 100,
+                    running_loss / args.log_interval,
                 )
                 running_loss = 0.0
 
@@ -233,6 +240,8 @@ def main():
                 metrics["mAP@0.5"],
                 metrics["mAP@0.5:0.95"],
             )
+            for cat_id, ap in sorted(metrics["per_class_AP"].items()):
+                logger.info("  Class %d AP@0.5:0.95=%.4f", cat_id, ap)
 
     # Save final model
     final_path = os.path.join(args.output_dir, "detector_final.pth")
