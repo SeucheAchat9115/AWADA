@@ -9,19 +9,19 @@ BENCHMARK=${1:-sim10k_to_cityscapes}
 
 if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
     TARGET_DATASET="cityscapes"
-    TARGET_ROOT="${CITYSCAPES_ROOT:-/data/cityscapes}"
+    TARGET_ROOT="/data/cityscapes"
     NUM_CLASSES=1
-    OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_d_sim10k2cs"
+    OUTPUT_DIR="./outputs/exp_d_sim10k2cs"
 elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
     TARGET_DATASET="foggy_cityscapes"
-    TARGET_ROOT="${FOGGY_ROOT:-/data/foggy_cityscapes}"
+    TARGET_ROOT="/data/foggy_cityscapes"
     NUM_CLASSES=8
-    OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_d_cs2foggy"
+    OUTPUT_DIR="./outputs/exp_d_cs2foggy"
 elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
     TARGET_DATASET="bdd100k"
-    TARGET_ROOT="${BDD100K_ROOT:-/data/bdd100k}"
+    TARGET_ROOT="/data/bdd100k"
     NUM_CLASSES=7
-    OUTPUT_DIR="${OUTPUT_ROOT:-./outputs}/exp_d_cs2bdd"
+    OUTPUT_DIR="./outputs/exp_d_cs2bdd"
 else
     echo "Unknown benchmark: $BENCHMARK"
     exit 1
@@ -43,10 +43,10 @@ python tools/train_detector.py \
     --data_root "$TARGET_ROOT" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$OUTPUT_DIR" \
-    --epochs "${EPOCHS:-10}" \
-    --batch_size "${BATCH_SIZE:-2}" \
+    --epochs 10 \
+    --batch_size 2 \
     --lr 0.005 \
-    --device "${DEVICE:-cuda}" \
+    --device cuda \
     --pretrained \
     $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
 
@@ -57,7 +57,7 @@ python tools/evaluate_detector.py \
     --data_root "$TARGET_ROOT" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$OUTPUT_DIR" \
-    --device "${DEVICE:-cuda}" \
+    --device cuda \
     --label "Experiment D: Oracle" \
     --benchmark "$BENCHMARK" \
     $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
