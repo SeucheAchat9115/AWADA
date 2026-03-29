@@ -18,15 +18,20 @@ def generate_attention_maps(
 ) -> None:
     """Run source-domain images through Faster R-CNN and save binary attention maps.
 
-    Monkey-patches the RPN ``filter_proposals`` method to capture box
-    proposals and their objectness scores.  For each image, pixels inside
+    Registers a forward hook on the RPN module (``detector.rpn``) to capture
+    box proposals and their objectness scores.  For each image, pixels inside
     RPN boxes whose objectness score meets ``score_threshold`` are set to
     ``1``; all other pixels are ``0``.  Maps are saved as uint8 ``.npy``
     files with the same ``H × W`` spatial dimensions as the input image.
 
     Args:
-        detector: A torchvision Faster R-CNN model (or compatible) with an
-            ``rpn.filter_proposals`` attribute.
+        detector: A torchvision Faster R-CNN model (or compatible) whose
+            ``rpn`` attribute is a ``torch.nn.Module``.  The RPN's forward
+            pass must return a tuple whose first element is a list of
+            ``[N, 4]`` box tensors (one per image) and whose second element
+            is either a list of ``[N]`` score tensors or an empty dict (as
+            returned by the stock torchvision RPN in eval mode; in that case
+            all captured proposals are treated as having score ``1.0``).
         dataloader: DataLoader yielding batches of images (or ``(images, targets)``
             tuples).  When targets are present they must be dicts with an
             optional ``"image_id"`` key used to name the output file.
@@ -40,19 +45,22 @@ def generate_attention_maps(
     detector.eval()
     detector.to(device)
 
-    rpn_proposals = {}
+    rpn_proposals: dict[str, Any] = {}
 
-    # Monkey-patch filter_proposals to capture both boxes and objectness scores
-    original_filter_proposals = detector.rpn.filter_proposals
+    def rpn_hook(module: Any, input: Any, output: Any) -> None:
+        """Forward hook that records boxes and scores from the RPN module."""
+        boxes = output[0]
+        raw_scores = output[1]
+        # torchvision RPN returns (boxes, losses_dict) in eval mode; models
+        # that expose objectness scores return (boxes, scores_list) instead.
+        if isinstance(raw_scores, list):
+            scores: list[torch.Tensor] = raw_scores
+        else:
+            scores = [torch.ones(len(b), device=b.device) for b in boxes]
+        rpn_proposals["boxes"] = boxes
+        rpn_proposals["scores"] = scores
 
-    def capturing_filter_proposals(*args: Any, **kwargs: Any) -> Any:
-        """Wrapper that records RPN proposals before returning the original result."""
-        result = original_filter_proposals(*args, **kwargs)
-        rpn_proposals["boxes"] = result[0]
-        rpn_proposals["scores"] = result[1]
-        return result
-
-    detector.rpn.filter_proposals = capturing_filter_proposals
+    hook_handle = detector.rpn.register_forward_hook(rpn_hook)
 
     try:
         with torch.no_grad():
@@ -65,7 +73,7 @@ def generate_attention_maps(
 
                 images = [img.to(device) for img in images]
 
-                # Run forward pass to trigger the capturing wrapper
+                # Run forward pass to trigger the RPN hook
                 _ = detector(images)
 
                 boxes_list = rpn_proposals.get("boxes", [])
@@ -101,6 +109,6 @@ def generate_attention_maps(
                     out_path = os.path.join(output_dir, f"{img_id:06d}.npy")
                     np.save(out_path, attention_map.astype(np.uint8))
     finally:
-        detector.rpn.filter_proposals = original_filter_proposals
+        hook_handle.remove()
 
     logger.info("Saved %d attention maps to %s", len(dataloader.dataset), output_dir)

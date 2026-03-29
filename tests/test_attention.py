@@ -6,13 +6,36 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from awada.utils.attention import generate_attention_maps
 
 
+class _FakeRPN(nn.Module):
+    """Minimal RPN stand-in whose forward returns (boxes_list, scores_list).
+
+    This allows ``register_forward_hook`` to fire just as it would on a real
+    ``torch.nn.Module``, so the hook-based implementation in
+    ``generate_attention_maps`` is exercised end-to-end.
+    """
+
+    def __init__(self, boxes_fn, scores_fn=None):
+        super().__init__()
+        self._boxes_fn = boxes_fn
+        self._scores_fn = scores_fn
+
+    def forward(self, imgs):
+        boxes = self._boxes_fn(imgs)
+        if self._scores_fn is not None:
+            scores = self._scores_fn(imgs)
+        else:
+            scores = [torch.ones(len(b)) for b in boxes]
+        return boxes, scores
+
+
 def _build_detector(boxes_fn, scores_fn=None):
-    """Return a mock detector that provides proposals via a filter_proposals mock.
+    """Return a mock detector whose RPN is a real nn.Module.
 
     boxes_fn(imgs) -> list of [N, 4] tensors (one per image).
     scores_fn(imgs) -> list of [N] tensors; defaults to all-ones when omitted.
@@ -21,26 +44,12 @@ def _build_detector(boxes_fn, scores_fn=None):
     detector.eval.return_value = detector
     detector.to.return_value = detector
 
-    # Shared state so forward() can pass images to filter_proposals
-    _state = {"imgs": None}
-
-    def filter_proposals_impl(*args, **kwargs):
-        imgs = _state["imgs"]
-        boxes_list = boxes_fn(imgs)
-        if scores_fn is not None:
-            scores_list = scores_fn(imgs)
-        else:
-            scores_list = [torch.ones(len(b)) for b in boxes_list]
-        return boxes_list, scores_list
-
-    detector.rpn = MagicMock()
-    detector.rpn.filter_proposals = filter_proposals_impl
+    fake_rpn = _FakeRPN(boxes_fn, scores_fn)
+    detector.rpn = fake_rpn
 
     def forward(imgs):
-        _state["imgs"] = imgs
-        # Call the (potentially monkey-patched) filter_proposals so that
-        # generate_attention_maps can capture boxes and scores.
-        detector.rpn.filter_proposals(None, None, None, None)
+        # Invoke the RPN module so that any registered forward hook fires.
+        fake_rpn(imgs)
 
     detector.side_effect = forward
     return detector
