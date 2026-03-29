@@ -29,8 +29,12 @@ Thumbs.db
 
 # Outputs / checkpoints (do not commit large model files)
 outputs/
+checkpoints/
+runs/
 *.pth
+*.pt
 *.ckpt
+*.npy
 
 # Data (do not commit datasets)
 /data/
