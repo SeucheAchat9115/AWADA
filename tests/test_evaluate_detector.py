@@ -151,6 +151,14 @@ class TestEvaluate:
         assert "mAP@0.5" in metrics
         assert "mAP@0.5:0.95" in metrics
 
+    def test_returns_per_class_ap(self):
+        """evaluate() must return a dict containing per_class_AP."""
+        model = build_model(num_classes=1)
+        loader = _make_loader(n_images=1)
+        metrics = evaluate(model, loader, torch.device("cpu"), num_classes=1)
+        assert "per_class_AP" in metrics
+        assert isinstance(metrics["per_class_AP"], dict)
+
     def test_map_values_are_floats_in_range(self):
         model = build_model(num_classes=1)
         loader = _make_loader(n_images=1)

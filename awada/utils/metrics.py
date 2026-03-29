@@ -99,7 +99,8 @@ def compute_map_range(
         num_classes: number of foreground classes; inferred from data if None
 
     Returns:
-        dict with 'mAP@0.5' and 'mAP@0.5:0.95'
+        dict with 'mAP@0.5', 'mAP@0.5:0.95', and 'per_class_AP' (a dict mapping
+        category id to AP@0.5:0.95 for that category).
     """
     if num_classes is None:
         all_labels = []
@@ -116,7 +117,7 @@ def compute_map_range(
         coco_gt.createIndex()
 
     if len(results) == 0:
-        return {"mAP@0.5": 0.0, "mAP@0.5:0.95": 0.0}
+        return {"mAP@0.5": 0.0, "mAP@0.5:0.95": 0.0, "per_class_AP": {}}
 
     with contextlib.redirect_stdout(io.StringIO()):
         coco_dt = coco_gt.loadRes(results)
@@ -131,4 +132,17 @@ def compute_map_range(
     map_50_95 = float(coco_eval.stats[0])
     map_50 = float(coco_eval.stats[1])
 
-    return {"mAP@0.5": map_50, "mAP@0.5:0.95": map_50_95}
+    # Extract per-category AP@0.5:0.95 from precision array.
+    # precision has shape [T, R, K, A, M]:
+    #   T = IoU thresholds, R = recall thresholds, K = categories,
+    #   A = area ranges, M = max detections.
+    # Use A=0 (all areas) and M=2 (corresponding to maxDets=100).
+    per_class_AP: Dict[int, float] = {}
+    if coco_eval.eval and "precision" in coco_eval.eval:
+        precision = coco_eval.eval["precision"]  # numpy array [T, R, K, A, M]
+        for k, cat_id in enumerate(coco_eval.params.catIds):
+            prec = precision[:, :, k, 0, 2]
+            valid = prec[prec > -1]
+            per_class_AP[int(cat_id)] = float(valid.mean()) if len(valid) > 0 else 0.0
+
+    return {"mAP@0.5": map_50, "mAP@0.5:0.95": map_50_95, "per_class_AP": per_class_AP}

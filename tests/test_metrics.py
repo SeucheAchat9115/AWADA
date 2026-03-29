@@ -91,6 +91,7 @@ class TestComputeMapRange:
         result = compute_map_range(preds, targets, num_classes=2)
         assert "mAP@0.5" in result
         assert "mAP@0.5:0.95" in result
+        assert "per_class_AP" in result
 
     def test_empty_predictions_returns_zeros(self):
         preds = [
@@ -104,6 +105,7 @@ class TestComputeMapRange:
         result = compute_map_range(preds, targets, num_classes=1)
         assert result["mAP@0.5"] == pytest.approx(0.0)
         assert result["mAP@0.5:0.95"] == pytest.approx(0.0)
+        assert result["per_class_AP"] == {}
 
     def test_perfect_prediction_high_map(self):
         """Perfect predictions (boxes and labels exactly matching) should yield mAP = 1."""
@@ -131,3 +133,29 @@ class TestComputeMapRange:
         targets = targets * 3
         result = compute_map_range(preds, targets, num_classes=2)
         assert result["mAP@0.5"] > 0.0
+
+    def test_per_class_ap_returned_as_dict(self):
+        """per_class_AP should be a dict mapping category id (int) to float AP."""
+        preds, targets = _make_perfect_pair(n_boxes=2, num_classes=2)
+        result = compute_map_range(preds, targets, num_classes=2)
+        per_class = result["per_class_AP"]
+        assert isinstance(per_class, dict)
+        for cat_id, ap in per_class.items():
+            assert isinstance(cat_id, int)
+            assert 0.0 <= ap <= 1.0
+
+    def test_per_class_ap_keys_match_category_ids(self):
+        """Keys in per_class_AP should correspond to the 1-indexed category IDs."""
+        preds, targets = _make_perfect_pair(n_boxes=2, num_classes=2)
+        result = compute_map_range(preds, targets, num_classes=2)
+        per_class = result["per_class_AP"]
+        # With num_classes=2 and perfect predictions the dict should have entries for classes 1 and 2
+        assert 1 in per_class
+        assert 2 in per_class
+
+    def test_per_class_ap_perfect_prediction_is_one(self):
+        """Perfect predictions should yield AP ≈ 1.0 for each class present."""
+        preds, targets = _make_perfect_pair(n_boxes=2, num_classes=2)
+        result = compute_map_range(preds, targets, num_classes=2)
+        for ap in result["per_class_AP"].values():
+            assert ap == pytest.approx(1.0, abs=0.01)

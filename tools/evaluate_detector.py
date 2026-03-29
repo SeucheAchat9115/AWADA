@@ -173,6 +173,11 @@ def main():
     print(f"{label}:")
     print(f"  mAP@0.5      = {metrics['mAP@0.5']:.4f}")
     print(f"  mAP@0.5:0.95 = {metrics['mAP@0.5:0.95']:.4f}")
+    per_class_AP = metrics.get("per_class_AP", {})
+    if per_class_AP:
+        print("  Per-class AP@0.5:0.95:")
+        for cat_id, ap in sorted(per_class_AP.items()):
+            print(f"    class {cat_id}: {ap:.4f}")
 
     os.makedirs(args.output_dir, exist_ok=True)
     results_path = os.path.join(args.output_dir, "results.txt")
