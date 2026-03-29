@@ -85,22 +85,31 @@ class AttentionPairedDataset(Dataset):
         """Return the number of source images in the dataset."""
         return len(self.source_files)
 
-    def _load_attention(self, img_path: str, attention_root: str) -> np.ndarray | None:
-        """Load a ``.npy`` attention map for the given image, if it exists.
+    def _load_attention(self, img_path: str, attention_root: str) -> np.ndarray:
+        """Load a ``.npy`` attention map for the given image.
 
         Args:
             img_path: Path to the image file whose attention map is requested.
             attention_root: Directory where ``.npy`` attention maps are stored.
 
         Returns:
-            Float32 array of shape ``[H, W]`` when found, ``None`` otherwise.
+            Float32 array of shape ``[H, W]``.
+
+        Raises:
+            FileNotFoundError: If the expected ``.npy`` attention map file is
+                not found in ``attention_root``.  This indicates a
+                misconfigured dataset; run ``generate_attention_maps.py`` to
+                produce the missing file before restarting.
         """
         filename_stem = os.path.splitext(os.path.basename(img_path))[0]
         npy_path = os.path.join(attention_root, filename_stem + ".npy")
-        if os.path.exists(npy_path):
-            return np.load(npy_path).astype(np.float32)
-        # If no attention map found, return None (will use all-ones later)
-        return None
+        if not os.path.exists(npy_path):
+            raise FileNotFoundError(
+                f"Attention map not found: '{npy_path}'. "
+                "Please run 'generate_attention_maps.py' to produce the required "
+                "attention maps before restarting the job."
+            )
+        return np.load(npy_path).astype(np.float32)
 
     def _crop_attention(
         self, img_path: str, attention_root: str, x: int, y: int, p: int
@@ -115,19 +124,20 @@ class AttentionPairedDataset(Dataset):
             p: Side length of the square crop in pixels.
 
         Returns:
-            Attention patch tensor of shape ``[1, p, p]``.  All-ones when no
-            attention map file exists.
+            Attention patch tensor of shape ``[1, p, p]``.
+
+        Raises:
+            FileNotFoundError: If the expected ``.npy`` attention map file is
+                not found (propagated from :meth:`_load_attention`).
         """
         attention = self._load_attention(img_path, attention_root)
-        if attention is not None:
-            att_patch = attention[y : y + p, x : x + p]
-            # Pad if near border
-            pad_h = max(0, p - att_patch.shape[0])
-            pad_w = max(0, p - att_patch.shape[1])
-            if pad_h > 0 or pad_w > 0:
-                att_patch = np.pad(att_patch, ((0, pad_h), (0, pad_w)), mode="constant")
-            return torch.from_numpy(att_patch).unsqueeze(0)  # [1, p, p]
-        return torch.ones(1, p, p)
+        att_patch = attention[y : y + p, x : x + p]
+        # Pad if near border
+        pad_h = max(0, p - att_patch.shape[0])
+        pad_w = max(0, p - att_patch.shape[1])
+        if pad_h > 0 or pad_w > 0:
+            att_patch = np.pad(att_patch, ((0, pad_h), (0, pad_w)), mode="constant")
+        return torch.from_numpy(att_patch).unsqueeze(0)  # [1, p, p]
 
     def __getitem__(
         self, idx: int

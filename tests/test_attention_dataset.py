@@ -1,4 +1,4 @@
-"""Tests for AttentionPairedDataset covering patch extraction, normalization, and attention map fallback behavior."""
+"""Tests for AttentionPairedDataset covering patch extraction, normalization, and attention map loading."""
 
 import numpy as np
 import pytest
@@ -121,8 +121,8 @@ class TestAttentionPairedDataset:
         _, _, _, att_B = ds[0]
         assert att_B.shape == (1, 32, 32)
 
-    def test_missing_attention_fallback_to_ones(self, tmp_path):
-        """When attention .npy file is missing, fallback to all-ones mask."""
+    def test_missing_attention_raises_file_not_found(self, tmp_path):
+        """When attention .npy file is missing, FileNotFoundError must be raised."""
         src_dir = tmp_path / "src"
         tgt_dir = tmp_path / "tgt"
         att_dir = tmp_path / "att"  # empty – no .npy files
@@ -136,10 +136,8 @@ class TestAttentionPairedDataset:
         tgt_img.save(str(tgt_dir / "tgt_000.png"))
 
         ds = AttentionPairedDataset(str(src_dir), str(tgt_dir), str(att_dir), patch_size=32)
-        _, _, att_A, _ = ds[0]
-        import torch
-
-        assert (att_A == torch.ones(1, 32, 32)).all()
+        with pytest.raises(FileNotFoundError, match="generate_attention_maps"):
+            ds[0]
 
 
 class TestAttentionPairedDatasetDirectoryChecks:
