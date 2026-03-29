@@ -9,21 +9,23 @@ scripts can call this instead of embedding inline Python.
 Example usage::
 
     python evaluate_detector.py \\
-        --detector_checkpoint outputs/exp_a/detector_final.pth \\
-        --dataset cityscapes \\
-        --data_root /data/cityscapes \\
-        --num_classes 1 \\
-        --output_dir outputs/exp_a \\
-        --label "Experiment A: Non-Adaptive Baseline" \\
-        --benchmark sim10k_to_cityscapes \\
-        --classes car \\
-        --device cuda
+        evaluate.detector_checkpoint=outputs/exp_a/detector_final.pth \\
+        evaluate.dataset=cityscapes \\
+        evaluate.data_root=/data/cityscapes \\
+        evaluate.num_classes=1 \\
+        evaluate.output_dir=outputs/exp_a \\
+        evaluate.label="Experiment A: Non-Adaptive Baseline" \\
+        evaluate.benchmark=sim10k_to_cityscapes \\
+        evaluate.classes=[car] \\
+        hardware.device=cuda
 """
 
-import argparse
+import logging
 import os
 
+import hydra
 import torch
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -34,6 +36,8 @@ from awada.datasets.cityscapes import CityscapesDetectionDataset
 from awada.datasets.foggy_cityscapes import FoggyCityscapesDetectionDataset
 from awada.utils.metrics import compute_map_range
 from awada.utils.transforms import ResizeToMinSize
+
+logger = logging.getLogger(__name__)
 
 
 def collate_fn(batch):
@@ -94,82 +98,30 @@ def evaluate(model, dataloader, device, num_classes):
     return compute_map_range(predictions, targets_all, num_classes=num_classes)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Evaluate a Faster R-CNN detector on a target-domain dataset"
-    )
-    parser.add_argument(
-        "--detector_checkpoint",
-        required=True,
-        help="Path to the detector checkpoint (.pth)",
-    )
-    parser.add_argument(
-        "--dataset",
-        choices=["cityscapes", "foggy_cityscapes", "bdd100k"],
-        required=True,
-        help="Target dataset to evaluate on",
-    )
-    parser.add_argument("--data_root", required=True, help="Root directory of the dataset")
-    parser.add_argument(
-        "--num_classes", type=int, required=True, help="Number of foreground classes"
-    )
-    parser.add_argument(
-        "--output_dir", required=True, help="Directory where results.txt will be written"
-    )
-    parser.add_argument(
-        "--split",
-        default="val",
-        help="Dataset split to evaluate on (default: val)",
-    )
-    parser.add_argument(
-        "--device",
-        default="cuda" if torch.cuda.is_available() else "cpu",
-        help="Device to use for inference (default: cuda if available, else cpu)",
-    )
-    parser.add_argument(
-        "--classes",
-        nargs="+",
-        default=None,
-        help="Class names to include (cityscapes only, e.g. --classes car)",
-    )
-    parser.add_argument(
-        "--resize",
-        type=int,
-        default=None,
-        metavar="MIN_SIZE",
-        help=(
-            "Resize images so the shortest side equals MIN_SIZE pixels before evaluation "
-            "(e.g. --resize 600).  Also scales bounding boxes accordingly.  "
-            "Works with both original and stylized images."
-        ),
-    )
-    parser.add_argument(
-        "--label",
-        default="",
-        help="Human-readable experiment label written to results.txt (e.g. 'Experiment A: ...')",
-    )
-    parser.add_argument(
-        "--benchmark",
-        default="",
-        help="Benchmark identifier written to results.txt (e.g. sim10k_to_cityscapes)",
-    )
-    args = parser.parse_args()
+def _evaluate(cfg: DictConfig) -> None:
+    """Run detector evaluation from a Hydra config."""
+    device = torch.device(cfg.hardware.device)
 
-    device = torch.device(args.device)
-
-    resize_transform = ResizeToMinSize(args.resize) if args.resize is not None else None
+    classes = list(cfg.evaluate.classes) if cfg.evaluate.classes is not None else None
+    resize_transform = (
+        ResizeToMinSize(cfg.evaluate.resize) if cfg.evaluate.resize is not None else None
+    )
     dataset = get_dataset(
-        args.dataset, args.data_root, args.split, classes=args.classes, transforms=resize_transform
+        cfg.evaluate.dataset,
+        cfg.evaluate.data_root,
+        cfg.evaluate.split,
+        classes=classes,
+        transforms=resize_transform,
     )
     loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=collate_fn)
 
-    model = build_model(args.num_classes)
-    model = load_checkpoint(model, args.detector_checkpoint, device)
+    model = build_model(cfg.evaluate.num_classes)
+    model = load_checkpoint(model, cfg.evaluate.detector_checkpoint, device)
     model.to(device)
 
-    metrics = evaluate(model, loader, device, args.num_classes)
+    metrics = evaluate(model, loader, device, cfg.evaluate.num_classes)
 
-    label = args.label or f"Detector on {args.dataset}"
+    label = cfg.evaluate.label or f"Detector on {cfg.evaluate.dataset}"
     print(f"{label}:")
     print(f"  mAP@0.5      = {metrics['mAP@0.5']:.4f}")
     print(f"  mAP@0.5:0.95 = {metrics['mAP@0.5:0.95']:.4f}")
@@ -179,16 +131,21 @@ def main():
         for cat_id, ap in sorted(per_class_AP.items()):
             print(f"    class {cat_id}: {ap:.4f}")
 
-    os.makedirs(args.output_dir, exist_ok=True)
-    results_path = os.path.join(args.output_dir, "results.txt")
+    os.makedirs(cfg.evaluate.output_dir, exist_ok=True)
+    results_path = os.path.join(cfg.evaluate.output_dir, "results.txt")
     with open(results_path, "w") as f:
-        if args.label:
-            f.write(f"{args.label}\n")
-        if args.benchmark:
-            f.write(f"Benchmark: {args.benchmark}\n")
+        if cfg.evaluate.label:
+            f.write(f"{cfg.evaluate.label}\n")
+        if cfg.evaluate.benchmark:
+            f.write(f"Benchmark: {cfg.evaluate.benchmark}\n")
         f.write(f"mAP@0.5: {metrics['mAP@0.5']:.4f}\n")
         f.write(f"mAP@0.5:0.95: {metrics['mAP@0.5:0.95']:.4f}\n")
     print(f"Results saved to {results_path}")
+
+
+@hydra.main(version_base=None, config_path="../configs", config_name="evaluate_detector")
+def main(cfg: DictConfig) -> None:
+    _evaluate(cfg)
 
 
 if __name__ == "__main__":

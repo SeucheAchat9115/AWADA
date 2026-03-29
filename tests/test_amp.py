@@ -1,132 +1,68 @@
 """Tests for Automatic Mixed Precision (AMP) support in training scripts."""
 
-import argparse
-from unittest.mock import patch
+import os
 
 import pytest
 import torch
+from hydra import compose, initialize_config_dir
+from hydra.core.global_hydra import GlobalHydra
+from omegaconf import OmegaConf
 
 from awada.models.awada import AWADA
 from awada.models.cyclegan import CycleGAN
 
+# Path to configs directory
+CONFIGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "configs"))
+
 # ---------------------------------------------------------------------------
-# Argument parsing tests
+# Hydra config defaults tests
 # ---------------------------------------------------------------------------
 
 
-def _parse_train_args(script_module_name, extra_argv):
-    """Import the script module and invoke its parser with synthetic argv."""
-    import importlib
-
-    mod = importlib.import_module(script_module_name)
-    # Reach into the module to extract the parser by temporarily patching
-    # parse_args so we can capture the namespace without running main().
-    captured = {}
-
-    original_parse_args = argparse.ArgumentParser.parse_args
-
-    def fake_parse_args(self, args=None, namespace=None):
-        ns = original_parse_args(self, args=extra_argv, namespace=namespace)
-        captured["ns"] = ns
-        raise SystemExit(0)
-
-    with patch.object(argparse.ArgumentParser, "parse_args", fake_parse_args):
-        try:
-            mod.main()
-        except SystemExit:
-            pass
-
-    return captured.get("ns")
+def _get_cfg(config_name: str, overrides: list = None):
+    """Helper to compose a Hydra config for testing."""
+    GlobalHydra.instance().clear()
+    with initialize_config_dir(config_dir=CONFIGS_DIR, version_base=None):
+        cfg = compose(config_name=config_name, overrides=overrides or [])
+    GlobalHydra.instance().clear()
+    return cfg
 
 
 @pytest.mark.parametrize(
-    "module",
+    "config_name",
     [
-        "tools.train_cyclegan",
-        "tools.train_cycada",
-        "tools.train_awada",
-        "tools.train_detector",
+        "train_cyclegan",
+        "train_cycada",
+        "train_awada",
+        "train_detector",
     ],
 )
-def test_amp_flag_defaults_to_false(module):
-    """--amp defaults to False when not supplied."""
-    # Provide the minimum required positional args so argparse doesn't error
-    # before we capture the namespace.
-    if module == "tools.train_detector":
-        argv = [
-            "--dataset",
-            "sim10k",
-            "--data_root",
-            "/tmp",
-            "--num_classes",
-            "1",
-            "--output_dir",
-            "/tmp",
-        ]
-    elif module == "tools.train_awada":
-        argv = [
-            "--source_dir",
-            "/tmp",
-            "--target_dir",
-            "/tmp",
-            "--source_attention_dir",
-            "/tmp",
-            "--target_attention_dir",
-            "/tmp",
-            "--output_dir",
-            "/tmp",
-        ]
+def test_amp_defaults_to_false(config_name):
+    """training.amp (or detector.amp) defaults to False when not supplied."""
+    cfg = _get_cfg(config_name)
+    if config_name == "train_detector":
+        assert cfg.detector.amp is False
     else:
-        argv = ["--source_dir", "/tmp", "--target_dir", "/tmp", "--output_dir", "/tmp"]
-
-    ns = _parse_train_args(module, argv)
-    assert ns is not None, f"Could not capture namespace from {module}"
-    assert ns.amp is False
+        assert cfg.training.amp is False
 
 
 @pytest.mark.parametrize(
-    "module",
+    "config_name",
     [
-        "tools.train_cyclegan",
-        "tools.train_cycada",
-        "tools.train_awada",
-        "tools.train_detector",
+        "train_cyclegan",
+        "train_cycada",
+        "train_awada",
+        "train_detector",
     ],
 )
-def test_amp_flag_set_to_true(module):
-    """Passing --amp sets the flag to True."""
-    if module == "tools.train_detector":
-        argv = [
-            "--dataset",
-            "sim10k",
-            "--data_root",
-            "/tmp",
-            "--num_classes",
-            "1",
-            "--output_dir",
-            "/tmp",
-            "--amp",
-        ]
-    elif module == "tools.train_awada":
-        argv = [
-            "--source_dir",
-            "/tmp",
-            "--target_dir",
-            "/tmp",
-            "--source_attention_dir",
-            "/tmp",
-            "--target_attention_dir",
-            "/tmp",
-            "--output_dir",
-            "/tmp",
-            "--amp",
-        ]
+def test_amp_can_be_set_to_true(config_name):
+    """Passing training.amp=true (or detector.amp=true) sets the flag to True."""
+    if config_name == "train_detector":
+        cfg = _get_cfg(config_name, overrides=["detector.amp=true"])
+        assert cfg.detector.amp is True
     else:
-        argv = ["--source_dir", "/tmp", "--target_dir", "/tmp", "--output_dir", "/tmp", "--amp"]
-
-    ns = _parse_train_args(module, argv)
-    assert ns is not None, f"Could not capture namespace from {module}"
-    assert ns.amp is True
+        cfg = _get_cfg(config_name, overrides=["training.amp=true"])
+        assert cfg.training.amp is True
 
 
 # ---------------------------------------------------------------------------

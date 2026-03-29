@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Train Faster R-CNN on a source or target domain dataset."""
 
-import argparse
 import logging
 import os
 
+import hydra
 import torch
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, fasterrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -71,95 +72,42 @@ def evaluate(model, dataloader, device, num_classes):
     return compute_map_range(predictions, targets_all, num_classes=num_classes)
 
 
-def main():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    parser = argparse.ArgumentParser(description="Train Faster R-CNN detector")
-    parser.add_argument(
-        "--dataset", choices=["sim10k", "cityscapes", "foggy_cityscapes", "bdd100k"], required=True
-    )
-    parser.add_argument("--data_root", required=True)
-    parser.add_argument("--num_classes", type=int, required=True)
-    parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--lr", type=float, default=0.005)
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
-    parser.add_argument("--pretrained", action="store_true", default=True)
-    parser.add_argument("--no_pretrained", dest="pretrained", action="store_false")
-    parser.add_argument(
-        "--classes",
-        nargs="+",
-        default=None,
-        help="Class names to include (cityscapes only, e.g. --classes car)",
-    )
-    parser.add_argument(
-        "--image_dir",
-        default=None,
-        help=(
-            "Override the default image directory with a custom path. "
-            "Useful for training on stylized images while keeping the original annotations. "
-            "For sim10k: path to a flat directory of image files. "
-            "For cityscapes/foggy_cityscapes: path to a directory with the same city-based "
-            "subdirectory structure as the standard image root."
-        ),
-    )
-    parser.add_argument(
-        "--resize",
-        type=int,
-        default=None,
-        metavar="MIN_SIZE",
-        help=(
-            "Resize images so the shortest side equals MIN_SIZE pixels before training "
-            "(e.g. --resize 600).  Also scales bounding boxes accordingly.  "
-            "Works with both original and stylized images."
-        ),
-    )
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
-    parser.add_argument(
-        "--log_interval",
-        type=int,
-        default=100,
-        help="Log training loss every N iterations",
-    )
-    parser.add_argument(
-        "--amp",
-        action="store_true",
-        default=False,
-        help="Enable Automatic Mixed Precision (AMP) training",
-    )
-    args = parser.parse_args()
+def _train(cfg: DictConfig) -> None:
+    """Run detector training from a Hydra config."""
+    set_seed(cfg.detector.seed)
 
-    set_seed(args.seed)
+    os.makedirs(cfg.detector.output_dir, exist_ok=True)
+    setup_logging(cfg.detector.output_dir)
+    device = torch.device(cfg.hardware.device)
 
-    os.makedirs(args.output_dir, exist_ok=True)
-    setup_logging(args.output_dir)
-    device = torch.device(args.device)
+    classes = list(cfg.detector.classes) if cfg.detector.classes is not None else None
+    image_dir = cfg.detector.image_dir
+    resize_transform = ResizeToMinSize(cfg.detector.resize) if cfg.detector.resize is not None else None
 
-    resize_transform = ResizeToMinSize(args.resize) if args.resize is not None else None
     train_dataset = get_dataset(
-        args.dataset,
-        args.data_root,
+        cfg.detector.dataset,
+        cfg.detector.data_root,
         split="train",
-        classes=args.classes,
-        image_dir=args.image_dir,
+        classes=classes,
+        image_dir=image_dir,
         transforms=resize_transform,
     )
     # sim10k (GTA) does not require a validation split; all images are used for training.
     val_dataset = (
         get_dataset(
-            args.dataset,
-            args.data_root,
+            cfg.detector.dataset,
+            cfg.detector.data_root,
             split="val",
-            classes=args.classes,
+            classes=classes,
             transforms=resize_transform,
         )
-        if args.dataset != "sim10k"
+        if cfg.detector.dataset != "sim10k"
         else None
     )
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
+        batch_size=cfg.detector.batch_size,
         shuffle=True,
         num_workers=4,
         collate_fn=collate_fn,
@@ -171,19 +119,19 @@ def main():
         else None
     )
 
-    model = build_model(args.num_classes, pretrained=args.pretrained)
+    model = build_model(cfg.detector.num_classes, pretrained=cfg.detector.pretrained)
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=args.lr, momentum=0.9, weight_decay=5e-4)
+    optimizer = torch.optim.SGD(params, lr=cfg.detector.lr, momentum=0.9, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
-    scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
+    scaler = torch.cuda.amp.GradScaler(enabled=cfg.detector.amp)
 
-    for epoch in range(args.epochs):
+    for epoch in range(cfg.detector.epochs):
         model.train()
         running_loss = 0.0
         for iteration, (images, targets) in enumerate(
-            tqdm(train_loader, desc=f"Epoch {epoch + 1}/{args.epochs}")
+            tqdm(train_loader, desc=f"Epoch {epoch + 1}/{cfg.detector.epochs}")
         ):
             images = [img.to(device) for img in images]
             targets = [
@@ -197,7 +145,7 @@ def main():
                 continue
             images, targets = zip(*valid)
 
-            with torch.cuda.amp.autocast(enabled=args.amp):
+            with torch.cuda.amp.autocast(enabled=cfg.detector.amp):
                 loss_dict = model(list(images), list(targets))
                 losses = sum(loss_dict.values())
 
@@ -207,19 +155,19 @@ def main():
             scaler.update()
 
             running_loss += losses.item()
-            if (iteration + 1) % args.log_interval == 0:
+            if (iteration + 1) % cfg.detector.log_interval == 0:
                 logger.info(
                     "  [Epoch %d, Iter %d] Loss: %.4f",
                     epoch + 1,
                     iteration + 1,
-                    running_loss / args.log_interval,
+                    running_loss / cfg.detector.log_interval,
                 )
                 running_loss = 0.0
 
         scheduler.step()
 
         # Save checkpoint
-        ckpt_path = os.path.join(args.output_dir, f"detector_epoch_{epoch + 1}.pth")
+        ckpt_path = os.path.join(cfg.detector.output_dir, f"detector_epoch_{epoch + 1}.pth")
         torch.save(
             {
                 "epoch": epoch + 1,
@@ -233,7 +181,7 @@ def main():
 
         # Evaluate
         if val_loader is not None:
-            metrics = evaluate(model, val_loader, device, args.num_classes)
+            metrics = evaluate(model, val_loader, device, cfg.detector.num_classes)
             logger.info(
                 "Epoch %d Validation: mAP@0.5=%.4f, mAP@0.5:0.95=%.4f",
                 epoch + 1,
@@ -244,9 +192,15 @@ def main():
                 logger.info("  Class %d AP@0.5:0.95=%.4f", cat_id, ap)
 
     # Save final model
-    final_path = os.path.join(args.output_dir, "detector_final.pth")
+    final_path = os.path.join(cfg.detector.output_dir, "detector_final.pth")
     torch.save(model.state_dict(), final_path)
     logger.info("Final model saved to %s", final_path)
+
+
+@hydra.main(version_base=None, config_path="../configs", config_name="train_detector")
+def main(cfg: DictConfig) -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    _train(cfg)
 
 
 if __name__ == "__main__":

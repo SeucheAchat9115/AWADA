@@ -181,48 +181,39 @@ class TestEvaluate:
 
 class TestMain:
     def test_writes_results_txt(self, tmp_path):
-        """Running main() end-to-end should create results.txt in output_dir."""
+        """Running _evaluate() end-to-end should create results.txt in output_dir."""
+        from omegaconf import OmegaConf
+        from tools.evaluate_detector import _evaluate
+
         model = build_model(num_classes=1)
         ckpt_path = str(tmp_path / "det.pth")
         torch.save(model.state_dict(), ckpt_path)
 
-        # Patch the dataset so we don't need real data on disk
         mock_dataset = [
             (
                 torch.randn(3, 64, 64),
-                {
-                    "boxes": torch.tensor([[5.0, 5.0, 30.0, 30.0]]),
-                    "labels": torch.tensor([1]),
-                },
+                {"boxes": torch.tensor([[5.0, 5.0, 30.0, 30.0]]), "labels": torch.tensor([1])},
             )
         ]
 
-        with patch("tools.evaluate_detector.get_dataset", return_value=mock_dataset):
-            from tools.evaluate_detector import main
+        cfg = OmegaConf.create({
+            "evaluate": {
+                "detector_checkpoint": ckpt_path,
+                "dataset": "cityscapes",
+                "data_root": "/fake",
+                "num_classes": 1,
+                "output_dir": str(tmp_path),
+                "split": "val",
+                "classes": None,
+                "resize": None,
+                "label": "Test Experiment",
+                "benchmark": "sim10k_to_cityscapes",
+            },
+            "hardware": {"device": "cpu"},
+        })
 
-            with patch(
-                "sys.argv",
-                [
-                    "evaluate_detector.py",
-                    "--detector_checkpoint",
-                    ckpt_path,
-                    "--dataset",
-                    "cityscapes",
-                    "--data_root",
-                    "/fake",
-                    "--num_classes",
-                    "1",
-                    "--output_dir",
-                    str(tmp_path),
-                    "--device",
-                    "cpu",
-                    "--label",
-                    "Test Experiment",
-                    "--benchmark",
-                    "sim10k_to_cityscapes",
-                ],
-            ):
-                main()
+        with patch("tools.evaluate_detector.get_dataset", return_value=mock_dataset):
+            _evaluate(cfg)
 
         results_path = tmp_path / "results.txt"
         assert results_path.exists()
@@ -233,7 +224,10 @@ class TestMain:
         assert "mAP@0.5:0.95:" in content
 
     def test_results_txt_without_label_or_benchmark(self, tmp_path):
-        """results.txt should still be written even when --label and --benchmark are omitted."""
+        """results.txt should still be written even when label and benchmark are empty."""
+        from omegaconf import OmegaConf
+        from tools.evaluate_detector import _evaluate
+
         model = build_model(num_classes=8)
         ckpt_path = str(tmp_path / "det.pth")
         torch.save(model.state_dict(), ckpt_path)
@@ -241,35 +235,28 @@ class TestMain:
         mock_dataset = [
             (
                 torch.randn(3, 64, 64),
-                {
-                    "boxes": torch.tensor([[5.0, 5.0, 30.0, 30.0]]),
-                    "labels": torch.tensor([1]),
-                },
+                {"boxes": torch.tensor([[5.0, 5.0, 30.0, 30.0]]), "labels": torch.tensor([1])},
             )
         ]
 
-        with patch("tools.evaluate_detector.get_dataset", return_value=mock_dataset):
-            from tools.evaluate_detector import main
+        cfg = OmegaConf.create({
+            "evaluate": {
+                "detector_checkpoint": ckpt_path,
+                "dataset": "foggy_cityscapes",
+                "data_root": "/fake",
+                "num_classes": 8,
+                "output_dir": str(tmp_path),
+                "split": "val",
+                "classes": None,
+                "resize": None,
+                "label": "",
+                "benchmark": "",
+            },
+            "hardware": {"device": "cpu"},
+        })
 
-            with patch(
-                "sys.argv",
-                [
-                    "evaluate_detector.py",
-                    "--detector_checkpoint",
-                    ckpt_path,
-                    "--dataset",
-                    "foggy_cityscapes",
-                    "--data_root",
-                    "/fake",
-                    "--num_classes",
-                    "8",
-                    "--output_dir",
-                    str(tmp_path),
-                    "--device",
-                    "cpu",
-                ],
-            ):
-                main()
+        with patch("tools.evaluate_detector.get_dataset", return_value=mock_dataset):
+            _evaluate(cfg)
 
         results_path = tmp_path / "results.txt"
         assert results_path.exists()

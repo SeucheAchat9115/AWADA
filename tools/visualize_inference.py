@@ -5,35 +5,28 @@ For each input image the script produces a side-by-side PNG showing:
   left  – original source image
   right – style-translated output
 
-Usage examples
---------------
-# Translate a directory of images and save visualizations:
-python visualize_inference.py \
-    --checkpoint outputs/awada_gan/awada_epoch_200.pth \
-    --input_dir  /data/sim10k/images \
-    --output_dir outputs/visualizations
+Example usage::
 
-# Translate a single image:
-python visualize_inference.py \
-    --checkpoint outputs/cyclegan/cyclegan_epoch_200.pth \
-    --input_dir  /data/sim10k/images \
-    --output_dir outputs/visualizations \
-    --num_images 1
+    python visualize_inference.py \\
+        visualize.checkpoint=outputs/awada_gan/awada_epoch_200.pth \\
+        visualize.input_dir=/data/sim10k/images \\
+        visualize.output_dir=outputs/visualizations
 
-# Use the inverse generator (B → A) instead of the default (A → B):
-python visualize_inference.py \
-    --checkpoint outputs/awada_gan/awada_epoch_200.pth \
-    --input_dir  /data/cityscapes/leftImg8bit/val/aachen \
-    --output_dir outputs/visualizations \
-    --direction BA
+    # Use the inverse generator (B → A) instead of the default (A → B):
+    python visualize_inference.py \\
+        visualize.checkpoint=outputs/awada_gan/awada_epoch_200.pth \\
+        visualize.input_dir=/data/cityscapes/leftImg8bit/val/aachen \\
+        visualize.output_dir=outputs/visualizations \\
+        visualize.direction=BA
 """
 
-import argparse
 import os
 
+import hydra
 import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
+from omegaconf import DictConfig
 from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
 
@@ -145,49 +138,25 @@ def make_side_by_side(
 # ---------------------------------------------------------------------------
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Visualize CycleGAN / AWADA style transfer")
-    parser.add_argument(
-        "--checkpoint", required=True, help="Path to CycleGAN or AWADA checkpoint (.pth)"
-    )
-    parser.add_argument("--input_dir", required=True, help="Directory containing source images")
-    parser.add_argument(
-        "--output_dir", required=True, help="Directory where visualization images will be saved"
-    )
-    parser.add_argument(
-        "--direction",
-        choices=["AB", "BA"],
-        default="AB",
-        help="Generator direction: AB (source→target) or BA (target→source)",
-    )
-    parser.add_argument(
-        "--num_images",
-        type=int,
-        default=None,
-        help="Maximum number of images to process (default: all)",
-    )
-    parser.add_argument(
-        "--device",
-        default="cuda" if torch.cuda.is_available() else "cpu",
-        help="Device to run inference on",
-    )
-    args = parser.parse_args()
+def _visualize(cfg: DictConfig) -> None:
+    """Run visualization from a Hydra config."""
+    os.makedirs(cfg.visualize.output_dir, exist_ok=True)
+    device = torch.device(cfg.hardware.device)
 
-    os.makedirs(args.output_dir, exist_ok=True)
-    device = torch.device(args.device)
-
-    print(f"Loading generator ({args.direction}) from {args.checkpoint} …")
-    generator = load_generator(args.checkpoint, args.direction, device)
+    print(f"Loading generator ({cfg.visualize.direction}) from {cfg.visualize.checkpoint} …")
+    generator = load_generator(cfg.visualize.checkpoint, cfg.visualize.direction, device)
 
     image_files = sorted(
-        f for f in os.listdir(args.input_dir) if f.lower().endswith((".png", ".jpg", ".jpeg"))
+        f
+        for f in os.listdir(cfg.visualize.input_dir)
+        if f.lower().endswith((".png", ".jpg", ".jpeg"))
     )
-    if args.num_images is not None:
-        image_files = image_files[: args.num_images]
+    if cfg.visualize.num_images is not None:
+        image_files = image_files[: cfg.visualize.num_images]
 
-    print(f"Translating {len(image_files)} image(s) → {args.output_dir}")
+    print(f"Translating {len(image_files)} image(s) → {cfg.visualize.output_dir}")
     for fname in tqdm(image_files, desc="Visualizing"):
-        src_path = os.path.join(args.input_dir, fname)
+        src_path = os.path.join(cfg.visualize.input_dir, fname)
         original = Image.open(src_path).convert("RGB")
 
         translated = translate_image(generator, original, device)
@@ -196,15 +165,20 @@ def main():
             original,
             translated,
             label_original="Original",
-            label_translated=f"Translated ({args.direction})",
+            label_translated=f"Translated ({cfg.visualize.direction})",
         )
 
         # Always save as PNG regardless of input format
         stem = os.path.splitext(fname)[0]
-        out_path = os.path.join(args.output_dir, f"{stem}_vis.png")
+        out_path = os.path.join(cfg.visualize.output_dir, f"{stem}_vis.png")
         vis.save(out_path)
 
-    print(f"Done. {len(image_files)} visualization(s) saved to {args.output_dir}")
+    print(f"Done. {len(image_files)} visualization(s) saved to {cfg.visualize.output_dir}")
+
+
+@hydra.main(version_base=None, config_path="../configs", config_name="visualize_inference")
+def main(cfg: DictConfig) -> None:
+    _visualize(cfg)
 
 
 if __name__ == "__main__":
