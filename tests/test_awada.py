@@ -23,6 +23,28 @@ def _inputs(batch=1):
     return real_A, real_B, att_A, att_B
 
 
+@pytest.fixture()
+def awada_fwd():
+    """Return an AWADA instance with attention that has completed a forward pass."""
+    model = _make_model()
+    real_A, real_B, att_A, att_B = _inputs()
+    model.set_input(real_A, real_B, att_A, att_B)
+    model.forward()
+    return model
+
+
+@pytest.fixture()
+def awada_sem_fwd():
+    """Return an AWADA instance with mocked semantic loss after a forward pass."""
+    mock_sem = MagicMock(return_value=torch.tensor(0.5))
+    with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
+        model = AWADA(device=DEVICE, lambda_sem=1.0)
+    real_A, real_B, att_A, att_B = _inputs()
+    model.set_input(real_A, real_B, att_A, att_B)
+    model.forward()
+    return model
+
+
 class TestAWADA:
     def test_set_input_with_attention(self):
         model = _make_model()
@@ -67,41 +89,24 @@ class TestAWADA:
         loss_standard = ((pred - target) ** 2).mean()
         assert torch.allclose(loss_masked, loss_standard, atol=1e-5)
 
-    def test_generator_loss_keys(self):
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_generator_loss()
+    def test_generator_loss_keys(self, awada_fwd):
+        losses = awada_fwd.compute_generator_loss()
         for key in ("G_AB", "G_BA", "cycle_A", "cycle_B", "total_G"):
             assert key in losses
         for key in ("idt_A", "idt_B"):
             assert key not in losses, f"Identity loss key should not be present: {key}"
 
-    def test_discriminator_loss_keys(self):
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_discriminator_loss()
+    def test_discriminator_loss_keys(self, awada_fwd):
+        losses = awada_fwd.compute_discriminator_loss()
         for key in ("D_A", "D_B", "total_D"):
             assert key in losses
 
-    def test_generator_loss_no_nan(self):
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_generator_loss()
-        for v in losses.values():
-            assert not torch.isnan(v)
-
-    def test_discriminator_loss_no_nan(self):
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_discriminator_loss()
+    @pytest.mark.parametrize("compute_loss", ["generator", "discriminator"])
+    def test_no_nan_in_losses(self, awada_fwd, compute_loss):
+        if compute_loss == "generator":
+            losses = awada_fwd.compute_generator_loss()
+        else:
+            losses = awada_fwd.compute_discriminator_loss()
         for v in losses.values():
             assert not torch.isnan(v)
 
@@ -114,44 +119,28 @@ class TestAWADA:
         losses = model.compute_generator_loss()
         assert "total_G" in losses
 
-    def test_total_d_is_sum(self):
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_discriminator_loss()
+    def test_total_d_is_sum(self, awada_fwd):
+        losses = awada_fwd.compute_discriminator_loss()
         assert torch.allclose(losses["total_D"], losses["D_A"] + losses["D_B"], atol=1e-5)
 
     # ------------------------------------------------------------------
     # Identity loss (AWADA inherits unmasked identity loss from CycleGAN)
     # ------------------------------------------------------------------
 
-    def test_identity_loss_absent_by_default(self):
+    def test_identity_loss_absent_by_default(self, awada_fwd):
         """Identity loss keys must NOT appear when lambda_idt=0 (default)."""
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_generator_loss()
+        losses = awada_fwd.compute_generator_loss()
         assert "idt_A" not in losses
         assert "idt_B" not in losses
 
-    def test_identity_loss_present_and_unmasked_when_enabled(self):
+    def test_identity_loss_present_and_unmasked_when_enabled(self, awada_fwd):
         """Identity loss keys MUST appear when lambda_idt > 0 (unmasked)."""
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_generator_loss(lambda_idt=5.0)
+        losses = awada_fwd.compute_generator_loss(lambda_idt=5.0)
         assert "idt_A" in losses
         assert "idt_B" in losses
 
-    def test_identity_loss_included_in_total(self):
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_generator_loss(lambda_idt=5.0)
+    def test_identity_loss_included_in_total(self, awada_fwd):
+        losses = awada_fwd.compute_generator_loss(lambda_idt=5.0)
         expected = (
             losses["G_AB"]
             + losses["G_BA"]
@@ -171,35 +160,19 @@ class TestAWADA:
         model = _make_model()
         assert model.criterion_sem is None
 
-    def test_semantic_loss_absent_by_default(self):
-        model = _make_model()
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_generator_loss()
+    def test_semantic_loss_absent_by_default(self, awada_fwd):
+        losses = awada_fwd.compute_generator_loss()
         assert "sem_AB" not in losses
         assert "sem_BA" not in losses
 
-    def test_semantic_loss_present_when_enabled(self):
+    def test_semantic_loss_present_when_enabled(self, awada_sem_fwd):
         """Semantic loss keys MUST appear when lambda_sem > 0 and criterion_sem is set."""
-        mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
-            model = AWADA(device=DEVICE, lambda_sem=1.0)
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_generator_loss(lambda_sem=1.0)
+        losses = awada_sem_fwd.compute_generator_loss(lambda_sem=1.0)
         assert "sem_AB" in losses
         assert "sem_BA" in losses
 
-    def test_semantic_loss_included_in_total(self):
-        mock_sem = MagicMock(return_value=torch.tensor(0.5))
-        with patch("awada.models.cycada.SemanticConsistencyLoss", return_value=mock_sem):
-            model = AWADA(device=DEVICE, lambda_sem=1.0)
-        real_A, real_B, att_A, att_B = _inputs()
-        model.set_input(real_A, real_B, att_A, att_B)
-        model.forward()
-        losses = model.compute_generator_loss(lambda_sem=1.0)
+    def test_semantic_loss_included_in_total(self, awada_sem_fwd):
+        losses = awada_sem_fwd.compute_generator_loss(lambda_sem=1.0)
         expected = (
             losses["G_AB"]
             + losses["G_BA"]

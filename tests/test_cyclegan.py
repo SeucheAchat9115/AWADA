@@ -1,5 +1,6 @@
 """Tests for ImageBuffer and CycleGAN covering buffer management, forward pass, and loss computation."""
 
+import pytest
 import torch
 
 from awada.models.cyclegan import CycleGAN, ImageBuffer
@@ -16,6 +17,16 @@ def _real_pair(batch=1):
     real_A = torch.randn(batch, 3, IMG_SIZE, IMG_SIZE)
     real_B = torch.randn(batch, 3, IMG_SIZE, IMG_SIZE)
     return real_A, real_B
+
+
+@pytest.fixture()
+def cyclegan_fwd():
+    """Return a CycleGAN instance that has already completed a forward pass."""
+    model = _make_cyclegan()
+    real_A, real_B = _real_pair()
+    model.set_input(real_A, real_B)
+    model.forward()
+    return model, real_A, real_B
 
 
 class TestImageBuffer:
@@ -65,81 +76,57 @@ class TestCycleGAN:
         assert model.real_A.shape == real_A.shape
         assert model.real_B.shape == real_B.shape
 
-    def test_forward_creates_fake_images(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+    def test_forward_creates_fake_images(self, cyclegan_fwd):
+        model, real_A, real_B = cyclegan_fwd
         assert model.fake_B.shape == real_A.shape
         assert model.fake_A.shape == real_B.shape
 
-    def test_forward_creates_reconstructions(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+    def test_forward_creates_reconstructions(self, cyclegan_fwd):
+        model, real_A, real_B = cyclegan_fwd
         assert model.rec_A.shape == real_A.shape
         assert model.rec_B.shape == real_B.shape
 
-    def test_generator_loss_keys(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+    def test_generator_loss_keys(self, cyclegan_fwd):
+        model, _, _ = cyclegan_fwd
         losses = model.compute_generator_loss()
         for key in ("G_AB", "G_BA", "cycle_A", "cycle_B", "total_G"):
             assert key in losses, f"Missing key: {key}"
         for key in ("idt_A", "idt_B"):
             assert key not in losses, f"Identity loss key should not be present: {key}"
 
-    def test_generator_loss_positive(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
-        losses = model.compute_generator_loss()
+    @pytest.mark.parametrize("lambda_cyc,lambda_gan", [(10.0, 1.0), (5.0, 2.0)])
+    def test_generator_loss_positive(self, cyclegan_fwd, lambda_cyc, lambda_gan):
+        model, _, _ = cyclegan_fwd
+        losses = model.compute_generator_loss(lambda_cyc=lambda_cyc, lambda_gan=lambda_gan)
         assert losses["total_G"].item() >= 0
 
-    def test_discriminator_loss_keys(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+    def test_discriminator_loss_keys(self, cyclegan_fwd):
+        model, _, _ = cyclegan_fwd
         losses = model.compute_discriminator_loss()
         for key in ("D_A", "D_B", "total_D"):
             assert key in losses
 
-    def test_discriminator_loss_positive(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+    def test_discriminator_loss_positive(self, cyclegan_fwd):
+        model, _, _ = cyclegan_fwd
         losses = model.compute_discriminator_loss()
         assert losses["total_D"].item() >= 0
 
-    def test_generator_loss_is_sum_of_parts(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
-        losses = model.compute_generator_loss()
+    @pytest.mark.parametrize("lambda_cyc,lambda_gan", [(10.0, 1.0), (5.0, 2.0)])
+    def test_generator_loss_is_sum_of_parts(self, cyclegan_fwd, lambda_cyc, lambda_gan):
+        model, _, _ = cyclegan_fwd
+        losses = model.compute_generator_loss(lambda_cyc=lambda_cyc, lambda_gan=lambda_gan)
         expected = losses["G_AB"] + losses["G_BA"] + losses["cycle_A"] + losses["cycle_B"]
         assert torch.allclose(losses["total_G"], expected, atol=1e-5)
 
-    def test_discriminator_loss_is_sum_of_parts(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+    def test_discriminator_loss_is_sum_of_parts(self, cyclegan_fwd):
+        model, _, _ = cyclegan_fwd
         losses = model.compute_discriminator_loss()
         assert torch.allclose(losses["total_D"], losses["D_A"] + losses["D_B"], atol=1e-5)
 
-    def test_no_nan_in_losses(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
-        g_losses = model.compute_generator_loss()
+    @pytest.mark.parametrize("lambda_cyc,lambda_gan", [(10.0, 1.0), (5.0, 2.0)])
+    def test_no_nan_in_losses(self, cyclegan_fwd, lambda_cyc, lambda_gan):
+        model, _, _ = cyclegan_fwd
+        g_losses = model.compute_generator_loss(lambda_cyc=lambda_cyc, lambda_gan=lambda_gan)
         d_losses = model.compute_discriminator_loss()
         for v in list(g_losses.values()) + list(d_losses.values()):
             assert not torch.isnan(v), "NaN detected in loss"
@@ -159,41 +146,33 @@ class TestCycleGAN:
     # Identity loss
     # ------------------------------------------------------------------
 
-    def test_identity_loss_absent_by_default(self):
+    def test_identity_loss_absent_by_default(self, cyclegan_fwd):
         """Identity loss keys must NOT appear when lambda_idt=0 (default)."""
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+        model, _, _ = cyclegan_fwd
         losses = model.compute_generator_loss()
         assert "idt_A" not in losses
         assert "idt_B" not in losses
 
-    def test_identity_loss_present_when_enabled(self):
+    def test_identity_loss_present_when_enabled(self, cyclegan_fwd):
         """Identity loss keys MUST appear when lambda_idt > 0."""
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+        model, _, _ = cyclegan_fwd
         losses = model.compute_generator_loss(lambda_idt=5.0)
         assert "idt_A" in losses
         assert "idt_B" in losses
 
-    def test_identity_loss_non_negative(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
-        losses = model.compute_generator_loss(lambda_idt=1.0)
+    @pytest.mark.parametrize("lambda_idt", [1.0, 5.0])
+    def test_identity_loss_non_negative_and_no_nan(self, cyclegan_fwd, lambda_idt):
+        """Identity losses must be non-negative and NaN-free for varying lambda_idt."""
+        model, _, _ = cyclegan_fwd
+        losses = model.compute_generator_loss(lambda_idt=lambda_idt)
         assert losses["idt_A"].item() >= 0
         assert losses["idt_B"].item() >= 0
+        assert not torch.isnan(losses["idt_A"])
+        assert not torch.isnan(losses["idt_B"])
 
-    def test_identity_loss_included_in_total(self):
+    def test_identity_loss_included_in_total(self, cyclegan_fwd):
         """total_G must include the identity losses when lambda_idt > 0."""
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
+        model, _, _ = cyclegan_fwd
         losses = model.compute_generator_loss(lambda_idt=5.0)
         expected = (
             losses["G_AB"]
@@ -204,12 +183,3 @@ class TestCycleGAN:
             + losses["idt_B"]
         )
         assert torch.allclose(losses["total_G"], expected, atol=1e-5)
-
-    def test_identity_loss_no_nan(self):
-        model = _make_cyclegan()
-        real_A, real_B = _real_pair()
-        model.set_input(real_A, real_B)
-        model.forward()
-        losses = model.compute_generator_loss(lambda_idt=5.0)
-        assert not torch.isnan(losses["idt_A"])
-        assert not torch.isnan(losses["idt_B"])
