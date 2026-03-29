@@ -50,6 +50,12 @@ def main():
         default=10,
         help="Save a checkpoint every N epochs (also always saves the final epoch)",
     )
+    parser.add_argument(
+        "--amp",
+        action="store_true",
+        default=False,
+        help="Enable Automatic Mixed Precision (AMP) training",
+    )
     args = parser.parse_args()
 
     set_seed(args.seed)
