@@ -162,7 +162,7 @@ class AttentionPairedDataset(Dataset):
             (``C=3``) and ``[1, patch_size, patch_size]`` for attention maps.
         """
         src_path = self.source_files[idx]
-        tgt_path = random.choice(self.target_files)
+        tgt_path = self.target_files[idx % len(self.target_files)]
         p = self.patch_size
 
         src_img = Image.open(src_path).convert("RGB")

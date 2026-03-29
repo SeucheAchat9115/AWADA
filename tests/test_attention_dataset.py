@@ -142,6 +142,41 @@ class TestAttentionPairedDataset:
         _, _, _, att_B = ds[0]
         assert att_B.shape == (1, 32, 32)
 
+    def test_target_selection_cycles_deterministically(self, tmp_path):
+        """Target files must be selected via idx % len(target_files), not randomly."""
+        src_dir = tmp_path / "src"
+        tgt_dir = tmp_path / "tgt"
+        att_dir = tmp_path / "att"
+        for d in (src_dir, tgt_dir, att_dir):
+            d.mkdir()
+
+        # 3 source images with their attention maps
+        for i in range(3):
+            img = Image.fromarray(np.full((64, 64, 3), 128, dtype=np.uint8))
+            img.save(str(src_dir / f"img_{i:03d}.png"))
+            np.save(str(att_dir / f"img_{i:03d}.npy"), np.zeros((64, 64), dtype=np.float32))
+
+        # 2 target images with distinct, identifiable pixel values
+        # tgt_0: all pixels = 0  → normalized value ≈ -1
+        # tgt_1: all pixels = 255 → normalized value ≈ +1
+        black = Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8))
+        white = Image.fromarray(np.full((64, 64, 3), 255, dtype=np.uint8))
+        black.save(str(tgt_dir / "tgt_000.png"))
+        white.save(str(tgt_dir / "tgt_001.png"))
+
+        ds = AttentionPairedDataset(str(src_dir), str(tgt_dir), str(att_dir), patch_size=32)
+
+        # idx 0 → target index 0 % 2 = 0 (black → mean ≈ -1)
+        _, tgt0, _, _ = ds[0]
+        # idx 1 → target index 1 % 2 = 1 (white → mean ≈ +1)
+        _, tgt1, _, _ = ds[1]
+        # idx 2 → target index 2 % 2 = 0 (black → mean ≈ -1)
+        _, tgt2, _, _ = ds[2]
+
+        assert tgt0.mean() < 0, "idx=0 should select the black (dark) target image"
+        assert tgt1.mean() > 0, "idx=1 should select the white (bright) target image"
+        assert tgt2.mean() < 0, "idx=2 should wrap around to the black (dark) target image"
+
     def test_missing_attention_raises_file_not_found(self, tmp_path):
         """When attention .npy file is missing, FileNotFoundError must be raised."""
         src_dir = tmp_path / "src"
