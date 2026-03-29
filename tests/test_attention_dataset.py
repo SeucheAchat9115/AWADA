@@ -109,9 +109,7 @@ class TestAttentionPairedDataset:
         # Save attention map as uint8 (the new on-disk format)
         np.save(str(att_dir / "img_000.npy"), np.ones((64, 64), dtype=np.uint8))
 
-        ds = AttentionPairedDataset(
-            str(src_dir), str(tgt_dir), str(att_dir), patch_size=32
-        )
+        ds = AttentionPairedDataset(str(src_dir), str(tgt_dir), str(att_dir), patch_size=32)
         _, _, att_A, _ = ds[0]
         assert att_A.dtype == torch.float32
 
