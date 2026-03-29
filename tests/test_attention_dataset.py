@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import torch
 from PIL import Image
 
 from awada.datasets.attention_dataset import AttentionPairedDataset
@@ -93,6 +94,26 @@ class TestAttentionPairedDataset:
             _, _, att_A, _ = ds[i]
             unique = torch.unique(att_A)
             assert all(v.item() in (0.0, 1.0) for v in unique)
+
+    def test_uint8_npy_loaded_as_float32(self, tmp_path):
+        """Attention maps saved as uint8 must be loaded and returned as float32."""
+        src_dir = tmp_path / "src"
+        tgt_dir = tmp_path / "tgt"
+        att_dir = tmp_path / "att"
+        for d in (src_dir, tgt_dir, att_dir):
+            d.mkdir()
+
+        img = Image.fromarray(np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8))
+        img.save(str(src_dir / "img_000.png"))
+        img.save(str(tgt_dir / "tgt_000.png"))
+        # Save attention map as uint8 (the new on-disk format)
+        np.save(str(att_dir / "img_000.npy"), np.ones((64, 64), dtype=np.uint8))
+
+        ds = AttentionPairedDataset(
+            str(src_dir), str(tgt_dir), str(att_dir), patch_size=32
+        )
+        _, _, att_A, _ = ds[0]
+        assert att_A.dtype == torch.float32
 
     def test_with_target_attention(self, tmp_path):
         """Dataset loads target attention maps when target_attention_root is provided."""

@@ -88,6 +88,10 @@ class AttentionPairedDataset(Dataset):
     def _load_attention(self, img_path: str, attention_root: str) -> np.ndarray:
         """Load a ``.npy`` attention map for the given image.
 
+        Attention maps are stored on disk as uint8 arrays to reduce disk
+        usage.  This method casts the loaded data back to float32 before
+        returning it.
+
         Args:
             img_path: Path to the image file whose attention map is requested.
             attention_root: Directory where ``.npy`` attention maps are stored.

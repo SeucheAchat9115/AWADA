@@ -190,3 +190,18 @@ class TestGenerateAttentionMaps:
         npy_files = sorted(os.listdir(output_dir))
         arr = np.load(os.path.join(output_dir, npy_files[0]))
         assert arr.sum() == pytest.approx(0.0)
+
+    def test_saved_dtype_is_uint8(self, tmp_path):
+        """Attention maps must be saved as np.uint8 to reduce disk usage."""
+        output_dir = str(tmp_path / "maps")
+        loader = _simple_loader(1)
+
+        def boxes_fn(imgs):
+            return [torch.tensor([[0.0, 0.0, 10.0, 10.0]]) for _ in imgs]
+
+        detector = _build_detector(boxes_fn)
+        generate_attention_maps(detector, loader, output_dir, score_threshold=0.5, device="cpu")
+
+        npy_files = sorted(os.listdir(output_dir))
+        arr = np.load(os.path.join(output_dir, npy_files[0]))
+        assert arr.dtype == np.uint8

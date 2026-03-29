@@ -21,7 +21,7 @@ def generate_attention_maps(
     Monkey-patches the RPN ``filter_proposals`` method to capture box
     proposals and their objectness scores.  For each image, pixels inside
     RPN boxes whose objectness score meets ``score_threshold`` are set to
-    ``1``; all other pixels are ``0``.  Maps are saved as float32 ``.npy``
+    ``1``; all other pixels are ``0``.  Maps are saved as uint8 ``.npy``
     files with the same ``H × W`` spatial dimensions as the input image.
 
     Args:
@@ -99,7 +99,7 @@ def generate_attention_maps(
                         img_id = batch_idx * len(images) + i
 
                     out_path = os.path.join(output_dir, f"{img_id:06d}.npy")
-                    np.save(out_path, attention_map)
+                    np.save(out_path, attention_map.astype(np.uint8))
     finally:
         detector.rpn.filter_proposals = original_filter_proposals
 
