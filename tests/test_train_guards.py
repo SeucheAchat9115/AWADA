@@ -717,3 +717,268 @@ class TestResumeCheckpointing:
         ckpt = torch.load(ckpt_path, map_location="cpu")
         for key in ("epoch", "G_AB", "G_BA", "D_A", "D_B", "opt_G", "opt_D", "sched_G", "sched_D"):
             assert key in ckpt, f"Missing key '{key}' in checkpoint"
+
+
+def _make_full_mock_model():
+    """Build a MagicMock model with all state_dict methods configured."""
+    mock_model = MagicMock()
+    for attr in ("G_AB", "G_BA", "D_A", "D_B"):
+        getattr(mock_model, attr).parameters.return_value = iter(
+            [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+        )
+        getattr(mock_model, attr).state_dict.return_value = {}
+    mock_model.compute_generator_loss.return_value = {
+        "total_G": torch.tensor(0.5, requires_grad=True),
+        "cycle_A": torch.tensor(0.2),
+        "cycle_B": torch.tensor(0.2),
+    }
+    mock_model.compute_discriminator_loss.return_value = {
+        "total_D": torch.tensor(0.4, requires_grad=True),
+    }
+    return mock_model
+
+
+class TestSaveEvery:
+    """Tests for the --save_every checkpoint frequency argument."""
+
+    def _make_dataloader_mock(self, real_A, real_B, att_A=None, att_B=None, with_attention=False):
+        batch = (real_A, real_B, att_A, att_B) if with_attention else (real_A, real_B)
+        return [batch]
+
+    # ------------------------------------------------------------------
+    # train_cyclegan
+    # ------------------------------------------------------------------
+
+    def test_cyclegan_save_every_saves_at_multiples(self, tmp_path):
+        """With --save_every 2 and --epochs 5, checkpoints should be saved at epochs 2, 4, 5."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+
+        from tools.train_cyclegan import main as cyclegan_main
+
+        with (
+            patch("tools.train_cyclegan.CycleGAN", return_value=_make_full_mock_model()),
+            patch(
+                "tools.train_cyclegan.DataLoader",
+                return_value=self._make_dataloader_mock(real_A, real_B),
+            ),
+            patch("tools.train_cyclegan.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cyclegan.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "5",
+                    "--save_every",
+                    "2",
+                ],
+            ),
+        ):
+            cyclegan_main()
+
+        saved = {f for f in os.listdir(str(tmp_path)) if f.startswith("cyclegan_epoch_")}
+        assert saved == {"cyclegan_epoch_2.pth", "cyclegan_epoch_4.pth", "cyclegan_epoch_5.pth"}
+
+    def test_cyclegan_default_save_every_saves_only_final_epoch(self, tmp_path):
+        """Default --save_every 10 with --epochs 3 should only save the final epoch."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+
+        from tools.train_cyclegan import main as cyclegan_main
+
+        with (
+            patch("tools.train_cyclegan.CycleGAN", return_value=_make_full_mock_model()),
+            patch(
+                "tools.train_cyclegan.DataLoader",
+                return_value=self._make_dataloader_mock(real_A, real_B),
+            ),
+            patch("tools.train_cyclegan.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cyclegan.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "3",
+                ],
+            ),
+        ):
+            cyclegan_main()
+
+        saved = {f for f in os.listdir(str(tmp_path)) if f.startswith("cyclegan_epoch_")}
+        assert saved == {"cyclegan_epoch_3.pth"}
+
+    # ------------------------------------------------------------------
+    # train_cycada
+    # ------------------------------------------------------------------
+
+    def test_cycada_save_every_saves_at_multiples(self, tmp_path):
+        """With --save_every 2 and --epochs 5, checkpoints should be saved at epochs 2, 4, 5."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+
+        from tools.train_cycada import main as cycada_main
+
+        with (
+            patch("tools.train_cycada.CyCada", return_value=_make_full_mock_model()),
+            patch(
+                "tools.train_cycada.DataLoader",
+                return_value=self._make_dataloader_mock(real_A, real_B),
+            ),
+            patch("tools.train_cycada.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cycada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "5",
+                    "--save_every",
+                    "2",
+                ],
+            ),
+        ):
+            cycada_main()
+
+        saved = {f for f in os.listdir(str(tmp_path)) if f.startswith("cycada_epoch_")}
+        assert saved == {"cycada_epoch_2.pth", "cycada_epoch_4.pth", "cycada_epoch_5.pth"}
+
+    def test_cycada_default_save_every_saves_only_final_epoch(self, tmp_path):
+        """Default --save_every 10 with --epochs 3 should only save the final epoch."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+
+        from tools.train_cycada import main as cycada_main
+
+        with (
+            patch("tools.train_cycada.CyCada", return_value=_make_full_mock_model()),
+            patch(
+                "tools.train_cycada.DataLoader",
+                return_value=self._make_dataloader_mock(real_A, real_B),
+            ),
+            patch("tools.train_cycada.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cycada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "3",
+                ],
+            ),
+        ):
+            cycada_main()
+
+        saved = {f for f in os.listdir(str(tmp_path)) if f.startswith("cycada_epoch_")}
+        assert saved == {"cycada_epoch_3.pth"}
+
+    # ------------------------------------------------------------------
+    # train_awada
+    # ------------------------------------------------------------------
+
+    def test_awada_save_every_saves_at_multiples(self, tmp_path):
+        """With --save_every 2 and --epochs 5, checkpoints should be saved at epochs 2, 4, 5."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+        att_A = torch.zeros(1, 1, 64, 64)
+        att_B = torch.zeros(1, 1, 64, 64)
+
+        from tools.train_awada import main as awada_main
+
+        with (
+            patch("tools.train_awada.AWADA", return_value=_make_full_mock_model()),
+            patch(
+                "tools.train_awada.DataLoader",
+                return_value=self._make_dataloader_mock(
+                    real_A, real_B, att_A, att_B, with_attention=True
+                ),
+            ),
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "5",
+                    "--save_every",
+                    "2",
+                ],
+            ),
+        ):
+            awada_main()
+
+        saved = {f for f in os.listdir(str(tmp_path)) if f.startswith("awada_epoch_")}
+        assert saved == {"awada_epoch_2.pth", "awada_epoch_4.pth", "awada_epoch_5.pth"}
+
+    def test_awada_default_save_every_saves_only_final_epoch(self, tmp_path):
+        """Default --save_every 10 with --epochs 3 should only save the final epoch."""
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+        att_A = torch.zeros(1, 1, 64, 64)
+        att_B = torch.zeros(1, 1, 64, 64)
+
+        from tools.train_awada import main as awada_main
+
+        with (
+            patch("tools.train_awada.AWADA", return_value=_make_full_mock_model()),
+            patch(
+                "tools.train_awada.DataLoader",
+                return_value=self._make_dataloader_mock(
+                    real_A, real_B, att_A, att_B, with_attention=True
+                ),
+            ),
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "3",
+                ],
+            ),
+        ):
+            awada_main()
+
+        saved = {f for f in os.listdir(str(tmp_path)) if f.startswith("awada_epoch_")}
+        assert saved == {"awada_epoch_3.pth"}

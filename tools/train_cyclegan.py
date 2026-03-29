@@ -39,6 +39,12 @@ def main():
     parser.add_argument("--device")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--resume", default=None, help="Path to checkpoint to resume training from")
+    parser.add_argument(
+        "--save_every",
+        type=int,
+        default=10,
+        help="Save a checkpoint every N epochs (also always saves the final epoch)",
+    )
     args = parser.parse_args()
 
     set_seed(args.seed)
@@ -181,8 +187,9 @@ def main():
             "sched_D": sched_D.state_dict(),
         }
         ckpt_path = os.path.join(args.output_dir, f"cyclegan_epoch_{epoch + 1}.pth")
-        torch.save(ckpt, ckpt_path)
-        logger.info("Checkpoint saved: %s", ckpt_path)
+        if (epoch + 1) % args.save_every == 0 or (epoch + 1) == epochs:
+            torch.save(ckpt, ckpt_path)
+            logger.info("Checkpoint saved: %s", ckpt_path)
 
     logger.info("Training complete.")
 
