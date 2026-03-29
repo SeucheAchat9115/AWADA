@@ -355,7 +355,9 @@ class TestTrainScriptGuardsIntegration:
                     str(tmp_path),
                     "--target_dir",
                     str(tmp_path),
-                    "--attention_dir",
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
                     str(tmp_path),
                     "--output_dir",
                     str(tmp_path),
@@ -405,7 +407,9 @@ class TestTrainScriptGuardsIntegration:
                     str(tmp_path),
                     "--target_dir",
                     str(tmp_path),
-                    "--attention_dir",
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
                     str(tmp_path),
                     "--output_dir",
                     str(tmp_path),
@@ -415,6 +419,31 @@ class TestTrainScriptGuardsIntegration:
             ),
         ):
             with pytest.raises(RuntimeError, match="discriminator loss"):
+                awada_main()
+
+    def test_train_awada_raises_when_target_attention_dir_missing(self, tmp_path):
+        from tools.train_awada import main as awada_main
+
+        with (
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                ],
+            ),
+        ):
+            with pytest.raises(SystemExit):
                 awada_main()
 
 
@@ -670,7 +699,9 @@ class TestResumeCheckpointing:
                     str(tmp_path),
                     "--target_dir",
                     str(tmp_path),
-                    "--attention_dir",
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
                     str(tmp_path),
                     "--output_dir",
                     str(tmp_path),
