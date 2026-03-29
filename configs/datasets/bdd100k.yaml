@@ -1,0 +1,27 @@
+# BDD100k dataset constants (7-class, aligned with the Cityscapes benchmark).
+# Included categories: pedestrian, rider, car, truck, bus, motorcycle, bicycle.
+# The "train" class present in Cityscapes is absent from BDD100k and is excluded.
+
+# Detection category label map (category name → 1-based detection label).
+label_map:
+  pedestrian: 1
+  rider: 2
+  car: 3
+  truck: 4
+  bus: 5
+  motorcycle: 6
+  bicycle: 7
+
+# Human-readable class names corresponding to the label map above.
+class_names:
+  - pedestrian
+  - rider
+  - car
+  - truck
+  - bus
+  - motorcycle
+  - bicycle
+
+# Minimum box dimension (width or height, in pixels) below which detections
+# are discarded.
+min_box_dim: 5

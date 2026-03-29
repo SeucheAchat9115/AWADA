@@ -1,0 +1,45 @@
+# Benchmark: Cityscapes → BDD100k
+# 7-class domain-adaptation benchmark (the Cityscapes "train" class is
+# absent from BDD100k and is excluded from both sides).
+# Source: Cityscapes driving images with ground-truth annotations.
+# Target: BDD100k driving images.
+
+benchmark: cityscapes_to_bdd100k
+
+# ------------------------------------------------------------------
+# Dataset paths (edit to match your local data layout)
+# ------------------------------------------------------------------
+source_dataset: cityscapes
+source_root: /data/cityscapes
+source_images: /data/cityscapes/leftImg8bit/train
+
+target_dataset: bdd100k
+target_root: /data/bdd100k
+target_images: /data/bdd100k/images/100k/train
+
+# Number of foreground classes (7-class Cityscapes/BDD100k alignment).
+num_classes: 7
+
+# Class filter: null means retain all 7 classes.
+classes: null
+
+# ------------------------------------------------------------------
+# Output paths
+# ------------------------------------------------------------------
+# Short suffix appended to per-experiment output directories, e.g.
+# ./outputs/exp_a_cs2bdd, ./outputs/exp_b_cs2bdd, …
+output_suffix: cs2bdd
+
+# ------------------------------------------------------------------
+# Detector training hyperparameters (Faster R-CNN)
+# ------------------------------------------------------------------
+detector_epochs: 10
+detector_batch_size: 2
+detector_lr: 0.005
+detector_pretrained: true
+
+# ------------------------------------------------------------------
+# Attention map generation
+# ------------------------------------------------------------------
+score_threshold: 0.5
+attention_split: train

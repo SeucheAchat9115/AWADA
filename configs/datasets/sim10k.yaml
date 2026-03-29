@@ -1,0 +1,9 @@
+# Sim10k (Driving in the Matrix) dataset constants.
+# Sim10k only annotates the single "car" class.
+
+class_names:
+  - car
+
+# Minimum box dimension (width or height, in pixels) below which detections
+# are discarded.
+min_box_dim: 5

@@ -2,44 +2,40 @@
 # Experiment B (CyCada): CyCada Domain Adaptation
 # Train CyCada (CycleGAN + semantic consistency), stylize source images,
 # train detector on stylized images, evaluate on target domain.
-# Usage: bash scripts/exp_b_cycada.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_b_cycada.sh [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]
 
 set -euo pipefail
 
 BENCHMARK=${1:-sim10k_to_cityscapes}
+CONFIG_FILE="configs/benchmarks/${BENCHMARK}.yaml"
 
-if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
-    SOURCE_DATASET="sim10k"
-    SOURCE_ROOT="/data/sim10k"
-    SOURCE_IMAGES="/data/sim10k/images"
-    TARGET_DATASET="cityscapes"
-    TARGET_ROOT="/data/cityscapes"
-    TARGET_IMAGES="/data/cityscapes/leftImg8bit/train"
-    NUM_CLASSES=1
-    OUTPUT_BASE="./outputs/exp_b_cycada_sim10k2cs"
-elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
-    SOURCE_DATASET="cityscapes"
-    SOURCE_ROOT="/data/cityscapes"
-    SOURCE_IMAGES="/data/cityscapes/leftImg8bit/train"
-    TARGET_DATASET="foggy_cityscapes"
-    TARGET_ROOT="/data/foggy_cityscapes"
-    TARGET_IMAGES="/data/foggy_cityscapes/leftImg8bit_foggy/train"
-    NUM_CLASSES=8
-    OUTPUT_BASE="./outputs/exp_b_cycada_cs2foggy"
-elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
-    SOURCE_DATASET="cityscapes"
-    SOURCE_ROOT="/data/cityscapes"
-    SOURCE_IMAGES="/data/cityscapes/leftImg8bit/train"
-    TARGET_DATASET="bdd100k"
-    TARGET_ROOT="/data/bdd100k"
-    TARGET_IMAGES="/data/bdd100k/images/100k/train"
-    NUM_CLASSES=7
-    OUTPUT_BASE="./outputs/exp_b_cycada_cs2bdd"
-else
+if [ ! -f "$CONFIG_FILE" ]; then
     echo "Unknown benchmark: $BENCHMARK"
     echo "Usage: $0 [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]"
     exit 1
 fi
+
+# Read all settings from the benchmark YAML config
+# shellcheck source=scripts/lib/config_helper.sh
+source "$(dirname "$0")/lib/config_helper.sh"
+
+SOURCE_DATASET=$(_cfg source_dataset)
+SOURCE_ROOT=$(_cfg source_root)
+SOURCE_IMAGES=$(_cfg source_images)
+TARGET_DATASET=$(_cfg target_dataset)
+TARGET_ROOT=$(_cfg target_root)
+TARGET_IMAGES=$(_cfg target_images)
+NUM_CLASSES=$(_cfg num_classes)
+OUTPUT_SUFFIX=$(_cfg output_suffix)
+DETECTOR_EPOCHS=$(_cfg detector_epochs)
+DETECTOR_BATCH_SIZE=$(_cfg detector_batch_size)
+DETECTOR_LR=$(_cfg detector_lr)
+CLASSES=$(_cfg classes)
+OUTPUT_BASE="./outputs/exp_b_cycada_${OUTPUT_SUFFIX}"
+
+# Build optional --classes argument
+CLASSES_ARG=""
+[ -n "$CLASSES" ] && CLASSES_ARG="--classes $CLASSES"
 
 GAN_OUTPUT="$OUTPUT_BASE/cycada_gan"
 STYLIZED_DIR="$OUTPUT_BASE/stylized_images"
@@ -59,8 +55,6 @@ python tools/train_cycada.py \
     --target_dir "$TARGET_IMAGES" \
     --output_dir "$GAN_OUTPUT" \
     --config configs/cycada.yaml \
-    --epochs 200 \
-    --batch_size 1 \
     --device cuda
 
 # Step 2: Stylize source images using the CyCada generator
@@ -79,9 +73,9 @@ python tools/train_detector.py \
     --image_dir "$STYLIZED_DIR" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$DETECTOR_OUTPUT" \
-    --epochs 10 \
-    --batch_size 2 \
-    --lr 0.005 \
+    --epochs "$DETECTOR_EPOCHS" \
+    --batch_size "$DETECTOR_BATCH_SIZE" \
+    --lr "$DETECTOR_LR" \
     --device cuda \
     --pretrained
 
@@ -95,6 +89,6 @@ python tools/evaluate_detector.py \
     --output_dir "$DETECTOR_OUTPUT" \
     --device cuda \
     --benchmark "$BENCHMARK" \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
+    $CLASSES_ARG
 
 echo "Experiment B (CyCada) complete!"

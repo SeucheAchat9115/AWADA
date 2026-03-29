@@ -1,0 +1,44 @@
+# Benchmark: Cityscapes → Foggy Cityscapes
+# 8-class domain-adaptation benchmark using synthetic fog as the domain shift.
+# Source: clear-weather Cityscapes images.
+# Target: fog-augmented Cityscapes images (Foggy Cityscapes dataset).
+
+benchmark: cityscapes_to_foggy
+
+# ------------------------------------------------------------------
+# Dataset paths (edit to match your local data layout)
+# ------------------------------------------------------------------
+source_dataset: cityscapes
+source_root: /data/cityscapes
+source_images: /data/cityscapes/leftImg8bit/train
+
+target_dataset: foggy_cityscapes
+target_root: /data/foggy_cityscapes
+target_images: /data/foggy_cityscapes/leftImg8bit_foggy/train
+
+# Number of foreground classes (all 8 Cityscapes categories).
+num_classes: 8
+
+# Class filter: null means retain all classes.
+classes: null
+
+# ------------------------------------------------------------------
+# Output paths
+# ------------------------------------------------------------------
+# Short suffix appended to per-experiment output directories, e.g.
+# ./outputs/exp_a_cs2foggy, ./outputs/exp_b_cs2foggy, …
+output_suffix: cs2foggy
+
+# ------------------------------------------------------------------
+# Detector training hyperparameters (Faster R-CNN)
+# ------------------------------------------------------------------
+detector_epochs: 10
+detector_batch_size: 2
+detector_lr: 0.005
+detector_pretrained: true
+
+# ------------------------------------------------------------------
+# Attention map generation
+# ------------------------------------------------------------------
+score_threshold: 0.5
+attention_split: train

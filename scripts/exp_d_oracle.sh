@@ -1,31 +1,36 @@
 #!/bin/bash
 # Experiment D: Oracle (Upper Bound)
 # Train Faster R-CNN on target domain with labels, evaluate on target domain
-# Usage: bash scripts/exp_d_oracle.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_d_oracle.sh [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]
 
 set -euo pipefail
 
 BENCHMARK=${1:-sim10k_to_cityscapes}
+CONFIG_FILE="configs/benchmarks/${BENCHMARK}.yaml"
 
-if [ "$BENCHMARK" = "sim10k_to_cityscapes" ]; then
-    TARGET_DATASET="cityscapes"
-    TARGET_ROOT="/data/cityscapes"
-    NUM_CLASSES=1
-    OUTPUT_DIR="./outputs/exp_d_sim10k2cs"
-elif [ "$BENCHMARK" = "cityscapes_to_foggy" ]; then
-    TARGET_DATASET="foggy_cityscapes"
-    TARGET_ROOT="/data/foggy_cityscapes"
-    NUM_CLASSES=8
-    OUTPUT_DIR="./outputs/exp_d_cs2foggy"
-elif [ "$BENCHMARK" = "cityscapes_to_bdd100k" ]; then
-    TARGET_DATASET="bdd100k"
-    TARGET_ROOT="/data/bdd100k"
-    NUM_CLASSES=7
-    OUTPUT_DIR="./outputs/exp_d_cs2bdd"
-else
+if [ ! -f "$CONFIG_FILE" ]; then
     echo "Unknown benchmark: $BENCHMARK"
+    echo "Usage: $0 [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]"
     exit 1
 fi
+
+# Read all settings from the benchmark YAML config
+# shellcheck source=scripts/lib/config_helper.sh
+source "$(dirname "$0")/lib/config_helper.sh"
+
+TARGET_DATASET=$(_cfg target_dataset)
+TARGET_ROOT=$(_cfg target_root)
+NUM_CLASSES=$(_cfg num_classes)
+OUTPUT_SUFFIX=$(_cfg output_suffix)
+DETECTOR_EPOCHS=$(_cfg detector_epochs)
+DETECTOR_BATCH_SIZE=$(_cfg detector_batch_size)
+DETECTOR_LR=$(_cfg detector_lr)
+CLASSES=$(_cfg classes)
+OUTPUT_DIR="./outputs/exp_d_${OUTPUT_SUFFIX}"
+
+# Build optional --classes argument
+CLASSES_ARG=""
+[ -n "$CLASSES" ] && CLASSES_ARG="--classes $CLASSES"
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -43,12 +48,12 @@ python tools/train_detector.py \
     --data_root "$TARGET_ROOT" \
     --num_classes "$NUM_CLASSES" \
     --output_dir "$OUTPUT_DIR" \
-    --epochs 10 \
-    --batch_size 2 \
-    --lr 0.005 \
+    --epochs "$DETECTOR_EPOCHS" \
+    --batch_size "$DETECTOR_BATCH_SIZE" \
+    --lr "$DETECTOR_LR" \
     --device cuda \
     --pretrained \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
+    $CLASSES_ARG
 
 echo "[Step 2] Evaluating on target domain validation set..."
 python tools/evaluate_detector.py \
@@ -60,6 +65,6 @@ python tools/evaluate_detector.py \
     --device cuda \
     --label "Experiment D: Oracle" \
     --benchmark "$BENCHMARK" \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
+    $CLASSES_ARG
 
 echo "Experiment D (Oracle) complete!"

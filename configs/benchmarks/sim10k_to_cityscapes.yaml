@@ -1,0 +1,46 @@
+# Benchmark: Sim10k → Cityscapes
+# Single-class (car) domain-adaptation benchmark.
+# Source: synthetic GTA/Sim10k driving images.
+# Target: real Cityscapes driving images.
+
+benchmark: sim10k_to_cityscapes
+
+# ------------------------------------------------------------------
+# Dataset paths (edit to match your local data layout)
+# ------------------------------------------------------------------
+source_dataset: sim10k
+source_root: /data/sim10k
+source_images: /data/sim10k/images
+
+target_dataset: cityscapes
+target_root: /data/cityscapes
+target_images: /data/cityscapes/leftImg8bit/train
+
+# Number of foreground classes (car only).
+num_classes: 1
+
+# Class filter passed to the Cityscapes dataset loader.
+# Only the listed classes are retained; null means all classes.
+classes:
+  - car
+
+# ------------------------------------------------------------------
+# Output paths
+# ------------------------------------------------------------------
+# Short suffix appended to per-experiment output directories, e.g.
+# ./outputs/exp_a_sim10k2cs, ./outputs/exp_b_sim10k2cs, …
+output_suffix: sim10k2cs
+
+# ------------------------------------------------------------------
+# Detector training hyperparameters (Faster R-CNN)
+# ------------------------------------------------------------------
+detector_epochs: 10
+detector_batch_size: 2
+detector_lr: 0.005
+detector_pretrained: true
+
+# ------------------------------------------------------------------
+# Attention map generation
+# ------------------------------------------------------------------
+score_threshold: 0.5
+attention_split: train

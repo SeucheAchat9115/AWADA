@@ -1,0 +1,56 @@
+# Cityscapes dataset constants
+
+# 8-class instance-ID label map (Cityscapes class_id → 1-based detection label).
+# Instance IDs in the gtFine_instanceIds.png files follow the convention
+# class_id * 1000 + instance_id.
+label_map:
+  24: 1  # person
+  25: 2  # rider
+  26: 3  # car
+  27: 4  # truck
+  28: 5  # bus
+  31: 6  # train
+  32: 7  # motorcycle
+  33: 8  # bicycle
+
+# Human-readable class names corresponding to the 8-class label map above.
+class_names:
+  - person
+  - rider
+  - car
+  - truck
+  - bus
+  - train
+  - motorcycle
+  - bicycle
+
+# 7-class label map for the Cityscapes → BDD100k benchmark.
+# The "train" class (Cityscapes ID 31) is absent from BDD100k and is
+# excluded from both sides of the benchmark.  Motorcycle and bicycle are
+# renumbered so that label IDs are contiguous and match the BDD100k label map.
+bdd100k_label_map:
+  24: 1  # person
+  25: 2  # rider
+  26: 3  # car
+  27: 4  # truck
+  28: 5  # bus
+  # 31 (train) excluded
+  32: 6  # motorcycle
+  33: 7  # bicycle
+
+# Human-readable class names for the 7-class BDD100k-aligned Cityscapes map.
+bdd100k_aligned_classes:
+  - person
+  - rider
+  - car
+  - truck
+  - bus
+  - motorcycle
+  - bicycle
+
+# Minimum number of foreground pixels for an instance to be kept as a box.
+min_pixels_threshold: 10
+
+# Minimum box dimension (width or height, in pixels) below which detections
+# are discarded.
+min_box_dim: 5

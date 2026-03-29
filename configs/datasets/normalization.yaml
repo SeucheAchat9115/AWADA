@@ -1,0 +1,9 @@
+# ImageNet normalization statistics used to pre-process images before feeding
+# them into ImageNet-pretrained backbones (e.g. DeepLabV3-ResNet50 in the
+# semantic consistency loss).
+#
+# Values match the channel-wise mean and standard deviation of the ImageNet
+# training set and are expected by torchvision's pretrained weight transforms.
+
+mean: [0.485, 0.456, 0.406]
+std:  [0.229, 0.224, 0.225]
