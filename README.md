@@ -22,7 +22,7 @@ Three models are implemented, each building on the previous one:
 
 ## Installation
 
-**Requirements**: Python 3.8+, CUDA-capable GPU recommended.
+**Requirements**: Python 3.11+, CUDA-capable GPU recommended.
 
 Install with [uv](https://github.com/astral-sh/uv):
 
@@ -42,14 +42,16 @@ uv pip install -e .
 [project]
 name = "awada"
 version = "0.1.0"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
-    "torch>=1.13.0",
-    "torchvision>=0.14.0",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
     "numpy>=1.21.0",
     "Pillow>=9.0.0",
     "scipy>=1.7.0",
     "tqdm>=4.62.0",
+    "pycocotools>=2.0.7",
+    "pyyaml>=6.0",
 ]
 ```
 
@@ -257,6 +259,7 @@ AWADA/
 │   └── awada.yaml                 # AWADA hyperparameter config
 ├── tools/
 │   ├── train_detector.py          # Faster R-CNN training script
+│   ├── evaluate_detector.py       # Faster R-CNN evaluation script
 │   ├── train_cyclegan.py          # CycleGAN training (reads configs/cyclegan.yaml)
 │   ├── train_cycada.py            # CyCada training (reads configs/cycada.yaml)
 │   ├── train_awada.py             # AWADA training (reads configs/awada.yaml)
@@ -270,6 +273,7 @@ AWADA/
 │   ├── exp_c_awada.sh             # Experiment C: AWADA
 │   └── exp_d_oracle.sh            # Experiment D: Oracle
 └── awada/
+    ├── config.py                   # Centralised configuration constants
     ├── models/
     │   ├── generator.py            # ResNet-9 generator
     │   ├── discriminator.py        # PatchGAN discriminator
@@ -282,10 +286,13 @@ AWADA/
     │   ├── cityscapes.py           # Cityscapes detection dataset
     │   ├── foggy_cityscapes.py     # Foggy Cityscapes detection dataset
     │   ├── bdd100k.py              # BDD100K detection dataset (7-class Cityscapes-aligned)
-    │   └── attention_dataset.py    # Paired dataset for AWADA GAN training
+    │   ├── attention_dataset.py    # Paired dataset for AWADA GAN training
+    │   └── unpaired_dataset.py     # Unpaired dataset for CycleGAN/CyCada training
     └── utils/
         ├── attention.py            # RPN attention map generation
-        └── metrics.py              # mAP computation (pycocotools)
+        ├── metrics.py              # mAP computation (pycocotools)
+        ├── train_utils.py          # Shared training utilities (seed, logging, LR schedule)
+        └── transforms.py          # Image transforms and augmentations
 ```
 
 ## Evaluation
