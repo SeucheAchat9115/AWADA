@@ -17,7 +17,14 @@ class UnpairedImageDataset(Dataset):
     the same number of iterations regardless of domain size.
     """
 
-    def __init__(self, dir_A: str, dir_B: str, patch_size: int = 128):
+    def __init__(self, dir_A: str, dir_B: str, patch_size: int = 128) -> None:
+        """Initialise the unpaired image dataset.
+
+        Args:
+            dir_A: Directory containing domain-A images.
+            dir_B: Directory containing domain-B images.
+            patch_size: Side length of the square random crops (default: 128).
+        """
         if not os.path.isdir(dir_A):
             raise FileNotFoundError(
                 f"Domain A directory not found: '{dir_A}'. "
@@ -53,9 +60,19 @@ class UnpairedImageDataset(Dataset):
         )
 
     def __len__(self) -> int:
+        """Return the number of iterations per epoch (max of both domain sizes)."""
         return max(len(self.files_A), len(self.files_B))
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return a randomly augmented pair of domain-A and domain-B images.
+
+        Args:
+            idx: Sample index (cycled within each domain independently).
+
+        Returns:
+            Tuple of ``(image_A, image_B)`` tensors of shape
+            ``[3, patch_size, patch_size]`` normalised to ``[-1, 1]``.
+        """
         img_A = Image.open(self.files_A[idx % len(self.files_A)]).convert("RGB")
         img_B = Image.open(self.files_B[idx % len(self.files_B)]).convert("RGB")
         return self.transform(img_A), self.transform(img_B)

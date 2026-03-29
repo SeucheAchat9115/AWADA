@@ -1,4 +1,6 @@
 import os
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -29,15 +31,54 @@ __all__ = [
 
 
 class CityscapesDetectionDataset(Dataset):
+    """Cityscapes instance-level object-detection dataset.
+
+    Parses ``*_gtFine_instanceIds.png`` annotation files to derive bounding
+    boxes from per-instance masks.  Supports an optional label-map override
+    and class-name filter to target specific subsets (e.g. the 7-class
+    BDD100k-aligned benchmark).
+
+    Expected directory structure::
+
+        root/
+        ├── leftImg8bit/
+        │   └── <split>/
+        │       └── <city>/   # PNG images
+        └── gtFine/
+            └── <split>/
+                └── <city>/   # *_gtFine_instanceIds.png annotation files
+
+    Args:
+        root: Root directory of the Cityscapes dataset.
+        split: Dataset split (default: ``"train"``).
+        transforms: Optional callable ``(image_tensor, target) -> (image_tensor, target)``
+            applied after loading each sample.
+        classes: Optional list of human-readable class names to keep.  When
+            ``None`` (default) all classes in the label map are used.
+        image_root: Override the default image directory (useful for stylized images).
+        label_map: Override the default :data:`CITYSCAPES_LABEL_MAP` (e.g. use
+            :data:`CITYSCAPES_BDD100K_LABEL_MAP` for the 7-class benchmark).
+    """
+
     def __init__(
         self,
-        root,
-        split="train",
-        transforms=None,
-        classes=None,
-        image_root=None,
-        label_map=None,
-    ):
+        root: str,
+        split: str = "train",
+        transforms: Callable[..., Any] | None = None,
+        classes: list[str] | None = None,
+        image_root: str | None = None,
+        label_map: dict[int, int] | None = None,
+    ) -> None:
+        """Initialise the Cityscapes detection dataset.
+
+        Args:
+            root: Root directory of the Cityscapes dataset.
+            split: Dataset split (e.g. ``"train"`` or ``"val"``).
+            transforms: Optional callable applied after loading each sample.
+            classes: Optional list of class names to retain.
+            image_root: Override the default image directory.
+            label_map: Override the default instance-ID-to-label map.
+        """
         self.root = root
         self.split = split
         self.transforms = transforms
@@ -45,6 +86,7 @@ class CityscapesDetectionDataset(Dataset):
         # the 7-class Cityscapes → BDD100k benchmark).  Falls back to the default 8-class map.
         self._label_map = label_map if label_map is not None else CITYSCAPES_LABEL_MAP
         # Build set of allowed label indices (1-based); None means all classes
+        self._allowed_labels: set[int] | None = None
         if classes is not None:
             # Identify Cityscapes class IDs whose human-readable name is requested.
             # We always use CLASS_NAMES + CITYSCAPES_LABEL_MAP for the name lookup so that
@@ -58,8 +100,6 @@ class CityscapesDetectionDataset(Dataset):
             self._allowed_labels = {
                 self._label_map[k] for k in self._label_map if k in allowed_class_ids
             }
-        else:
-            self._allowed_labels = None
         self.samples = []
 
         img_base = (
@@ -82,9 +122,20 @@ class CityscapesDetectionDataset(Dataset):
                     self.samples.append((os.path.join(city_img_dir, fname), ann_path))
 
     def __len__(self) -> int:
+        """Return the number of samples in the dataset."""
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        """Load and return a single sample.
+
+        Args:
+            idx: Sample index.
+
+        Returns:
+            Tuple of ``(image_tensor, target)`` where ``image_tensor`` has
+            shape ``[3, H, W]`` and ``target`` is a dict with keys
+            ``"boxes"`` ``[N, 4]``, ``"labels"`` ``[N]``, and ``"image_id"`` ``[1]``.
+        """
         img_path, ann_path = self.samples[idx]
         image = Image.open(img_path).convert("RGB")
         instance_map = np.array(Image.open(ann_path))
