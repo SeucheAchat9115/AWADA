@@ -1,5 +1,6 @@
 import os
 import random
+from typing import cast
 
 import numpy as np
 import torch
@@ -113,7 +114,7 @@ class AttentionPairedDataset(Dataset):
                 "Please run 'generate_attention_maps.py' to produce the required "
                 "attention maps before restarting the job."
             )
-        return np.load(npy_path).astype(np.float32)  # type: ignore[no-any-return]
+        return cast(np.ndarray, np.load(npy_path).astype(np.float32))
 
     def _crop_attention(
         self, img_path: str, attention_root: str, x: int, y: int, p: int

@@ -1,3 +1,5 @@
+from typing import cast
+
 import torch
 import torch.nn as nn
 
@@ -51,4 +53,4 @@ class PatchGANDiscriminator(nn.Module):
         Returns:
             Patch-level prediction map of shape ``[B, 1, H', W']``.
         """
-        return self.model(x)  # type: ignore[no-any-return]
+        return cast(torch.Tensor, self.model(x))
