@@ -113,7 +113,7 @@ class AttentionPairedDataset(Dataset):
                 "Please run 'generate_attention_maps.py' to produce the required "
                 "attention maps before restarting the job."
             )
-        return np.load(npy_path).astype(np.float32)
+        return np.load(npy_path).astype(np.float32)  # type: ignore[no-any-return]
 
     def _crop_attention(
         self, img_path: str, attention_root: str, x: int, y: int, p: int

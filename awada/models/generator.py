@@ -38,7 +38,7 @@ class ResidualBlock(nn.Module):
         Returns:
             Output feature map of the same shape, with the residual added.
         """
-        return x + self.block(x)
+        return x + self.block(x)  # type: ignore[no-any-return]
 
 
 class ResNetGenerator(nn.Module):
@@ -112,4 +112,4 @@ class ResNetGenerator(nn.Module):
             Translated image tensor of shape ``[B, out_channels, H, W]``, with
             pixel values in ``[-1, 1]`` due to the final ``Tanh`` activation.
         """
-        return self.model(x)
+        return self.model(x)  # type: ignore[no-any-return]

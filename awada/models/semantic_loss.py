@@ -18,6 +18,9 @@ class SemanticConsistencyLoss(nn.Module):
     ImageNet statistics before being passed to DeepLabV3.
     """
 
+    _mean: torch.Tensor
+    _std: torch.Tensor
+
     def __init__(self, device: str = DEFAULT_DEVICE) -> None:
         super().__init__()
         weights = DeepLabV3_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1

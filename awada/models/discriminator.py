@@ -51,4 +51,4 @@ class PatchGANDiscriminator(nn.Module):
         Returns:
             Patch-level prediction map of shape ``[B, 1, H', W']``.
         """
-        return self.model(x)
+        return self.model(x)  # type: ignore[no-any-return]
