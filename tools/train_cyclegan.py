@@ -140,10 +140,15 @@ def main():
         logger.info("Resumed from checkpoint: %s (epoch %d)", args.resume, start_epoch)
 
     for epoch in range(start_epoch, epochs):
+        logger.info("--- Epoch %d/%d ---", epoch + 1, epochs)
         model.G_AB.train()
         model.G_BA.train()
         model.D_A.train()
         model.D_B.train()
+
+        epoch_loss_G = 0.0
+        epoch_loss_D = 0.0
+        num_iters = 0
 
         for iteration, (real_A, real_B) in enumerate(
             tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}")
@@ -184,6 +189,10 @@ def main():
             scaler_D.step(opt_D)
             scaler_D.update()
 
+            epoch_loss_G += g_losses["total_G"].item()
+            epoch_loss_D += d_losses["total_D"].item()
+            num_iters += 1
+
             if (iteration + 1) % log_interval == 0:
                 logger.info(
                     "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f",
@@ -193,6 +202,13 @@ def main():
                     d_losses["total_D"].item(),
                     g_losses["cycle_A"].item() + g_losses["cycle_B"].item(),
                 )
+
+        logger.info(
+            "Epoch %d complete | avg G loss=%.4f | avg D loss=%.4f",
+            epoch + 1,
+            epoch_loss_G / max(num_iters, 1),
+            epoch_loss_D / max(num_iters, 1),
+        )
 
         sched_G.step()
         sched_D.step()

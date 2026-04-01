@@ -184,8 +184,11 @@ def main():
     scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
 
     for epoch in range(args.epochs):
+        logger.info("--- Epoch %d/%d ---", epoch + 1, args.epochs)
         model.train()
         running_loss = 0.0
+        epoch_total_loss = 0.0
+        epoch_iters = 0
         for iteration, (images, targets) in enumerate(
             tqdm(train_loader, desc=f"Epoch {epoch + 1}/{args.epochs}")
         ):
@@ -211,6 +214,8 @@ def main():
             scaler.update()
 
             running_loss += losses.item()
+            epoch_total_loss += losses.item()
+            epoch_iters += 1
             if (iteration + 1) % args.log_interval == 0:
                 logger.info(
                     "  [Epoch %d, Iter %d] Loss: %.4f",
@@ -219,6 +224,12 @@ def main():
                     running_loss / args.log_interval,
                 )
                 running_loss = 0.0
+
+        logger.info(
+            "Epoch %d complete | avg total loss=%.4f",
+            epoch + 1,
+            epoch_total_loss / max(epoch_iters, 1),
+        )
 
         scheduler.step()
 
