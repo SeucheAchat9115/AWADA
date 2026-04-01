@@ -1021,10 +1021,7 @@ class TestRunningLossLogging:
             }
             for v in g_vals
         ]
-        d_seq = [
-            {"total_D": torch.tensor(v, requires_grad=True)}
-            for v in d_vals
-        ]
+        d_seq = [{"total_D": torch.tensor(v, requires_grad=True)} for v in d_vals]
         return g_seq, d_seq
 
     # ------------------------------------------------------------------
@@ -1052,18 +1049,25 @@ class TestRunningLossLogging:
                 "sys.argv",
                 [
                     "train_cyclegan.py",
-                    "--source_dir", str(tmp_path),
-                    "--target_dir", str(tmp_path),
-                    "--output_dir", str(tmp_path),
-                    "--epochs", "1",
-                    "--config", str(config_path),
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--config",
+                    str(config_path),
                 ],
             ),
             caplog.at_level(logging.INFO),
         ):
             cyclegan_main()
 
-        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
         assert len(interval_logs) == 1
         # Running average: G = (1.0 + 3.0) / 2 = 2.000, D = (0.5 + 1.5) / 2 = 1.000
         assert "G=2.000" in interval_logs[0]
@@ -1090,18 +1094,25 @@ class TestRunningLossLogging:
                 "sys.argv",
                 [
                     "train_cyclegan.py",
-                    "--source_dir", str(tmp_path),
-                    "--target_dir", str(tmp_path),
-                    "--output_dir", str(tmp_path),
-                    "--epochs", "1",
-                    "--config", str(config_path),
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--config",
+                    str(config_path),
                 ],
             ),
             caplog.at_level(logging.INFO),
         ):
             cyclegan_main()
 
-        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
         assert len(interval_logs) == 2
         assert "G=2.000" in interval_logs[0]
         assert "G=6.000" in interval_logs[1]
@@ -1130,18 +1141,25 @@ class TestRunningLossLogging:
                 "sys.argv",
                 [
                     "train_cycada.py",
-                    "--source_dir", str(tmp_path),
-                    "--target_dir", str(tmp_path),
-                    "--output_dir", str(tmp_path),
-                    "--epochs", "1",
-                    "--config", str(config_path),
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--config",
+                    str(config_path),
                 ],
             ),
             caplog.at_level(logging.INFO),
         ):
             cycada_main()
 
-        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
         assert len(interval_logs) == 1
         assert "G=2.000" in interval_logs[0]
         assert "D=1.000" in interval_logs[0]
@@ -1166,18 +1184,25 @@ class TestRunningLossLogging:
                 "sys.argv",
                 [
                     "train_cycada.py",
-                    "--source_dir", str(tmp_path),
-                    "--target_dir", str(tmp_path),
-                    "--output_dir", str(tmp_path),
-                    "--epochs", "1",
-                    "--config", str(config_path),
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--config",
+                    str(config_path),
                 ],
             ),
             caplog.at_level(logging.INFO),
         ):
             cycada_main()
 
-        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
         assert len(interval_logs) == 2
         assert "G=2.000" in interval_logs[0]
         assert "G=6.000" in interval_logs[1]
@@ -1206,20 +1231,29 @@ class TestRunningLossLogging:
                 "sys.argv",
                 [
                     "train_awada.py",
-                    "--source_dir", str(tmp_path),
-                    "--target_dir", str(tmp_path),
-                    "--source_attention_dir", str(tmp_path),
-                    "--target_attention_dir", str(tmp_path),
-                    "--output_dir", str(tmp_path),
-                    "--epochs", "1",
-                    "--config", str(config_path),
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--config",
+                    str(config_path),
                 ],
             ),
             caplog.at_level(logging.INFO),
         ):
             awada_main()
 
-        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
         assert len(interval_logs) == 1
         assert "G=2.000" in interval_logs[0]
         assert "D=1.000" in interval_logs[0]
@@ -1244,20 +1278,29 @@ class TestRunningLossLogging:
                 "sys.argv",
                 [
                     "train_awada.py",
-                    "--source_dir", str(tmp_path),
-                    "--target_dir", str(tmp_path),
-                    "--source_attention_dir", str(tmp_path),
-                    "--target_attention_dir", str(tmp_path),
-                    "--output_dir", str(tmp_path),
-                    "--epochs", "1",
-                    "--config", str(config_path),
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--config",
+                    str(config_path),
                 ],
             ),
             caplog.at_level(logging.INFO),
         ):
             awada_main()
 
-        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
         assert len(interval_logs) == 2
         assert "G=2.000" in interval_logs[0]
         assert "G=6.000" in interval_logs[1]
