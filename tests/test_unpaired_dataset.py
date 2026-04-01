@@ -59,17 +59,17 @@ class TestUnpairedImageDatasetDirectoryChecks:
     """Tests that verify FileNotFoundError is raised for missing directories."""
 
     def test_missing_dir_a_raises(self, tmp_path):
-        """FileNotFoundError must be raised when dir_A does not exist."""
+        """FileNotFoundError must be raised when source directory does not exist."""
         dir_b = tmp_path / "domain_B"
         dir_b.mkdir()
-        with pytest.raises(FileNotFoundError, match="Domain A"):
+        with pytest.raises(FileNotFoundError, match="[Ss]ource"):
             UnpairedImageDataset(str(tmp_path / "nonexistent_A"), str(dir_b))
 
     def test_missing_dir_b_raises(self, tmp_path):
-        """FileNotFoundError must be raised when dir_B does not exist."""
+        """FileNotFoundError must be raised when target directory does not exist."""
         dir_a = tmp_path / "domain_A"
         dir_a.mkdir()
-        with pytest.raises(FileNotFoundError, match="Domain B"):
+        with pytest.raises(FileNotFoundError, match="[Tt]arget"):
             UnpairedImageDataset(str(dir_a), str(tmp_path / "nonexistent_B"))
 
     def test_both_dirs_present_does_not_raise(self, tmp_path):

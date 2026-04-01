@@ -18,37 +18,37 @@ class UnpairedImageDataset(Dataset):
     iterations regardless of domain size.
     """
 
-    def __init__(self, dir_A: str, dir_B: str, patch_size: int = 128) -> None:
+    def __init__(self, source: str, target: str, patch_size: int = 128) -> None:
         """Initialise the unpaired image dataset.
 
         Args:
-            dir_A: Root directory for domain-A images (searched recursively).
-            dir_B: Root directory for domain-B images (searched recursively).
+            source: Root directory for source-domain images (searched recursively).
+            target: Root directory for target-domain images (searched recursively).
             patch_size: Side length of the square random crops (default: 128).
         """
-        if not os.path.isdir(dir_A):
+        if not os.path.isdir(source):
             raise FileNotFoundError(
-                f"Domain A directory not found: '{dir_A}'. "
-                "Please ensure the domain A images are present before constructing the dataset."
+                f"Source directory not found: '{source}'. "
+                "Please ensure the source domain images are present before constructing the dataset."
             )
-        if not os.path.isdir(dir_B):
+        if not os.path.isdir(target):
             raise FileNotFoundError(
-                f"Domain B directory not found: '{dir_B}'. "
-                "Please ensure the domain B images are present before constructing the dataset."
+                f"Target directory not found: '{target}'. "
+                "Please ensure the target domain images are present before constructing the dataset."
             )
         self.patch_size = patch_size
-        self.files_A = sorted(
+        self.source_files = sorted(
             [
                 os.path.join(root, f)
-                for root, _, files in os.walk(dir_A)
+                for root, _, files in os.walk(source)
                 for f in files
                 if f.lower().endswith((".png", ".jpg", ".jpeg"))
             ]
         )
-        self.files_B = sorted(
+        self.target_files = sorted(
             [
                 os.path.join(root, f)
-                for root, _, files in os.walk(dir_B)
+                for root, _, files in os.walk(target)
                 for f in files
                 if f.lower().endswith((".png", ".jpg", ".jpeg"))
             ]
@@ -64,18 +64,18 @@ class UnpairedImageDataset(Dataset):
 
     def __len__(self) -> int:
         """Return the number of iterations per epoch (max of both domain sizes)."""
-        return max(len(self.files_A), len(self.files_B))
+        return max(len(self.source_files), len(self.target_files))
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
-        """Return a randomly augmented pair of domain-A and domain-B images.
+        """Return a randomly augmented pair of source and target domain images.
 
         Args:
             idx: Sample index (cycled within each domain independently).
 
         Returns:
-            Tuple of ``(image_A, image_B)`` tensors of shape
+            Tuple of ``(source_image, target_image)`` tensors of shape
             ``[3, patch_size, patch_size]`` normalised to ``[-1, 1]``.
         """
-        img_A = Image.open(self.files_A[idx % len(self.files_A)]).convert("RGB")
-        img_B = Image.open(self.files_B[idx % len(self.files_B)]).convert("RGB")
-        return self.transform(img_A), self.transform(img_B)
+        source_img = Image.open(self.source_files[idx % len(self.source_files)]).convert("RGB")
+        target_img = Image.open(self.target_files[idx % len(self.target_files)]).convert("RGB")
+        return self.transform(source_img), self.transform(target_img)
