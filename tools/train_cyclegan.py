@@ -148,6 +148,8 @@ def main():
 
         epoch_loss_G = 0.0
         epoch_loss_D = 0.0
+        running_loss_G = 0.0
+        running_loss_D = 0.0
         num_iters = 0
 
         for iteration, (real_A, real_B) in enumerate(
@@ -191,6 +193,8 @@ def main():
 
             epoch_loss_G += g_losses["total_G"].item()
             epoch_loss_D += d_losses["total_D"].item()
+            running_loss_G += g_losses["total_G"].item()
+            running_loss_D += d_losses["total_D"].item()
             num_iters += 1
 
             if (iteration + 1) % log_interval == 0:
@@ -198,10 +202,12 @@ def main():
                     "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f",
                     epoch + 1,
                     iteration + 1,
-                    g_losses["total_G"].item(),
-                    d_losses["total_D"].item(),
+                    running_loss_G / log_interval,
+                    running_loss_D / log_interval,
                     g_losses["cycle_A"].item() + g_losses["cycle_B"].item(),
                 )
+                running_loss_G = 0.0
+                running_loss_D = 0.0
 
         logger.info(
             "Epoch %d complete | avg G loss=%.4f | avg D loss=%.4f",

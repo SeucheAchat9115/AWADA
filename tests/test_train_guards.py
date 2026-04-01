@@ -982,3 +982,282 @@ class TestSaveEvery:
 
         saved = {f for f in os.listdir(str(tmp_path)) if f.startswith("awada_epoch_")}
         assert saved == {"awada_epoch_3.pth"}
+
+
+def _make_full_mock_model_with_side_effects(g_losses_seq, d_losses_seq):
+    """Build a mock model with per-iteration varying G and D losses."""
+    mock_model = MagicMock()
+    for attr in ("G_AB", "G_BA", "D_A", "D_B"):
+        getattr(mock_model, attr).parameters.return_value = iter(
+            [torch.nn.Parameter(torch.zeros(1), requires_grad=False)]
+        )
+        getattr(mock_model, attr).state_dict.return_value = {}
+    mock_model.compute_generator_loss.side_effect = g_losses_seq
+    mock_model.compute_discriminator_loss.side_effect = d_losses_seq
+    return mock_model
+
+
+class TestRunningLossLogging:
+    """Tests that per-interval logs use running averages over log_interval iterations."""
+
+    def _cyclegan_batches(self, n):
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+        return [(real_A, real_B)] * n
+
+    def _awada_batches(self, n):
+        real_A = torch.zeros(1, 3, 64, 64)
+        real_B = torch.zeros(1, 3, 64, 64)
+        att_A = torch.zeros(1, 1, 64, 64)
+        att_B = torch.zeros(1, 1, 64, 64)
+        return [(real_A, real_B, att_A, att_B)] * n
+
+    def _make_g_d_losses(self, g_vals, d_vals):
+        g_seq = [
+            {
+                "total_G": torch.tensor(v, requires_grad=True),
+                "cycle_A": torch.tensor(0.1),
+                "cycle_B": torch.tensor(0.1),
+            }
+            for v in g_vals
+        ]
+        d_seq = [
+            {"total_D": torch.tensor(v, requires_grad=True)}
+            for v in d_vals
+        ]
+        return g_seq, d_seq
+
+    # ------------------------------------------------------------------
+    # train_cyclegan
+    # ------------------------------------------------------------------
+
+    def test_cyclegan_interval_log_uses_running_average(self, tmp_path, caplog):
+        """[Epoch X, Iter Y] log must show the running average G/D loss, not the instantaneous value."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        # Two batches with different G losses; average = (1.0 + 3.0) / 2 = 2.0
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0], [0.5, 1.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cyclegan import main as cyclegan_main
+
+        with (
+            patch("tools.train_cyclegan.CycleGAN", return_value=mock_model),
+            patch("tools.train_cyclegan.DataLoader", return_value=self._cyclegan_batches(2)),
+            patch("tools.train_cyclegan.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cyclegan.py",
+                    "--source_dir", str(tmp_path),
+                    "--target_dir", str(tmp_path),
+                    "--output_dir", str(tmp_path),
+                    "--epochs", "1",
+                    "--config", str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cyclegan_main()
+
+        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        assert len(interval_logs) == 1
+        # Running average: G = (1.0 + 3.0) / 2 = 2.000, D = (0.5 + 1.5) / 2 = 1.000
+        assert "G=2.000" in interval_logs[0]
+        assert "D=1.000" in interval_logs[0]
+
+    def test_cyclegan_running_loss_resets_after_interval(self, tmp_path, caplog):
+        """Running accumulators must reset after each log interval."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        # Four batches: interval 1 avg=(1+3)/2=2.0, interval 2 avg=(5+7)/2=6.0
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0, 5.0, 7.0], [0.1] * 4)
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cyclegan import main as cyclegan_main
+
+        with (
+            patch("tools.train_cyclegan.CycleGAN", return_value=mock_model),
+            patch("tools.train_cyclegan.DataLoader", return_value=self._cyclegan_batches(4)),
+            patch("tools.train_cyclegan.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cyclegan.py",
+                    "--source_dir", str(tmp_path),
+                    "--target_dir", str(tmp_path),
+                    "--output_dir", str(tmp_path),
+                    "--epochs", "1",
+                    "--config", str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cyclegan_main()
+
+        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        assert len(interval_logs) == 2
+        assert "G=2.000" in interval_logs[0]
+        assert "G=6.000" in interval_logs[1]
+
+    # ------------------------------------------------------------------
+    # train_cycada
+    # ------------------------------------------------------------------
+
+    def test_cycada_interval_log_uses_running_average(self, tmp_path, caplog):
+        """[Epoch X, Iter Y] log must show the running average G/D loss, not the instantaneous value."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0], [0.5, 1.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cycada import main as cycada_main
+
+        with (
+            patch("tools.train_cycada.CyCada", return_value=mock_model),
+            patch("tools.train_cycada.DataLoader", return_value=self._cyclegan_batches(2)),
+            patch("tools.train_cycada.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cycada.py",
+                    "--source_dir", str(tmp_path),
+                    "--target_dir", str(tmp_path),
+                    "--output_dir", str(tmp_path),
+                    "--epochs", "1",
+                    "--config", str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cycada_main()
+
+        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        assert len(interval_logs) == 1
+        assert "G=2.000" in interval_logs[0]
+        assert "D=1.000" in interval_logs[0]
+
+    def test_cycada_running_loss_resets_after_interval(self, tmp_path, caplog):
+        """Running accumulators must reset after each log interval."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0, 5.0, 7.0], [0.1] * 4)
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cycada import main as cycada_main
+
+        with (
+            patch("tools.train_cycada.CyCada", return_value=mock_model),
+            patch("tools.train_cycada.DataLoader", return_value=self._cyclegan_batches(4)),
+            patch("tools.train_cycada.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cycada.py",
+                    "--source_dir", str(tmp_path),
+                    "--target_dir", str(tmp_path),
+                    "--output_dir", str(tmp_path),
+                    "--epochs", "1",
+                    "--config", str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cycada_main()
+
+        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        assert len(interval_logs) == 2
+        assert "G=2.000" in interval_logs[0]
+        assert "G=6.000" in interval_logs[1]
+
+    # ------------------------------------------------------------------
+    # train_awada
+    # ------------------------------------------------------------------
+
+    def test_awada_interval_log_uses_running_average(self, tmp_path, caplog):
+        """[Epoch X, Iter Y] log must show the running average G/D loss, not the instantaneous value."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0], [0.5, 1.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_awada import main as awada_main
+
+        with (
+            patch("tools.train_awada.AWADA", return_value=mock_model),
+            patch("tools.train_awada.DataLoader", return_value=self._awada_batches(2)),
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir", str(tmp_path),
+                    "--target_dir", str(tmp_path),
+                    "--source_attention_dir", str(tmp_path),
+                    "--target_attention_dir", str(tmp_path),
+                    "--output_dir", str(tmp_path),
+                    "--epochs", "1",
+                    "--config", str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            awada_main()
+
+        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        assert len(interval_logs) == 1
+        assert "G=2.000" in interval_logs[0]
+        assert "D=1.000" in interval_logs[0]
+
+    def test_awada_running_loss_resets_after_interval(self, tmp_path, caplog):
+        """Running accumulators must reset after each log interval."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0, 5.0, 7.0], [0.1] * 4)
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_awada import main as awada_main
+
+        with (
+            patch("tools.train_awada.AWADA", return_value=mock_model),
+            patch("tools.train_awada.DataLoader", return_value=self._awada_batches(4)),
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir", str(tmp_path),
+                    "--target_dir", str(tmp_path),
+                    "--source_attention_dir", str(tmp_path),
+                    "--target_attention_dir", str(tmp_path),
+                    "--output_dir", str(tmp_path),
+                    "--epochs", "1",
+                    "--config", str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            awada_main()
+
+        interval_logs = [r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message]
+        assert len(interval_logs) == 2
+        assert "G=2.000" in interval_logs[0]
+        assert "G=6.000" in interval_logs[1]
