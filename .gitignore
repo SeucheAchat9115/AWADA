@@ -37,4 +37,4 @@ runs/
 *.npy
 
 # Data (do not commit datasets)
-/data/
+data/
