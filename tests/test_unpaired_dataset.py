@@ -59,17 +59,17 @@ class TestUnpairedImageDatasetDirectoryChecks:
     """Tests that verify FileNotFoundError is raised for missing directories."""
 
     def test_missing_dir_a_raises(self, tmp_path):
-        """FileNotFoundError must be raised when dir_A does not exist."""
+        """FileNotFoundError must be raised when source directory does not exist."""
         dir_b = tmp_path / "domain_B"
         dir_b.mkdir()
-        with pytest.raises(FileNotFoundError, match="Domain A"):
+        with pytest.raises(FileNotFoundError, match="[Ss]ource"):
             UnpairedImageDataset(str(tmp_path / "nonexistent_A"), str(dir_b))
 
     def test_missing_dir_b_raises(self, tmp_path):
-        """FileNotFoundError must be raised when dir_B does not exist."""
+        """FileNotFoundError must be raised when target directory does not exist."""
         dir_a = tmp_path / "domain_A"
         dir_a.mkdir()
-        with pytest.raises(FileNotFoundError, match="Domain B"):
+        with pytest.raises(FileNotFoundError, match="[Tt]arget"):
             UnpairedImageDataset(str(dir_a), str(tmp_path / "nonexistent_B"))
 
     def test_both_dirs_present_does_not_raise(self, tmp_path):
@@ -83,3 +83,43 @@ class TestUnpairedImageDatasetDirectoryChecks:
         img.save(str(dir_b / "img.png"))
         # Should not raise
         UnpairedImageDataset(str(dir_a), str(dir_b), patch_size=32)
+
+
+class TestUnpairedImageDatasetRecursiveSearch:
+    """Tests that verify images are discovered recursively in sub-directories."""
+
+    def test_images_in_subdirs_are_found(self, tmp_path):
+        """Images nested inside sub-folders must be discovered."""
+        dir_a = tmp_path / "domain_A"
+        dir_b = tmp_path / "domain_B"
+        subdir_a = dir_a / "subdir"
+        subdir_b = dir_b / "subdir"
+        subdir_a.mkdir(parents=True)
+        subdir_b.mkdir(parents=True)
+
+        img = Image.fromarray(np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8))
+        # Place images only in sub-directories (not at root level)
+        img.save(str(subdir_a / "a_0.png"))
+        img.save(str(subdir_a / "a_1.png"))
+        img.save(str(subdir_b / "b_0.png"))
+
+        ds = UnpairedImageDataset(str(dir_a), str(dir_b), patch_size=32)
+        assert len(ds) == 2  # max(2, 1)
+
+    def test_mixed_flat_and_nested_images_are_counted(self, tmp_path):
+        """Images at root level and in sub-folders are all included in the count."""
+        dir_a = tmp_path / "domain_A"
+        dir_b = tmp_path / "domain_B"
+        subdir_a = dir_a / "sub"
+        dir_a.mkdir()
+        dir_b.mkdir()
+        subdir_a.mkdir()
+
+        img = Image.fromarray(np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8))
+        img.save(str(dir_a / "root.png"))       # flat
+        img.save(str(subdir_a / "nested.png"))  # nested
+        img.save(str(dir_b / "b.png"))
+
+        ds = UnpairedImageDataset(str(dir_a), str(dir_b), patch_size=32)
+        # domain_A has 2 images (1 flat + 1 nested), domain_B has 1
+        assert len(ds) == 2  # max(2, 1)
