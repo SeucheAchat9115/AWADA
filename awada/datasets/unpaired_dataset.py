@@ -18,29 +18,29 @@ class UnpairedImageDataset(Dataset):
     iterations regardless of domain size.
     """
 
-    def __init__(self, source: str, target: str, patch_size: int = 128) -> None:
+    def __init__(self, source_dir: str, target_dir: str, patch_size: int = 128) -> None:
         """Initialise the unpaired image dataset.
 
         Args:
-            source: Root directory for source-domain images (searched recursively).
-            target: Root directory for target-domain images (searched recursively).
+            source_dir: Root directory for source-domain images (searched recursively).
+            target_dir: Root directory for target-domain images (searched recursively).
             patch_size: Side length of the square random crops (default: 128).
         """
-        if not os.path.isdir(source):
+        if not os.path.isdir(source_dir):
             raise FileNotFoundError(
-                f"Source directory not found: '{source}'. "
+                f"Source directory not found: '{source_dir}'. "
                 "Please ensure the source domain images are present before constructing the dataset."
             )
-        if not os.path.isdir(target):
+        if not os.path.isdir(target_dir):
             raise FileNotFoundError(
-                f"Target directory not found: '{target}'. "
+                f"Target directory not found: '{target_dir}'. "
                 "Please ensure the target domain images are present before constructing the dataset."
             )
         self.patch_size = patch_size
         self.source_files = sorted(
             [
                 os.path.join(root, f)
-                for root, _, files in os.walk(source)
+                for root, _, files in os.walk(source_dir)
                 for f in files
                 if f.lower().endswith((".png", ".jpg", ".jpeg"))
             ]
@@ -48,7 +48,7 @@ class UnpairedImageDataset(Dataset):
         self.target_files = sorted(
             [
                 os.path.join(root, f)
-                for root, _, files in os.walk(target)
+                for root, _, files in os.walk(target_dir)
                 for f in files
                 if f.lower().endswith((".png", ".jpg", ".jpeg"))
             ]
