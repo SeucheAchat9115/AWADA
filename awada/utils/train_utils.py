@@ -49,7 +49,12 @@ def setup_logging(output_dir: str, log_filename: str = "training.log") -> str:
     log_path = os.path.join(dated_dir, log_filename)
     file_handler = logging.FileHandler(log_path)
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    file_handler.setFormatter(
+        logging.Formatter(
+            fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
     logging.getLogger().addHandler(file_handler)
 
     return dated_dir
