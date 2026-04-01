@@ -116,7 +116,7 @@ class TestUnpairedImageDatasetRecursiveSearch:
         subdir_a.mkdir()
 
         img = Image.fromarray(np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8))
-        img.save(str(dir_a / "root.png"))       # flat
+        img.save(str(dir_a / "root.png"))  # flat
         img.save(str(subdir_a / "nested.png"))  # nested
         img.save(str(dir_b / "b.png"))
 
