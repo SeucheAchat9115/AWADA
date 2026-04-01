@@ -64,6 +64,31 @@ def test_setup_logging_writes_messages(tmp_path):
         root.setLevel(original_level)
 
 
+def test_setup_logging_format(tmp_path):
+    """Log records in the file must use the structured pipe-separated format."""
+    root = logging.getLogger()
+    original_level = root.level
+    root.setLevel(logging.INFO)
+    try:
+        dated_dir = setup_logging(str(tmp_path))
+        log_path = os.path.join(dated_dir, "training.log")
+
+        test_logger = logging.getLogger("test_format_check")
+        test_logger.info("format probe xyz789")
+
+        for handler in root.handlers:
+            handler.flush()
+
+        content = open(log_path).read()
+        # The structured format is: TIMESTAMP | LEVEL    | name | message
+        assert " | " in content
+        assert "INFO" in content
+        assert "test_format_check" in content
+        assert "format probe xyz789" in content
+    finally:
+        root.setLevel(original_level)
+
+
 def test_setup_logging_custom_filename(tmp_path):
     """Custom ``log_filename`` must be used instead of the default."""
     dated_dir = setup_logging(str(tmp_path), log_filename="experiment.log")
