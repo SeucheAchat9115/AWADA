@@ -44,8 +44,8 @@ name = "awada"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "torch>=2.0.0",
-    "torchvision>=0.15.0",
+    "torch>=2.0.0,<2.5.0",
+    "torchvision>=0.15.0,<0.20.0",
     "numpy>=1.21.0",
     "Pillow>=9.0.0",
     "scipy>=1.7.0",
