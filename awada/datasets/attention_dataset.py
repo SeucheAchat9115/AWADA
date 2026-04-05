@@ -26,7 +26,7 @@ class AttentionPairedDataset(Dataset):
         target_root: str,
         source_attention_root: str,
         target_attention_root: str | None = None,
-        patch_size: int = 256,
+        patch_size: int = 128,
     ) -> None:
         """Initialise the dataset.
 
@@ -39,10 +39,7 @@ class AttentionPairedDataset(Dataset):
                 maps.  When ``None``, uniform (all-ones) weights are used for
                 the target domain.
             patch_size: Side length of the square patches sampled during
-                training (default: 256).  Images are first resized to
-                ``(patch_size + 30) × (patch_size + 30)`` before a random
-                square crop is taken, matching the canonical CycleGAN
-                preprocessing from Zhu et al. (2017).
+                training (default: 128).
         """
         if not os.path.isdir(source_root):
             raise FileNotFoundError(
@@ -170,12 +167,6 @@ class AttentionPairedDataset(Dataset):
 
         src_img = Image.open(src_path).convert("RGB")
         tgt_img = Image.open(tgt_path).convert("RGB")
-
-        # Resize to load_size × load_size before random cropping, matching the
-        # canonical CycleGAN 286→256 preprocessing (Zhu et al., 2017).
-        load_size = p + 30
-        src_img = src_img.resize((load_size, load_size), Image.BICUBIC)
-        tgt_img = tgt_img.resize((load_size, load_size), Image.BICUBIC)
 
         src_w, src_h = src_img.size
         tgt_w, tgt_h = tgt_img.size
