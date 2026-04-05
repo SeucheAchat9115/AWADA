@@ -138,7 +138,11 @@ class CycleGAN(nn.Module):
         Args:
             lambda_cyc: Weight for the cycle-consistency loss.
             lambda_gan: Weight for the adversarial GAN loss.
-            lambda_idt: Weight for the identity loss (0 disables it).
+            lambda_idt: Identity-loss ratio relative to the cycle loss (0
+                disables it).  The effective identity-loss weight is
+                ``lambda_idt × lambda_cyc``, matching the convention used in
+                the original CycleGAN paper where ``lambda_identity = 0.5``
+                gives an effective weight of ``0.5 × 10 = 5``.
 
         Returns:
             Dictionary with individual loss components and ``"total_G"``.
@@ -162,10 +166,13 @@ class CycleGAN(nn.Module):
         }
 
         # Identity loss (unmasked global regulariser; skipped when weight is zero).
+        # Effective weight = lambda_idt * lambda_cyc, matching the original paper's
+        # convention where lambda_identity = 0.5 gives 0.5 * 10 = 5.
         # Each line performs an extra forward pass through one generator.
         if lambda_idt > 0.0:
-            loss_idt_A = self.criterion_cycle(self.G_BA(self.real_A), self.real_A) * lambda_idt
-            loss_idt_B = self.criterion_cycle(self.G_AB(self.real_B), self.real_B) * lambda_idt
+            idt_weight = lambda_idt * lambda_cyc
+            loss_idt_A = self.criterion_cycle(self.G_BA(self.real_A), self.real_A) * idt_weight
+            loss_idt_B = self.criterion_cycle(self.G_AB(self.real_B), self.real_B) * idt_weight
             total = total + loss_idt_A + loss_idt_B
             losses["idt_A"] = loss_idt_A
             losses["idt_B"] = loss_idt_B

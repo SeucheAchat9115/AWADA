@@ -135,12 +135,12 @@ class TestAWADA:
 
     def test_identity_loss_present_and_unmasked_when_enabled(self, awada_fwd):
         """Identity loss keys MUST appear when lambda_idt > 0 (unmasked)."""
-        losses = awada_fwd.compute_generator_loss(lambda_idt=5.0)
+        losses = awada_fwd.compute_generator_loss(lambda_idt=0.5)
         assert "idt_A" in losses
         assert "idt_B" in losses
 
     def test_identity_loss_included_in_total(self, awada_fwd):
-        losses = awada_fwd.compute_generator_loss(lambda_idt=5.0)
+        losses = awada_fwd.compute_generator_loss(lambda_idt=0.5)
         expected = (
             losses["G_AB"]
             + losses["G_BA"]

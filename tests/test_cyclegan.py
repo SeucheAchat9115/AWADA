@@ -156,11 +156,11 @@ class TestCycleGAN:
     def test_identity_loss_present_when_enabled(self, cyclegan_fwd):
         """Identity loss keys MUST appear when lambda_idt > 0."""
         model, _, _ = cyclegan_fwd
-        losses = model.compute_generator_loss(lambda_idt=5.0)
+        losses = model.compute_generator_loss(lambda_idt=0.5)
         assert "idt_A" in losses
         assert "idt_B" in losses
 
-    @pytest.mark.parametrize("lambda_idt", [1.0, 5.0])
+    @pytest.mark.parametrize("lambda_idt", [0.1, 0.5])
     def test_identity_loss_non_negative_and_no_nan(self, cyclegan_fwd, lambda_idt):
         """Identity losses must be non-negative and NaN-free for varying lambda_idt."""
         model, _, _ = cyclegan_fwd
@@ -173,7 +173,7 @@ class TestCycleGAN:
     def test_identity_loss_included_in_total(self, cyclegan_fwd):
         """total_G must include the identity losses when lambda_idt > 0."""
         model, _, _ = cyclegan_fwd
-        losses = model.compute_generator_loss(lambda_idt=5.0)
+        losses = model.compute_generator_loss(lambda_idt=0.5)
         expected = (
             losses["G_AB"]
             + losses["G_BA"]
@@ -183,3 +183,12 @@ class TestCycleGAN:
             + losses["idt_B"]
         )
         assert torch.allclose(losses["total_G"], expected, atol=1e-5)
+
+    def test_identity_loss_scales_with_lambda_cyc(self, cyclegan_fwd):
+        """Identity loss magnitude must scale proportionally with lambda_cyc."""
+        model, _, _ = cyclegan_fwd
+        losses_low = model.compute_generator_loss(lambda_idt=0.5, lambda_cyc=5.0)
+        model.forward()
+        losses_high = model.compute_generator_loss(lambda_idt=0.5, lambda_cyc=10.0)
+        # With lambda_cyc doubled, idt loss should also roughly double
+        assert losses_high["idt_A"].item() > losses_low["idt_A"].item()

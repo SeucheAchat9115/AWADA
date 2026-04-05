@@ -144,6 +144,6 @@ class TestCyCada:
 
     def test_identity_loss_present_when_enabled(self, cycada_fwd):
         model, _, _ = cycada_fwd
-        losses = model.compute_generator_loss(lambda_idt=5.0)
+        losses = model.compute_generator_loss(lambda_idt=0.5)
         assert "idt_A" in losses
         assert "idt_B" in losses
