@@ -152,7 +152,11 @@ def main():
 
     args = parser.parse_args()
 
-    if args.val_dataset is not None and args.val_dataset != args.dataset and args.val_data_root is None:
+    if (
+        args.val_dataset is not None
+        and args.val_dataset != args.dataset
+        and args.val_data_root is None
+    ):
         parser.error("--val_data_root is required when --val_dataset differs from --dataset")
 
     set_seed(args.seed)
