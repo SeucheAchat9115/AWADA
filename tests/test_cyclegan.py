@@ -184,11 +184,12 @@ class TestCycleGAN:
         )
         assert torch.allclose(losses["total_G"], expected, atol=1e-5)
 
-    def test_identity_loss_scales_with_lambda_cyc(self, cyclegan_fwd):
-        """Identity loss magnitude must scale proportionally with lambda_cyc."""
+    def test_identity_loss_scales_proportionally_with_lambda_cyc(self, cyclegan_fwd):
+        """Identity loss must scale exactly 2× when lambda_cyc is doubled (same forward pass)."""
         model, _, _ = cyclegan_fwd
+        # Both loss computations reuse the same stored activations (no re-forward),
+        # so the only difference is the scalar multiplier — allowing an exact ratio check.
         losses_low = model.compute_generator_loss(lambda_idt=0.5, lambda_cyc=5.0)
-        model.forward()
         losses_high = model.compute_generator_loss(lambda_idt=0.5, lambda_cyc=10.0)
-        # With lambda_cyc doubled, idt loss should also roughly double
-        assert losses_high["idt_A"].item() > losses_low["idt_A"].item()
+        assert torch.allclose(losses_high["idt_A"], losses_low["idt_A"] * 2, atol=1e-5)
+        assert torch.allclose(losses_high["idt_B"], losses_low["idt_B"] * 2, atol=1e-5)
