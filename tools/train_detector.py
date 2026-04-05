@@ -180,21 +180,15 @@ def main():
         transforms=resize_transform,
     )
     # In a domain adaptation setting, validate on the target dataset when specified.
-    # sim10k (GTA) does not provide a validation split; skip validation if it is
-    # selected as the validation dataset (either explicitly or by default).
     val_dataset_name = args.val_dataset if args.val_dataset is not None else args.dataset
     val_data_root = args.val_data_root if args.val_data_root is not None else args.data_root
     val_classes = args.val_classes if args.val_classes is not None else args.classes
-    val_dataset = (
-        get_dataset(
-            val_dataset_name,
-            val_data_root,
-            split="val",
-            classes=val_classes,
-            transforms=resize_transform,
-        )
-        if val_dataset_name != "sim10k"
-        else None
+    val_dataset = get_dataset(
+        val_dataset_name,
+        val_data_root,
+        split="val",
+        classes=val_classes,
+        transforms=resize_transform,
     )
 
     train_loader = DataLoader(
