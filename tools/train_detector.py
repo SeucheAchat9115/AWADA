@@ -131,7 +131,38 @@ def main():
         default=False,
         help="Enable Automatic Mixed Precision (AMP) training",
     )
+    parser.add_argument(
+        "--val_dataset",
+        choices=["sim10k", "cityscapes", "foggy_cityscapes", "bdd100k"],
+        default=None,
+        help=(
+            "Dataset to use for validation (detection evaluation). "
+            "In a domain adaptation setting, set this to the target dataset. "
+            "Defaults to the training dataset if not specified."
+        ),
+    )
+    parser.add_argument(
+        "--val_data_root",
+        default=None,
+        help=(
+            "Root directory of the validation dataset. "
+            "Required when --val_dataset is different from --dataset."
+        ),
+    )
+    parser.add_argument(
+        "--val_classes",
+        nargs="+",
+        default=None,
+        help=(
+            "Class names to include for the validation dataset "
+            "(cityscapes only, e.g. --val_classes car). "
+            "Defaults to --classes if not specified."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.val_dataset is not None and args.val_dataset != args.dataset and args.val_data_root is None:
+        parser.error("--val_data_root is required when --val_dataset differs from --dataset")
 
     set_seed(args.seed)
 
@@ -148,16 +179,21 @@ def main():
         image_dir=args.image_dir,
         transforms=resize_transform,
     )
-    # sim10k (GTA) does not require a validation split; all images are used for training.
+    # In a domain adaptation setting, validate on the target dataset when specified.
+    # sim10k (GTA) does not provide a validation split; skip validation if it is
+    # selected as the validation dataset (either explicitly or by default).
+    val_dataset_name = args.val_dataset if args.val_dataset is not None else args.dataset
+    val_data_root = args.val_data_root if args.val_data_root is not None else args.data_root
+    val_classes = args.val_classes if args.val_classes is not None else args.classes
     val_dataset = (
         get_dataset(
-            args.dataset,
-            args.data_root,
+            val_dataset_name,
+            val_data_root,
             split="val",
-            classes=args.classes,
+            classes=val_classes,
             transforms=resize_transform,
         )
-        if args.dataset != "sim10k"
+        if val_dataset_name != "sim10k"
         else None
     )
 

@@ -84,7 +84,10 @@ python tools/train_detector.py \
     --batch_size 2 \
     --lr 0.005 \
     --device cuda \
-    --pretrained
+    --pretrained \
+    --val_dataset "$TARGET_DATASET" \
+    --val_data_root "$TARGET_ROOT" \
+    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--val_classes car")
 
 # Step 4: Evaluate on target domain
 echo "[Step 4] Evaluating on target domain..."
