@@ -115,16 +115,7 @@ The Cityscapes → BDD100K benchmark uses 7 shared classes: **pedestrian, rider,
 
 ## Quick Start
 
-Set your data paths as environment variables, then run any of the four experiment scripts:
-
-```bash
-export SIM10K_ROOT=/data/sim10k
-export CITYSCAPES_ROOT=/data/cityscapes
-export FOGGY_ROOT=/data/foggy_cityscapes
-export BDD100K_ROOT=/data/bdd100k
-export OUTPUT_ROOT=./outputs
-export DEVICE=cuda
-```
+The experiment scripts expect datasets to be placed under `./data/` (e.g. `./data/sim10k`, `./data/cityscapes`) and write outputs to `./outputs/` by default. Run any of the four experiment scripts as shown below.
 
 ### Experiment A: Non-Adaptive Baseline
 
