@@ -131,7 +131,29 @@ def main():
         default=False,
         help="Enable Automatic Mixed Precision (AMP) training",
     )
+    parser.add_argument(
+        "--val_dataset",
+        choices=["sim10k", "cityscapes", "foggy_cityscapes", "bdd100k"],
+        default=None,
+        help=(
+            "Dataset to use for validation (detection evaluation). "
+            "In a domain adaptation setting, set this to the target dataset. "
+            "Defaults to the training dataset if not specified."
+        ),
+    )
+    parser.add_argument(
+        "--val_data_root",
+        default=None,
+        help=(
+            "Root directory of the validation dataset. "
+            "Required when --val_dataset is different from --dataset."
+        ),
+    )
+
     args = parser.parse_args()
+
+    if args.val_dataset is not None and args.val_dataset != args.dataset and args.val_data_root is None:
+        parser.error("--val_data_root is required when --val_dataset differs from --dataset")
 
     set_seed(args.seed)
 
@@ -148,17 +170,15 @@ def main():
         image_dir=args.image_dir,
         transforms=resize_transform,
     )
-    # sim10k (GTA) does not require a validation split; all images are used for training.
-    val_dataset = (
-        get_dataset(
-            args.dataset,
-            args.data_root,
-            split="val",
-            classes=args.classes,
-            transforms=resize_transform,
-        )
-        if args.dataset != "sim10k"
-        else None
+    # In a domain adaptation setting, validate on the target dataset when specified.
+    val_dataset_name = args.val_dataset if args.val_dataset is not None else args.dataset
+    val_data_root = args.val_data_root if args.val_data_root is not None else args.data_root
+    val_dataset = get_dataset(
+        val_dataset_name,
+        val_data_root,
+        split="val",
+        classes=args.classes,
+        transforms=resize_transform,
     )
 
     train_loader = DataLoader(
@@ -183,6 +203,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
     scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
 
+    final_metrics = None
     for epoch in range(args.epochs):
         logger.info("--- Epoch %d/%d ---", epoch + 1, args.epochs)
         model.train()
@@ -257,11 +278,20 @@ def main():
             )
             for cat_id, ap in sorted(metrics["per_class_AP"].items()):
                 logger.info("  Class %d AP@0.5:0.95=%.4f", cat_id, ap)
+            final_metrics = metrics
 
     # Save final model
     final_path = os.path.join(args.output_dir, "detector_final.pth")
     torch.save(model.state_dict(), final_path)
     logger.info("Final model saved to %s", final_path)
+
+    # Write final validation metrics to results.txt
+    if val_loader is not None and final_metrics is not None:
+        results_path = os.path.join(args.output_dir, "results.txt")
+        with open(results_path, "w") as f:
+            f.write(f"mAP@0.5: {final_metrics['mAP@0.5']:.4f}\n")
+            f.write(f"mAP@0.5:0.95: {final_metrics['mAP@0.5:0.95']:.4f}\n")
+        logger.info("Results saved to %s", results_path)
 
 
 if __name__ == "__main__":

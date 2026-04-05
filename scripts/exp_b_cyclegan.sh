@@ -84,19 +84,8 @@ python tools/train_detector.py \
     --batch_size 2 \
     --lr 0.005 \
     --device cuda \
-    --pretrained
-
-# Step 4: Evaluate on target domain
-echo "[Step 4] Evaluating on target domain..."
-python tools/evaluate_detector.py \
-    --detector_checkpoint "$DETECTOR_OUTPUT/detector_final.pth" \
-    --dataset "$TARGET_DATASET" \
-    --data_root "$TARGET_ROOT" \
-    --num_classes "$NUM_CLASSES" \
-    --output_dir "$DETECTOR_OUTPUT" \
-    --device cuda \
-    --label "Experiment B: CycleGAN" \
-    --benchmark "$BENCHMARK" \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
+    --pretrained \
+    --val_dataset "$TARGET_DATASET" \
+    --val_data_root "$TARGET_ROOT"
 
 echo "Experiment B complete!"
