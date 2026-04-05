@@ -18,17 +18,13 @@ class UnpairedImageDataset(Dataset):
     iterations regardless of domain size.
     """
 
-    def __init__(self, source_dir: str, target_dir: str, patch_size: int = 256) -> None:
+    def __init__(self, source_dir: str, target_dir: str, patch_size: int = 128) -> None:
         """Initialise the unpaired image dataset.
 
         Args:
             source_dir: Root directory for source-domain images (searched recursively).
             target_dir: Root directory for target-domain images (searched recursively).
-            patch_size: Side length of the square random crops (default: 256).
-                Follows the canonical CycleGAN preprocessing: images are first
-                resized to ``(patch_size + 30) × (patch_size + 30)`` and then a
-                random square crop of ``patch_size`` is taken, matching the
-                standard 286→256 pipeline from Zhu et al. (2017).
+            patch_size: Side length of the square random crops (default: 128).
         """
         if not os.path.isdir(source_dir):
             raise FileNotFoundError(
@@ -57,10 +53,8 @@ class UnpairedImageDataset(Dataset):
                 if f.lower().endswith((".png", ".jpg", ".jpeg"))
             ]
         )
-        load_size = patch_size + 30
         self.transform = T.Compose(
             [
-                T.Resize((load_size, load_size)),
                 T.RandomCrop(patch_size),
                 T.RandomHorizontalFlip(),
                 T.ToTensor(),
