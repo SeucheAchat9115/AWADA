@@ -92,7 +92,9 @@ class AWADA(CyCada):
         Args:
             lambda_cyc: Weight for the cycle-consistency loss.
             lambda_gan: Weight for the adversarial GAN loss.
-            lambda_idt: Weight for the identity loss (0 disables it).
+            lambda_idt: Identity-loss ratio relative to the cycle loss (0
+                disables it).  Effective weight = ``lambda_idt × lambda_cyc``;
+                the canonical value of 0.5 gives 0.5 × 10 = 5.
             lambda_sem: Weight for the semantic consistency loss (0 disables it).
 
         Returns:

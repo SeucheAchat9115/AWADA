@@ -11,14 +11,16 @@ betas: [0.5, 0.999]
 # Loss weights
 lambda_gan: 1.0
 lambda_cyc: 10.0
-# Identity loss weight (0.0 = disabled; typically 5.0 when used)
-lambda_idt: 0.0
+# Identity-loss ratio relative to the cycle loss (0.0 = disabled).
+# Effective weight = lambda_idt × lambda_cyc; the canonical CycleGAN value of
+# 0.5 gives an effective weight of 0.5 × 10 = 5, matching Zhu et al. (2017).
+lambda_idt: 0.5
 # Semantic consistency loss weight (0.0 = disabled, no DeepLabV3 instantiated)
 lambda_sem: 0.0
 
 # Data loading
 batch_size: 1
-patch_size: 128
+patch_size: 256
 # Resize images so the shortest side equals this value (pixels) before detection training/eval
 resize_min_side: 600
 
