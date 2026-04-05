@@ -149,16 +149,7 @@ def main():
             "Required when --val_dataset is different from --dataset."
         ),
     )
-    parser.add_argument(
-        "--val_classes",
-        nargs="+",
-        default=None,
-        help=(
-            "Class names to include for the validation dataset "
-            "(cityscapes only, e.g. --val_classes car). "
-            "Defaults to --classes if not specified."
-        ),
-    )
+
     args = parser.parse_args()
 
     if args.val_dataset is not None and args.val_dataset != args.dataset and args.val_data_root is None:
@@ -182,12 +173,11 @@ def main():
     # In a domain adaptation setting, validate on the target dataset when specified.
     val_dataset_name = args.val_dataset if args.val_dataset is not None else args.dataset
     val_data_root = args.val_data_root if args.val_data_root is not None else args.data_root
-    val_classes = args.val_classes if args.val_classes is not None else args.classes
     val_dataset = get_dataset(
         val_dataset_name,
         val_data_root,
         split="val",
-        classes=val_classes,
+        classes=args.classes,
         transforms=resize_transform,
     )
 

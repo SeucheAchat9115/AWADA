@@ -132,8 +132,7 @@ python tools/train_detector.py \
     --device cuda \
     --pretrained \
     --val_dataset "$TARGET_DATASET" \
-    --val_data_root "$TARGET_ROOT" \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--val_classes car")
+    --val_data_root "$TARGET_ROOT"
 
 # Step 5: Generate target attention maps using the CyCada detector on real target images
 echo "[Step 5] Generating target RPN attention maps from CyCada detector..."
@@ -185,8 +184,7 @@ python tools/train_detector.py \
     --device cuda \
     --pretrained \
     --val_dataset "$TARGET_DATASET" \
-    --val_data_root "$TARGET_ROOT" \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--val_classes car")
+    --val_data_root "$TARGET_ROOT"
 
 # Step 9: Evaluate on target domain
 echo "[Step 9] Evaluating on target domain..."
