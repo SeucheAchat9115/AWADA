@@ -186,17 +186,4 @@ python tools/train_detector.py \
     --val_dataset "$TARGET_DATASET" \
     --val_data_root "$TARGET_ROOT"
 
-# Step 9: Evaluate on target domain
-echo "[Step 9] Evaluating on target domain..."
-python tools/evaluate_detector.py \
-    --detector_checkpoint "$DETECTOR_OUTPUT/detector_final.pth" \
-    --dataset "$TARGET_DATASET" \
-    --data_root "$TARGET_ROOT" \
-    --num_classes "$NUM_CLASSES" \
-    --output_dir "$DETECTOR_OUTPUT" \
-    --device cuda \
-    --label "Experiment C: AWADA" \
-    --benchmark "$BENCHMARK" \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
-
 echo "Experiment C (AWADA) complete!"

@@ -59,17 +59,4 @@ python tools/train_detector.py \
     --val_dataset "$TARGET_DATASET" \
     --val_data_root "$TARGET_ROOT"
 
-echo ""
-echo "[Step 2] Evaluating on target domain (cross-domain, no adaptation)..."
-python tools/evaluate_detector.py \
-    --detector_checkpoint "$OUTPUT_DIR/detector_final.pth" \
-    --dataset "$TARGET_DATASET" \
-    --data_root "$TARGET_ROOT" \
-    --num_classes "$NUM_CLASSES" \
-    --output_dir "$OUTPUT_DIR" \
-    --device cuda \
-    --label "Experiment A: Non-Adaptive Baseline" \
-    --benchmark "$BENCHMARK" \
-    $([ "$BENCHMARK" = "sim10k_to_cityscapes" ] && echo "--classes car")
-
 echo "Experiment A complete!"

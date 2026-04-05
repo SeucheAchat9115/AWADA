@@ -203,6 +203,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
     scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
 
+    final_metrics = None
     for epoch in range(args.epochs):
         logger.info("--- Epoch %d/%d ---", epoch + 1, args.epochs)
         model.train()
@@ -277,11 +278,20 @@ def main():
             )
             for cat_id, ap in sorted(metrics["per_class_AP"].items()):
                 logger.info("  Class %d AP@0.5:0.95=%.4f", cat_id, ap)
+            final_metrics = metrics
 
     # Save final model
     final_path = os.path.join(args.output_dir, "detector_final.pth")
     torch.save(model.state_dict(), final_path)
     logger.info("Final model saved to %s", final_path)
+
+    # Write final validation metrics to results.txt
+    if val_loader is not None and final_metrics is not None:
+        results_path = os.path.join(args.output_dir, "results.txt")
+        with open(results_path, "w") as f:
+            f.write(f"mAP@0.5: {final_metrics['mAP@0.5']:.4f}\n")
+            f.write(f"mAP@0.5:0.95: {final_metrics['mAP@0.5:0.95']:.4f}\n")
+        logger.info("Results saved to %s", results_path)
 
 
 if __name__ == "__main__":
