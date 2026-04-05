@@ -34,9 +34,8 @@ class Bdd100kDetectionDataset(Dataset):
         │       ├── train/   # JPEG images
         │       └── val/
         └── labels/
-            └── det_20/
-                ├── det_train.json
-                └── det_val.json
+            ├── bdd100k_labels_images_train.json
+            └── bdd100k_labels_images_val.json
 
     The ``image_root`` parameter lets you point to a *flat* directory of
     stylized images that use the same filenames as the originals (e.g. images
@@ -73,7 +72,7 @@ class Bdd100kDetectionDataset(Dataset):
         self.transforms = transforms
         self.samples = []
 
-        ann_path = os.path.join(root, "labels", "det_20", f"det_{split}.json")
+        ann_path = os.path.join(root, "labels", f"bdd100k_labels_images_{split}.json")
         img_base = (
             image_root if image_root is not None else os.path.join(root, "images", "100k", split)
         )

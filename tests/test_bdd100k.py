@@ -61,7 +61,7 @@ def _make_bdd100k_root(tmp_path, split="val", entries=None):
     annotation is created.
     """
     img_dir = tmp_path / "images" / "100k" / split
-    label_dir = tmp_path / "labels" / "det_20"
+    label_dir = tmp_path / "labels"
     img_dir.mkdir(parents=True)
     label_dir.mkdir(parents=True)
 
@@ -85,7 +85,7 @@ def _make_bdd100k_root(tmp_path, split="val", entries=None):
             img = Image.fromarray(np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8))
             img.save(str(img_dir / entry["name"]))
 
-    ann_path = label_dir / f"det_{split}.json"
+    ann_path = label_dir / f"bdd100k_labels_images_{split}.json"
     with open(str(ann_path), "w") as f:
         json.dump(entries, f)
 
@@ -197,7 +197,7 @@ class TestBdd100kDetectionDataset:
     def test_image_root_override(self, tmp_path):
         """image_root should allow loading images from a custom directory."""
         # Create the standard annotation structure
-        label_dir = tmp_path / "labels" / "det_20"
+        label_dir = tmp_path / "labels"
         label_dir.mkdir(parents=True)
         fname = "img.jpg"
         entries = [
@@ -208,7 +208,7 @@ class TestBdd100kDetectionDataset:
                 ],
             }
         ]
-        with open(str(label_dir / "det_val.json"), "w") as f:
+        with open(str(label_dir / "bdd100k_labels_images_val.json"), "w") as f:
             json.dump(entries, f)
 
         # Place the image in a custom directory (not the default one)

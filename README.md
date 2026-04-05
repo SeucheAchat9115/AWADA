@@ -106,9 +106,8 @@ Download from the [BDD100K dataset](https://bdd-data.berkeley.edu/) (requires re
 │       ├── train/    # JPEG images
 │       └── val/
 └── labels/
-    └── det_20/
-        ├── det_train.json
-        └── det_val.json
+    ├── bdd100k_labels_images_train.json
+    └── bdd100k_labels_images_val.json
 ```
 
 The Cityscapes → BDD100K benchmark uses 7 shared classes: **pedestrian, rider, car, truck, bus, motorcycle, bicycle**. The `train` class present in Cityscapes has no reliable equivalent in BDD100K and is excluded from both sides of the benchmark.
