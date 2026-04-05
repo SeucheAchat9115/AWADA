@@ -97,7 +97,13 @@ Download from the [Cityscapes dataset](https://www.cityscapes-dataset.com/) (Fog
 
 ### BDD100K
 
-Download from the [BDD100K dataset](https://bdd-data.berkeley.edu/) (requires registration). Expected structure:
+Download from the [BDD100K dataset](https://bdd-data.berkeley.edu/) (requires registration).
+
+The dataloader **automatically detects** the annotation format — no manual preprocessing is required.  Three annotation layouts are supported (tried in order):
+
+#### Option 1 — Pre-generated det_20 JSON (fastest)
+
+Use the detection-specific download (`bdd100k_det_20_labels_trainval.zip`):
 
 ```
 /data/bdd100k/
@@ -109,6 +115,71 @@ Download from the [BDD100K dataset](https://bdd-data.berkeley.edu/) (requires re
     └── det_20/
         ├── det_train.json
         └── det_val.json
+```
+
+#### Option 2 — Full scalabel labels (raw download)
+
+Use the full labels download (`bdd100k_labels_images_trainval.zip`).  The
+dataloader extracts the detection boxes automatically:
+
+```
+/data/bdd100k/
+├── images/
+│   └── 100k/
+│       ├── train/
+│       └── val/
+└── labels/
+    ├── bdd100k_labels_images_train.json
+    └── bdd100k_labels_images_val.json
+```
+
+#### Option 3 — CSV raw format (non-JSON)
+
+Prepare a flat CSV file with one bounding-box per row
+(columns: `name,category,x1,y1,x2,y2`).  This is useful when annotations
+come from custom tooling or are prepared manually:
+
+```
+/data/bdd100k/
+├── images/
+│   └── 100k/
+│       ├── train/
+│       └── val/
+└── labels/
+    └── det_20/
+        ├── det_train.csv
+        └── det_val.csv
+```
+
+Example CSV content:
+
+```
+name,category,x1,y1,x2,y2
+0000f77c-6257be58.jpg,car,498.1,155.5,512.0,169.5
+0000f77c-6257be58.jpg,pedestrian,100.0,50.0,130.0,150.0
+0001a0e2-8d4ad1e7.jpg,truck,20.0,30.0,100.0,80.0
+```
+
+#### Generating det_20 JSON from raw annotations
+
+You can also pre-generate the det_20 JSON from either of the raw formats
+(Options 2 or 3) using the `generate_det_json` utility — for example to
+cache the filtered result for faster subsequent loads:
+
+```python
+from awada.datasets.bdd100k import generate_det_json
+
+# From full scalabel labels
+generate_det_json(
+    "/data/bdd100k/labels/bdd100k_labels_images_train.json",
+    "/data/bdd100k/labels/det_20/det_train.json",
+)
+
+# From CSV
+generate_det_json(
+    "/data/bdd100k/labels/det_20/det_train.csv",
+    "/data/bdd100k/labels/det_20/det_train.json",
+)
 ```
 
 The Cityscapes → BDD100K benchmark uses 7 shared classes: **pedestrian, rider, car, truck, bus, motorcycle, bicycle**. The `train` class present in Cityscapes has no reliable equivalent in BDD100K and is excluded from both sides of the benchmark.
