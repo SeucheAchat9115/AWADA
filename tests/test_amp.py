@@ -149,19 +149,19 @@ def test_cyclegan_amp_code_path():
     model = CycleGAN(device=DEVICE)
     opt_G = torch.optim.Adam(list(model.G_AB.parameters()) + list(model.G_BA.parameters()), lr=2e-4)
     opt_D = torch.optim.Adam(list(model.D_A.parameters()) + list(model.D_B.parameters()), lr=2e-4)
-    scaler_G = torch.amp.GradScaler('cuda', enabled=False)
-    scaler_D = torch.amp.GradScaler('cuda', enabled=False)
+    scaler_G = torch.amp.GradScaler("cuda", enabled=False)
+    scaler_D = torch.amp.GradScaler("cuda", enabled=False)
 
     real_A, real_B = _make_gan_tensors()
 
-    with torch.amp.autocast('cuda', enabled=False):
+    with torch.amp.autocast("cuda", enabled=False):
         model.set_input(real_A, real_B)
         model.forward()
 
     for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
         p.requires_grad_(False)
     opt_G.zero_grad()
-    with torch.amp.autocast('cuda', enabled=False):
+    with torch.amp.autocast("cuda", enabled=False):
         g_losses = model.compute_generator_loss()
     scaler_G.scale(g_losses["total_G"]).backward()
     scaler_G.step(opt_G)
@@ -170,7 +170,7 @@ def test_cyclegan_amp_code_path():
     for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
         p.requires_grad_(True)
     opt_D.zero_grad()
-    with torch.amp.autocast('cuda', enabled=False):
+    with torch.amp.autocast("cuda", enabled=False):
         d_losses = model.compute_discriminator_loss()
     scaler_D.scale(d_losses["total_D"]).backward()
     scaler_D.step(opt_D)
@@ -185,21 +185,21 @@ def test_awada_amp_code_path():
     model = AWADA(device=DEVICE)
     opt_G = torch.optim.Adam(list(model.G_AB.parameters()) + list(model.G_BA.parameters()), lr=2e-4)
     opt_D = torch.optim.Adam(list(model.D_A.parameters()) + list(model.D_B.parameters()), lr=2e-4)
-    scaler_G = torch.amp.GradScaler('cuda', enabled=False)
-    scaler_D = torch.amp.GradScaler('cuda', enabled=False)
+    scaler_G = torch.amp.GradScaler("cuda", enabled=False)
+    scaler_D = torch.amp.GradScaler("cuda", enabled=False)
 
     real_A, real_B = _make_gan_tensors()
     att_A = torch.ones(BATCH_SIZE, 1, IMG_SIZE, IMG_SIZE)
     att_B = torch.ones(BATCH_SIZE, 1, IMG_SIZE, IMG_SIZE)
 
-    with torch.amp.autocast('cuda', enabled=False):
+    with torch.amp.autocast("cuda", enabled=False):
         model.set_input(real_A, real_B, attention_A=att_A, attention_B=att_B)
         model.forward()
 
     for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
         p.requires_grad_(False)
     opt_G.zero_grad()
-    with torch.amp.autocast('cuda', enabled=False):
+    with torch.amp.autocast("cuda", enabled=False):
         g_losses = model.compute_generator_loss()
     scaler_G.scale(g_losses["total_G"]).backward()
     scaler_G.step(opt_G)
@@ -208,7 +208,7 @@ def test_awada_amp_code_path():
     for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
         p.requires_grad_(True)
     opt_D.zero_grad()
-    with torch.amp.autocast('cuda', enabled=False):
+    with torch.amp.autocast("cuda", enabled=False):
         d_losses = model.compute_discriminator_loss()
     scaler_D.scale(d_losses["total_D"]).backward()
     scaler_D.step(opt_D)
@@ -220,8 +220,8 @@ def test_awada_amp_code_path():
 
 def test_gradscaler_state_dict_round_trip():
     """GradScaler state_dict can be saved and loaded (simulates checkpoint persistence)."""
-    scaler = torch.amp.GradScaler('cuda', enabled=False)
+    scaler = torch.amp.GradScaler("cuda", enabled=False)
     state = scaler.state_dict()
-    scaler2 = torch.amp.GradScaler('cuda', enabled=False)
+    scaler2 = torch.amp.GradScaler("cuda", enabled=False)
     scaler2.load_state_dict(state)
     assert scaler2.state_dict() == state

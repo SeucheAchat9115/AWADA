@@ -125,8 +125,8 @@ def main():
         opt_D, lr_lambda=lambda ep: get_lambda_lr(ep, n_epochs_stable, n_epochs_decay)
     )
 
-    scaler_G = torch.amp.GradScaler('cuda', enabled=args.amp)
-    scaler_D = torch.amp.GradScaler('cuda', enabled=args.amp)
+    scaler_G = torch.amp.GradScaler("cuda", enabled=args.amp)
+    scaler_D = torch.amp.GradScaler("cuda", enabled=args.amp)
 
     start_epoch = 0
     if args.resume:
@@ -164,7 +164,7 @@ def main():
         for iteration, (real_A, real_B) in enumerate(
             tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}")
         ):
-            with torch.amp.autocast('cuda', enabled=args.amp):
+            with torch.amp.autocast("cuda", enabled=args.amp):
                 model.set_input(real_A, real_B)
                 model.forward()
 
@@ -172,7 +172,7 @@ def main():
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(False)
             opt_G.zero_grad()
-            with torch.amp.autocast('cuda', enabled=args.amp):
+            with torch.amp.autocast("cuda", enabled=args.amp):
                 g_losses = model.compute_generator_loss(
                     lambda_cyc, lambda_gan, lambda_idt, lambda_sem
                 )
@@ -190,7 +190,7 @@ def main():
             for p in list(model.D_A.parameters()) + list(model.D_B.parameters()):
                 p.requires_grad_(True)
             opt_D.zero_grad()
-            with torch.amp.autocast('cuda', enabled=args.amp):
+            with torch.amp.autocast("cuda", enabled=args.amp):
                 d_losses = model.compute_discriminator_loss()
             for loss_name, loss_val in d_losses.items():
                 if not torch.isfinite(loss_val):
