@@ -1304,3 +1304,400 @@ class TestRunningLossLogging:
         assert len(interval_logs) == 2
         assert "G=2.000" in interval_logs[0]
         assert "G=6.000" in interval_logs[1]
+
+    # ------------------------------------------------------------------
+    # Semantic consistency loss logging (train_cycada and train_awada)
+    # ------------------------------------------------------------------
+
+    def _make_g_d_losses_with_sem(self, g_vals, sem_vals, d_vals):
+        """Build mock loss sequences that include sem_AB / sem_BA keys."""
+        g_seq = [
+            {
+                "total_G": torch.tensor(g, requires_grad=True),
+                "cycle_A": torch.tensor(0.1),
+                "cycle_B": torch.tensor(0.1),
+                "sem_AB": torch.tensor(s / 2),
+                "sem_BA": torch.tensor(s / 2),
+            }
+            for g, s in zip(g_vals, sem_vals)
+        ]
+        d_seq = [{"total_D": torch.tensor(v, requires_grad=True)} for v in d_vals]
+        return g_seq, d_seq
+
+    def test_cycada_sem_loss_logged_when_lambda_sem_nonzero(self, tmp_path, caplog):
+        """When lambda_sem > 0, interval log must include sem= field."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        # sem_AB=0.2, sem_BA=0.2 per iter -> combined sem = 0.4; avg over 2 = 0.4
+        g_seq, d_seq = self._make_g_d_losses_with_sem([1.0, 3.0], [0.4, 0.4], [0.5, 0.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cycada import main as cycada_main
+
+        with (
+            patch("tools.train_cycada.CyCada", return_value=mock_model),
+            patch("tools.train_cycada.DataLoader", return_value=self._cyclegan_batches(2)),
+            patch("tools.train_cycada.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cycada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--lambda_sem",
+                    "1.0",
+                    "--config",
+                    str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cycada_main()
+
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
+        assert len(interval_logs) == 1
+        assert "sem=" in interval_logs[0]
+        assert "sem=0.400" in interval_logs[0]
+
+    def test_cycada_sem_loss_not_logged_when_lambda_sem_zero(self, tmp_path, caplog):
+        """When lambda_sem = 0, interval log must NOT include sem= field."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0], [0.5, 0.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cycada import main as cycada_main
+
+        with (
+            patch("tools.train_cycada.CyCada", return_value=mock_model),
+            patch("tools.train_cycada.DataLoader", return_value=self._cyclegan_batches(2)),
+            patch("tools.train_cycada.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cycada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--lambda_sem",
+                    "0.0",
+                    "--config",
+                    str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cycada_main()
+
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
+        assert len(interval_logs) == 1
+        assert "sem=" not in interval_logs[0]
+
+    def test_cycada_epoch_summary_includes_sem_when_enabled(self, tmp_path, caplog):
+        """Epoch-end summary must include avg sem loss= when lambda_sem > 0."""
+        import logging
+
+        g_seq, d_seq = self._make_g_d_losses_with_sem([1.0], [0.6], [0.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cycada import main as cycada_main
+
+        with (
+            patch("tools.train_cycada.CyCada", return_value=mock_model),
+            patch("tools.train_cycada.DataLoader", return_value=self._cyclegan_batches(1)),
+            patch("tools.train_cycada.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cycada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--lambda_sem",
+                    "1.0",
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cycada_main()
+
+        epoch_logs = [
+            r.message for r in caplog.records if "Epoch" in r.message and "complete" in r.message
+        ]
+        assert len(epoch_logs) == 1
+        assert "avg sem loss=" in epoch_logs[0]
+
+    def test_awada_sem_loss_logged_when_lambda_sem_nonzero(self, tmp_path, caplog):
+        """When lambda_sem > 0, AWADA interval log must include sem= field."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        g_seq, d_seq = self._make_g_d_losses_with_sem([1.0, 3.0], [0.4, 0.4], [0.5, 0.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_awada import main as awada_main
+
+        with (
+            patch("tools.train_awada.AWADA", return_value=mock_model),
+            patch("tools.train_awada.DataLoader", return_value=self._awada_batches(2)),
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--lambda_sem",
+                    "1.0",
+                    "--config",
+                    str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            awada_main()
+
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
+        assert len(interval_logs) == 1
+        assert "sem=" in interval_logs[0]
+        assert "sem=0.400" in interval_logs[0]
+
+    def test_awada_sem_loss_not_logged_when_lambda_sem_zero(self, tmp_path, caplog):
+        """When lambda_sem = 0, AWADA interval log must NOT include sem= field."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0], [0.5, 0.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_awada import main as awada_main
+
+        with (
+            patch("tools.train_awada.AWADA", return_value=mock_model),
+            patch("tools.train_awada.DataLoader", return_value=self._awada_batches(2)),
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--lambda_sem",
+                    "0.0",
+                    "--config",
+                    str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            awada_main()
+
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
+        assert len(interval_logs) == 1
+        assert "sem=" not in interval_logs[0]
+
+    def test_awada_epoch_summary_includes_sem_when_enabled(self, tmp_path, caplog):
+        """Epoch-end summary must include avg sem loss= when lambda_sem > 0."""
+        import logging
+
+        g_seq, d_seq = self._make_g_d_losses_with_sem([1.0], [0.6], [0.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_awada import main as awada_main
+
+        with (
+            patch("tools.train_awada.AWADA", return_value=mock_model),
+            patch("tools.train_awada.DataLoader", return_value=self._awada_batches(1)),
+            patch("tools.train_awada.AttentionPairedDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_awada.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--source_attention_dir",
+                    str(tmp_path),
+                    "--target_attention_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--lambda_sem",
+                    "1.0",
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            awada_main()
+
+        epoch_logs = [
+            r.message for r in caplog.records if "Epoch" in r.message and "complete" in r.message
+        ]
+        assert len(epoch_logs) == 1
+        assert "avg sem loss=" in epoch_logs[0]
+
+    # ------------------------------------------------------------------
+    # Identity loss logging (train_cyclegan)
+    # ------------------------------------------------------------------
+
+    def _make_g_d_losses_with_idt(self, g_vals, idt_vals, d_vals):
+        """Build mock loss sequences that include idt_A / idt_B keys."""
+        g_seq = [
+            {
+                "total_G": torch.tensor(g, requires_grad=True),
+                "cycle_A": torch.tensor(0.1),
+                "cycle_B": torch.tensor(0.1),
+                "idt_A": torch.tensor(i / 2),
+                "idt_B": torch.tensor(i / 2),
+            }
+            for g, i in zip(g_vals, idt_vals)
+        ]
+        d_seq = [{"total_D": torch.tensor(v, requires_grad=True)} for v in d_vals]
+        return g_seq, d_seq
+
+    def test_cyclegan_idt_loss_logged_when_lambda_idt_nonzero(self, tmp_path, caplog):
+        """When lambda_idt > 0, CycleGAN interval log must include idt= field."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        # idt_A=0.2, idt_B=0.2 per iter -> combined idt = 0.4; avg over 2 = 0.4
+        g_seq, d_seq = self._make_g_d_losses_with_idt([1.0, 3.0], [0.4, 0.4], [0.5, 0.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cyclegan import main as cyclegan_main
+
+        with (
+            patch("tools.train_cyclegan.CycleGAN", return_value=mock_model),
+            patch("tools.train_cyclegan.DataLoader", return_value=self._cyclegan_batches(2)),
+            patch("tools.train_cyclegan.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cyclegan.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--lambda_idt",
+                    "0.5",
+                    "--config",
+                    str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cyclegan_main()
+
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
+        assert len(interval_logs) == 1
+        assert "idt=" in interval_logs[0]
+        assert "idt=0.400" in interval_logs[0]
+
+    def test_cyclegan_idt_loss_not_logged_when_lambda_idt_zero(self, tmp_path, caplog):
+        """When lambda_idt = 0, CycleGAN interval log must NOT include idt= field."""
+        import logging
+
+        config_path = tmp_path / "cfg.yaml"
+        config_path.write_text("log_interval: 2\n")
+
+        g_seq, d_seq = self._make_g_d_losses([1.0, 3.0], [0.5, 0.5])
+        mock_model = _make_full_mock_model_with_side_effects(g_seq, d_seq)
+
+        from tools.train_cyclegan import main as cyclegan_main
+
+        with (
+            patch("tools.train_cyclegan.CycleGAN", return_value=mock_model),
+            patch("tools.train_cyclegan.DataLoader", return_value=self._cyclegan_batches(2)),
+            patch("tools.train_cyclegan.UnpairedImageDataset"),
+            patch(
+                "sys.argv",
+                [
+                    "train_cyclegan.py",
+                    "--source_dir",
+                    str(tmp_path),
+                    "--target_dir",
+                    str(tmp_path),
+                    "--output_dir",
+                    str(tmp_path),
+                    "--epochs",
+                    "1",
+                    "--lambda_idt",
+                    "0.0",
+                    "--config",
+                    str(config_path),
+                ],
+            ),
+            caplog.at_level(logging.INFO),
+        ):
+            cyclegan_main()
+
+        interval_logs = [
+            r.message for r in caplog.records if "[Epoch" in r.message and "Iter" in r.message
+        ]
+        assert len(interval_logs) == 1
+        assert "idt=" not in interval_logs[0]

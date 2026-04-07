@@ -243,10 +243,11 @@ def main():
             epoch_iters += 1
             if (iteration + 1) % args.log_interval == 0:
                 logger.info(
-                    "  [Epoch %d, Iter %d] Loss: %.4f",
+                    "  [Epoch %d, Iter %d] Loss: %.4f (%s)",
                     epoch + 1,
                     iteration + 1,
                     running_loss / args.log_interval,
+                    "  ".join(f"{k}={v.item():.4f}" for k, v in loss_dict.items()),
                 )
                 running_loss = 0.0
 
