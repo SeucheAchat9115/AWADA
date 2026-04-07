@@ -205,7 +205,7 @@ def main():
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=0.9, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
-    scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
+    scaler = torch.amp.GradScaler('cuda', enabled=args.amp)
 
     final_metrics = None
     for epoch in range(args.epochs):
@@ -229,7 +229,7 @@ def main():
                 continue
             images, targets = zip(*valid)
 
-            with torch.cuda.amp.autocast(enabled=args.amp):
+            with torch.amp.autocast('cuda', enabled=args.amp):
                 loss_dict = model(list(images), list(targets))
                 losses = sum(loss_dict.values())
 
