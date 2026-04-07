@@ -222,44 +222,28 @@ def main():
             num_iters += 1
 
             if (iteration + 1) % log_interval == 0:
+                msg = "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f" % (
+                    epoch + 1,
+                    iteration + 1,
+                    running_loss_G / log_interval,
+                    running_loss_D / log_interval,
+                    g_losses["cycle_A"].item() + g_losses["cycle_B"].item(),
+                )
                 if lambda_sem > 0:
-                    logger.info(
-                        "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f sem=%.3f",
-                        epoch + 1,
-                        iteration + 1,
-                        running_loss_G / log_interval,
-                        running_loss_D / log_interval,
-                        g_losses["cycle_A"].item() + g_losses["cycle_B"].item(),
-                        running_loss_sem / log_interval,
-                    )
-                else:
-                    logger.info(
-                        "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f",
-                        epoch + 1,
-                        iteration + 1,
-                        running_loss_G / log_interval,
-                        running_loss_D / log_interval,
-                        g_losses["cycle_A"].item() + g_losses["cycle_B"].item(),
-                    )
+                    msg += " sem=%.3f" % (running_loss_sem / log_interval,)
+                logger.info(msg)
                 running_loss_G = 0.0
                 running_loss_D = 0.0
                 running_loss_sem = 0.0
 
+        msg = "Epoch %d complete | avg G loss=%.4f | avg D loss=%.4f" % (
+            epoch + 1,
+            epoch_loss_G / max(num_iters, 1),
+            epoch_loss_D / max(num_iters, 1),
+        )
         if lambda_sem > 0:
-            logger.info(
-                "Epoch %d complete | avg G loss=%.4f | avg D loss=%.4f | avg sem loss=%.4f",
-                epoch + 1,
-                epoch_loss_G / max(num_iters, 1),
-                epoch_loss_D / max(num_iters, 1),
-                epoch_loss_sem / max(num_iters, 1),
-            )
-        else:
-            logger.info(
-                "Epoch %d complete | avg G loss=%.4f | avg D loss=%.4f",
-                epoch + 1,
-                epoch_loss_G / max(num_iters, 1),
-                epoch_loss_D / max(num_iters, 1),
-            )
+            msg += " | avg sem loss=%.4f" % (epoch_loss_sem / max(num_iters, 1),)
+        logger.info(msg)
 
         sched_G.step()
         sched_D.step()
