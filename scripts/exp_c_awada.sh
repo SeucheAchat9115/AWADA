@@ -12,7 +12,7 @@
 #   7. Train final detector on AWADA-stylized images.
 #   8. Evaluate on target domain.
 #
-# Usage: bash scripts/exp_c_awada.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_c_awada.sh [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]
 
 set -euo pipefail
 
@@ -153,7 +153,7 @@ echo "[Step 6] Training AWADA CycleGAN with source and target attention maps..."
 python tools/train_awada.py \
     --source_dir "$SOURCE_IMAGES" \
     --target_dir "$TARGET_IMAGES" \
-    --attention_dir "$SOURCE_ATTENTION_DIR" \
+    --source_attention_dir "$SOURCE_ATTENTION_DIR" \
     --target_attention_dir "$TARGET_ATTENTION_DIR" \
     --output_dir "$AWADA_GAN_OUTPUT" \
     --config configs/awada.yaml \

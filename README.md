@@ -185,7 +185,7 @@ Before training the AWADA CycleGAN you need binary foreground attention masks fo
 | `--data_root` | ✓ | — | Root directory of the source dataset |
 | `--output_dir` | ✓ | — | Directory where `.npy` attention maps are written |
 | `--num_classes` | ✓ | — | Number of foreground classes (1 for sim10k, 8 for Cityscapes) |
-| `--top_k` | | `10` | Number of top RPN proposals used to build each mask |
+| `--score_threshold` | | `0.5` | Minimum objectness score for an RPN proposal to contribute to the mask |
 | `--split` | | `train` | Dataset split to process (`train` / `val`) |
 | `--device` | | `cuda` | Compute device (`cuda` or `cpu`) |
 
@@ -199,7 +199,7 @@ python tools/generate_attention_maps.py \
     --data_root          /data/sim10k \
     --output_dir         outputs/exp_c_sim10k2cs/attention_maps \
     --num_classes        1 \
-    --top_k              10 \
+    --score_threshold    0.5 \
     --split              train \
     --device             cuda
 
@@ -210,7 +210,7 @@ python tools/generate_attention_maps.py \
     --data_root          /data/cityscapes \
     --output_dir         outputs/exp_c_cs2foggy/attention_maps \
     --num_classes        8 \
-    --top_k              10 \
+    --score_threshold    0.5 \
     --split              train \
     --device             cuda
 
@@ -221,7 +221,7 @@ python tools/generate_attention_maps.py \
     --data_root          /data/cityscapes \
     --output_dir         outputs/exp_c_cs2bdd/source_attention_maps \
     --num_classes        7 \
-    --top_k              10 \
+    --score_threshold    0.5 \
     --split              train \
     --device             cuda
 
@@ -232,12 +232,12 @@ python tools/generate_attention_maps.py \
     --data_root          /data/bdd100k \
     --output_dir         outputs/exp_c_cs2bdd/target_attention_maps \
     --num_classes        7 \
-    --top_k              10 \
+    --score_threshold    0.5 \
     --split              train \
     --device             cuda
 ```
 
-The generated masks are automatically consumed by `tools/train_awada.py` via the `--attention_dir` flag. When running Experiment C end-to-end, `scripts/exp_c_awada.sh` calls this script automatically; the examples above are useful when you need to regenerate or inspect the masks independently.
+The generated masks are automatically consumed by `tools/train_awada.py` via the `--source_attention_dir` flag. When running Experiment C end-to-end, `scripts/exp_c_awada.sh` calls this script automatically; the examples above are useful when you need to regenerate or inspect the masks independently.
 
 ## Project Structure
 
@@ -315,10 +315,10 @@ lr: 0.0002
 betas: [0.5, 0.999]
 lambda_cyc: 10.0
 lambda_gan: 1.0
-lambda_idt: 0.0
+lambda_idt: 0.5
 lambda_sem: 1.0
 batch_size: 1
-patch_size: 128
+patch_size: 256
 device: cuda
 ```
 
@@ -372,12 +372,13 @@ python tools/train_cycada.py \
 
 # Resume AWADA from epoch 75
 python tools/train_awada.py \
-    --source_dir         /data/sim10k/images \
-    --target_dir         /data/cityscapes/leftImg8bit/train \
-    --attention_dir      outputs/attention_maps \
-    --output_dir         outputs/awada \
-    --epochs             200 \
-    --resume             outputs/awada/awada_epoch_75.pth
+    --source_dir              /data/sim10k/images \
+    --target_dir              /data/cityscapes/leftImg8bit/train \
+    --source_attention_dir    outputs/source_attention_maps \
+    --target_attention_dir    outputs/target_attention_maps \
+    --output_dir              outputs/awada \
+    --epochs                  200 \
+    --resume                  outputs/awada/awada_epoch_75.pth
 ```
 
 `--epochs` must still be set to the **total** number of epochs for the run (not the number of remaining epochs). Training will skip epochs already completed according to the checkpoint.
