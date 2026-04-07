@@ -36,6 +36,12 @@ Or install in an existing environment:
 uv pip install -e .
 ```
 
+> **Windows + CUDA**: On Windows, `torch` and `torchvision` are automatically installed from
+> the PyTorch CUDA 12.1 wheel index (`https://download.pytorch.org/whl/cu121`) so that
+> GPU support is enabled out of the box.  Simply run `uv sync` as above — no extra steps
+> are needed.  On Linux, PyPI already ships CUDA-enabled wheels for `torch`, so the
+> behaviour is unchanged there.
+
 ### pyproject.toml
 
 ```toml
@@ -53,6 +59,19 @@ dependencies = [
     "pycocotools>=2.0.7",
     "pyyaml>=6.0",
 ]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'win32'" },
+]
+torchvision = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
 ```
 
 ## Dataset Setup
