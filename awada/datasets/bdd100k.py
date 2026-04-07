@@ -24,7 +24,7 @@ class Bdd100kDetectionDataset(Dataset):
 
     Only the seven classes shared with Cityscapes are kept (the "train" class
     present in Cityscapes is absent from this mapping).  Labels are 1-indexed
-    and match :data:`src.datasets.cityscapes.CITYSCAPES_BDD100K_LABEL_MAP`.
+    and match :data:`awada.datasets.cityscapes.CITYSCAPES_BDD100K_LABEL_MAP`.
 
     Expected directory structure::
 

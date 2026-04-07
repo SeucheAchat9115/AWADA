@@ -1,7 +1,7 @@
 #!/bin/bash
 # Experiment D: Oracle (Upper Bound)
 # Train Faster R-CNN on target domain with labels, evaluate on target domain
-# Usage: bash scripts/exp_d_oracle.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_d_oracle.sh [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]
 
 set -euo pipefail
 

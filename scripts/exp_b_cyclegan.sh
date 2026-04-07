@@ -1,7 +1,7 @@
 #!/bin/bash
 # Experiment B: Standard CycleGAN Domain Adaptation
 # Train CycleGAN, stylize source images, train new detector on stylized data
-# Usage: bash scripts/exp_b_cyclegan.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_b_cyclegan.sh [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]
 
 set -euo pipefail
 
@@ -60,7 +60,7 @@ python tools/train_cyclegan.py \
     --batch_size 1 \
     --lr 0.0002 \
     --lambda_cyc 10.0 \
-    --lambda_idt 5.0 \
+    --lambda_idt 0.5 \
     --device cuda
 
 # Step 2: Stylize source images

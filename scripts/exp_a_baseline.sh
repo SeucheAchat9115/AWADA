@@ -1,7 +1,7 @@
 #!/bin/bash
 # Experiment A: Non-Adaptive Baseline
 # Train Faster R-CNN on source domain, evaluate directly on target domain
-# Usage: bash scripts/exp_a_baseline.sh [sim10k_to_cityscapes|cityscapes_to_foggy]
+# Usage: bash scripts/exp_a_baseline.sh [sim10k_to_cityscapes|cityscapes_to_foggy|cityscapes_to_bdd100k]
 
 set -euo pipefail
 
