@@ -198,14 +198,16 @@ def main():
             num_iters += 1
 
             if (iteration + 1) % log_interval == 0:
-                logger.info(
-                    "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f",
+                msg = "  [Epoch %d, Iter %d] G=%.3f D=%.3f cyc=%.3f" % (
                     epoch + 1,
                     iteration + 1,
                     running_loss_G / log_interval,
                     running_loss_D / log_interval,
                     g_losses["cycle_A"].item() + g_losses["cycle_B"].item(),
                 )
+                if lambda_idt > 0:
+                    msg += " idt=%.3f" % (g_losses["idt_A"].item() + g_losses["idt_B"].item(),)
+                logger.info(msg)
                 running_loss_G = 0.0
                 running_loss_D = 0.0
 
